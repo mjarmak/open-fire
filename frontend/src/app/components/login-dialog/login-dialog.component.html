@@ -1,0 +1,33 @@
+@if (state.loginDialogOpen) {
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop (mousedown)="$event.target === $event.currentTarget && closeDialog.emit()">
+    <section class="edit-dialog" role="dialog" aria-modal="true" aria-labelledby="login-title" @dialogPanel (click)="$event.stopPropagation()">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">Account</p>
+          <h2 id="login-title">{{ state.authDialogTitle }}</h2>
+        </div>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
+      </div>
+
+      <form class="edit-form" (ngSubmit)="submitDialog.emit()">
+        <label>
+          <span>User</span>
+          <input name="username" autocomplete="username" [(ngModel)]="state.username" />
+        </label>
+        <label>
+          <span>Password</span>
+          <input name="password" type="password" autocomplete="current-password" [(ngModel)]="state.password" />
+        </label>
+        <label class="remember-login">
+          <input name="rememberLogin" type="checkbox" [(ngModel)]="state.rememberLogin" />
+          <span>Remember username and password</span>
+        </label>
+
+        <div class="dialog-actions">
+          <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+          <button type="submit" [disabled]="!state.canSubmitAuth">{{ state.authSubmitLabel }}</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

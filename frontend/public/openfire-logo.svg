@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="openfireLogoTitle openfireLogoDesc">
+  <title id="openfireLogoTitle">OpenFIRE logo</title>
+  <desc id="openfireLogoDesc">A flame-shaped shield with an upward market line and sunrise.</desc>
+  <defs>
+    <linearGradient id="openfire-bg" x1="34" y1="20" x2="126" y2="144" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2f65b4"/>
+      <stop offset="0.55" stop-color="#263e67"/>
+      <stop offset="1" stop-color="#8f3434"/>
+    </linearGradient>
+    <linearGradient id="openfire-flame" x1="55" y1="34" x2="104" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff5cf"/>
+      <stop offset="0.46" stop-color="#f0bf58"/>
+      <stop offset="1" stop-color="#e55a4d"/>
+    </linearGradient>
+  </defs>
+  <path
+    fill="url(#openfire-bg)"
+    d="M80 9c31.5 0 57 25.5 57 57 0 46.7-40.9 72.7-54 80.1a6.3 6.3 0 0 1-6.1 0C63.9 138.7 23 112.7 23 66 23 34.5 48.5 9 80 9Z"
+  />
+  <path
+    fill="none"
+    stroke="#dfe9f7"
+    stroke-linecap="round"
+    stroke-width="7"
+    d="M48 103 68 83l18 14 27-38"
+  />
+  <path
+    fill="none"
+    stroke="#dfe9f7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="7"
+    d="M103 60h12v12"
+  />
+  <path
+    fill="url(#openfire-flame)"
+    d="M80.3 119.5c-17.1 0-30.4-11.3-30.4-28.7 0-9.9 5.3-18.5 13-25.8 6.2-5.9 11.3-15.7 9.2-26.2-.3-1.6 1.4-2.9 2.8-2 17.4 10.8 37.3 28 36.1 53.5-.8 17.1-13.8 29.2-30.7 29.2Z"
+  />
+  <path
+    fill="#27324e"
+    fill-opacity="0.78"
+    d="M81.2 110.4c-8.8 0-15.5-5.8-15.5-14.8 0-5.7 3.4-10.5 8.1-14.9 3.4-3.3 5.9-8.1 4.9-13.8-.2-1.3 1.1-2.3 2.2-1.6 9.5 6.2 17 15.1 16.5 29.3-.3 9.4-6.9 15.8-16.2 15.8Z"
+  />
+  <path
+    fill="none"
+    stroke="#fff7d7"
+    stroke-linecap="round"
+    stroke-width="5"
+    d="M63.5 91.5c8.3-8.7 17.7-12.9 31.9-13.1"
+  />
+</svg>

@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  postgres_sma:
+    image: postgres
+    container_name: postgres_sma
+    restart: always
+    ports:
+      - "5439:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: G@#$g4G#dwsfgfs
+      POSTGRES_DB: stock_analyzer
+    volumes:
+      - /var/data/db_sma:/var/lib/postgresql/data

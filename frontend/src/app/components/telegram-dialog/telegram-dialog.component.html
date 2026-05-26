@@ -1,0 +1,40 @@
+@if (state.telegramDialogOpen) {
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop (mousedown)="$event.target === $event.currentTarget && closeDialog.emit()">
+    <section class="edit-dialog" role="dialog" aria-modal="true" aria-labelledby="telegram-title" @dialogPanel (click)="$event.stopPropagation()">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">Alerts</p>
+          <h2 id="telegram-title">Telegram</h2>
+        </div>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
+      </div>
+
+      <form class="edit-form" (ngSubmit)="save.emit()">
+        <label>
+          <span>Chat ID</span>
+          <input name="telegramChatId" [(ngModel)]="state.telegramChatId" autocomplete="off" />
+        </label>
+        <small class="field-hint">
+          Start <strong>&#64;{{ state.telegramBotUsername }}</strong> in Telegram, then save your numeric chat ID here.
+          <br /><br />
+          <strong>How to find your numeric Chat ID:</strong>
+          <ol style="margin: 4px 0 0 16px; padding: 0; line-height: 1.4; display: flex; flex-direction: column; gap: 4px;">
+            <li>Search for <strong>&#64;userinfobot</strong> in Telegram.</li>
+            <li>Send them any message (or start them).</li>
+            <li>They will reply with your numeric ID (e.g. <code>582910482</code>). Copy that number here!</li>
+          </ol>
+        </small>
+
+        <div class="dialog-actions">
+          <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+          <button type="button" class="secondary" [disabled]="state.isSavingTelegram" (click)="test.emit()">
+            {{ state.isSavingTelegram ? 'Working' : 'Test' }}
+          </button>
+          <button type="submit" [disabled]="state.isSavingTelegram || !state.telegramChatId.trim()">
+            {{ state.isSavingTelegram ? 'Saving' : 'Save' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

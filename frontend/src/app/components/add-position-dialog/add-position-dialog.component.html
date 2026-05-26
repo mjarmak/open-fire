@@ -1,0 +1,79 @@
+@if (state.addDialogOpen) {
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop (click)="$event.target === $event.currentTarget && closeDialog.emit()">
+    <section class="edit-dialog" role="dialog" aria-modal="true" aria-labelledby="add-position-title" @dialogPanel (mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()">
+      <div class="dialog-heading">
+        <div>
+          <h2 id="add-position-title">Add Position</h2>
+        </div>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
+      </div>
+
+      <form class="edit-form" (ngSubmit)="save.emit()">
+        <div class="symbol-field">
+          <label class="field-label" for="symbol">Stock</label>
+          <input
+            id="symbol"
+            name="symbol"
+            autocomplete="off"
+            required
+            [(ngModel)]="state.symbolQuery"
+            (focus)="openDropdown.emit()"
+            (ngModelChange)="search.emit()"
+            placeholder="AAPL or Apple"
+          />
+          @if (state.showSymbolDropdown) {
+            <div class="symbol-dropdown" [class.refreshing]="state.symbolMessage === 'Searching Finnhub...'" role="listbox" aria-label="Stock search results">
+              @for (result of state.symbolSuggestions; track result.symbol) {
+                <button type="button" class="symbol-option" role="option" (click)="chooseSymbol.emit(result)">
+                  <strong>{{ result.symbol }}</strong>
+                  <span>{{ result.name }}</span>
+                  <small>{{ result.region }} - {{ result.currency }}</small>
+                </button>
+              } @empty {
+                <div class="symbol-empty">{{ state.symbolMessage }}</div>
+              }
+            </div>
+          }
+          <small class="field-hint">{{ state.symbolMessage }}</small>
+        </div>
+        <div class="watch-toggle">
+          <label
+            class="remember-login app-tooltip"
+            data-tooltip="Track this stock without position size, average cost, or P&L calculations."
+            aria-label="Track this stock without position size, average cost, or P&L calculations."
+          >
+            <input name="watchOnly" type="checkbox" [ngModel]="state.holdingForm.watchOnly" (ngModelChange)="state.setHoldingWatchOnly($event)" />
+            <span>Watch only</span>
+          </label>
+        </div>
+        <label [class.watch-mode-dim]="state.holdingForm.watchOnly">
+          <span>Position</span>
+          <input
+            name="quantity"
+            type="number"
+            min="0"
+            step="0.000001"
+            [(ngModel)]="state.holdingForm.quantity"
+            [disabled]="state.holdingForm.watchOnly"
+          />
+        </label>
+        <label [class.watch-mode-dim]="state.holdingForm.watchOnly">
+          <span>Avg Cost</span>
+          <input
+            name="averageCost"
+            type="number"
+            min="0"
+            step="0.01"
+            [(ngModel)]="state.holdingForm.averageCost"
+            [disabled]="state.holdingForm.watchOnly"
+          />
+        </label>
+
+        <div class="dialog-actions">
+          <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+          <button type="submit" [disabled]="!state.canSaveHolding">{{ state.isSavingHolding ? 'Saving' : 'Add' }}</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

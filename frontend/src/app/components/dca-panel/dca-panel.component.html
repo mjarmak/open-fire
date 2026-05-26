@@ -1,0 +1,31 @@
+@if (state.isLoggedIn) {
+  <section class="ticker-board dca-board" aria-label="DCA reminder settings">
+    <div class="dca-head">
+      <div class="dca-title-row">
+        <h2
+          class="app-tooltip"
+          data-tooltip="Dollar-Cost Averaging"
+          aria-label="Dollar-Cost Averaging"
+        >
+          DCA Reminder
+        </h2>
+        @if (state.hasLoadedDcaSettings && !state.isLoadingDca) {
+          <span class="dca-status" [class.enabled]="state.telegramDcaEnabled">
+            {{ state.telegramDcaEnabled ? 'Enabled' : 'Disabled' }}
+          </span>
+        }
+      </div>
+      <button type="button" class="secondary" (click)="configureDca.emit()">
+        Configure
+      </button>
+    </div>
+
+    @if (!state.hasLoadedDcaSettings || state.isLoadingDca) {
+      <small class="field-hint">Loading DCA reminder settings...</small>
+    } @else {
+      <div class="dca-row">
+        <p class="dca-note">{{ dcaSummaryText }}</p>
+      </div>
+    }
+  </section>
+}

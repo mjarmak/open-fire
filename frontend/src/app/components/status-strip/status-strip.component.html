@@ -1,0 +1,8 @@
+<section class="status-strip" aria-live="polite">
+  <span>Alerts: {{ state.alertCount }}</span>
+  <span>{{ state.dashboard.notification.provider }}:
+    {{ state.dashboard.notification.configured ? 'configured' : 'not configured' }}
+  </span>
+  <span>Holdings: {{ state.portfolio.length }}</span>
+  <span>As of {{ state.dashboard.asOf | date: 'medium' }}</span>
+</section>

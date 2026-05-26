@@ -1,0 +1,63 @@
+@if (state.retirementSettingsOpen) {
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop (mousedown)="$event.target === $event.currentTarget && closeDialog.emit()">
+    <section class="edit-dialog" role="dialog" aria-modal="true" aria-labelledby="retirement-settings-title" @dialogPanel (click)="$event.stopPropagation()">
+      <div class="dialog-heading">
+        <div>
+          <h2 id="retirement-settings-title">Retirement Settings</h2>
+        </div>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
+      </div>
+
+      <form class="edit-form" (ngSubmit)="save.emit()">
+        <label>
+          <span>Investing Start Date</span>
+          <input name="investingStartDate" type="date" required [(ngModel)]="state.draftInvestingStartDate" />
+        </label>
+        <small class="field-hint">When you started investing in the stock market. Used to compute actual CAGR.</small>
+
+        <label style="margin-top: 12px;">
+          <span>Initial Stock Market Deposit ($)</span>
+          <input name="otherSavings" type="number" min="0" required [(ngModel)]="state.draftOtherSavings" />
+        </label>
+        <small class="field-hint">Your initial starting capital deposited into the market.</small>
+
+        <label style="margin-top: 12px;">
+          <span>Desired Monthly Retirement Income ($)</span>
+          <input name="desiredMonthlyIncome" type="number" min="0" required [(ngModel)]="state.draftDesiredMonthlyIncome" />
+        </label>
+        <small class="field-hint">Target monthly cashflow in retirement.</small>
+
+        <label style="margin-top: 12px;">
+          <span>Safe Withdrawal Rate (%)</span>
+          <input name="safeWithdrawalRate" type="number" min="0.1" max="25" step="0.1" required [(ngModel)]="state.draftSafeWithdrawalRate" />
+        </label>
+        <small class="field-hint">Annual portfolio percentage used to convert target income into a required fund size.</small>
+
+        <label style="margin-top: 12px;">
+          <span>Monthly Contribution Savings ($)</span>
+          <input name="monthlySavings" type="number" min="0" required [(ngModel)]="state.draftMonthlySavings" />
+        </label>
+        <small class="field-hint">How much money you add to the stock market every month.</small>
+
+        <label style="margin-top: 12px;">
+          <span>Yearly Inflation (%)</span>
+          <input name="yearlyInflationRate" type="number" min="-20" max="50" step="0.1" required [(ngModel)]="state.draftYearlyInflationRate" />
+        </label>
+        <small class="field-hint">Inflates target retirement income and post-retirement withdrawals over time.</small>
+
+        <label style="margin-top: 12px;">
+          <span>Custom Desired Annual Return (%)</span>
+          <input name="customReturnRate" type="number" min="-50" max="100" step="0.1" required [(ngModel)]="state.draftCustomReturnRate" />
+        </label>
+        <small class="field-hint">Desired return rate for the custom projection line.</small>
+
+        <div class="dialog-actions" style="margin-top: 20px;">
+          <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+          <button type="submit" [disabled]="state.isSavingRetirement || !state.draftInvestingStartDate">
+            {{ state.isSavingRetirement ? 'Saving' : 'Save Settings' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

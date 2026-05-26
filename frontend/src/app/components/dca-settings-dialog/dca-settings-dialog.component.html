@@ -1,0 +1,70 @@
+@if (state.dcaDialogOpen) {
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop (mousedown)="$event.target === $event.currentTarget && closeDialog.emit()">
+    <section class="edit-dialog dca-dialog" role="dialog" aria-modal="true" aria-labelledby="dca-settings-title" @dialogPanel (click)="$event.stopPropagation()">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">DCA Reminder</p>
+          <h2 id="dca-settings-title">Configure</h2>
+        </div>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
+      </div>
+
+      <form class="edit-form" (ngSubmit)="save.emit()">
+        <label class="remember-login">
+          <input name="telegramDcaEnabled" type="checkbox" [(ngModel)]="state.draftTelegramDcaEnabled" />
+          <span>Enable Telegram DCA reminder</span>
+        </label>
+        <small class="field-hint">Disabled by default. Turn this on only if you want scheduled DCA messages in Telegram.</small>
+
+        <label>
+          <span>DCA Note (shown first in Telegram reminder)</span>
+          <textarea
+            name="dcaReminderNote"
+            rows="8"
+            [attr.maxlength]="state.dcaReminderMaxLength"
+            [(ngModel)]="state.draftDcaReminderNote"
+            placeholder="Follow your plan and buy consistently."
+          ></textarea>
+        </label>
+
+        <div class="dialog-actions dca-sample-actions">
+          <button type="button" class="secondary" (click)="openSuggestions.emit()">Suggest</button>
+          <span>{{ state.draftDcaReminderNote.length }}/{{ state.dcaReminderMaxLength }}</span>
+        </div>
+
+        <div class="dialog-actions">
+          <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+          <button type="submit" [disabled]="state.isSavingDca">
+            {{ state.isSavingDca ? 'Saving' : 'Save' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (state.dcaSuggestionDialogOpen) {
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop (mousedown)="$event.target === $event.currentTarget && closeSuggestions.emit()">
+    <section class="edit-dialog dca-suggestions-dialog" role="dialog" aria-modal="true" aria-labelledby="dca-suggestions-title" @dialogPanel (click)="$event.stopPropagation()">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">DCA Reminder</p>
+          <h2 id="dca-suggestions-title">Sample Suggestions</h2>
+        </div>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeSuggestions.emit()">x</button>
+      </div>
+
+      <div class="dca-sample-list">
+        @for (sample of state.dcaSuggestionCards; track sample.title) {
+          <article class="dca-sample-item">
+            <div>
+              <strong>{{ sample.title }}</strong>
+              <p>{{ sample.message }}</p>
+            </div>
+            <button type="button" class="secondary" (click)="copySuggestion.emit(sample.message)">Copy</button>
+          </article>
+        }
+      </div>
+    </section>
+  </div>
+}

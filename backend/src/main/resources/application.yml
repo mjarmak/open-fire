@@ -1,0 +1,33 @@
+server:
+  port: 8080
+
+app:
+  security:
+    username: ${APP_BASIC_USER:admin}
+    fixed-salt: ${APP_PASSWORD_SALT:stock-market-analyzer-fixed-salt}
+    password-hash: ${APP_PASSWORD_HASH:289c2e841c28c4832e2430b195c867455f9bbc9bb3408706074b357e8d8e8c1f}
+  market:
+    fred-api-key: ${FRED_API_KEY}
+    finnhub-api-key: ${FINNHUB_API_KEY}
+    breadth-symbols: ${BREADTH_SYMBOLS:SPY,QQQ,IWM,DIA,XLF,XLK,XLE,XLV,XLY,XLP}
+    cross-asset-symbols: ${CROSS_ASSET_SYMBOLS:SPY,TLT,GLD,UUP}
+    low-market-cap-threshold: ${LOW_MARKET_CAP_THRESHOLD:2000000000}
+    fast-rise-percent-threshold: ${FAST_RISE_PERCENT_THRESHOLD:35}
+    high-vix-threshold: ${HIGH_VIX_THRESHOLD:25}
+    high-pe-threshold: ${HIGH_PE_THRESHOLD:25}
+    high-beta-threshold: ${HIGH_BETA_THRESHOLD:1.5}
+    high-realized-volatility-threshold: ${HIGH_REALIZED_VOLATILITY_THRESHOLD:40}
+    high-drawdown-threshold: ${HIGH_DRAWDOWN_THRESHOLD:20}
+    stock-fear-score-threshold: ${STOCK_FEAR_SCORE_THRESHOLD:65}
+  database:
+    url: ${POSTGRES_URL:jdbc:postgresql://45.133.178.241:5432/open_fire}
+    username: ${POSTGRES_USER:admin}
+    password: nm[pv3[0%&#{!td745@#
+  telegram:
+    enabled: ${TELEGRAM_ENABLED:true}
+    bot-username: ${TELEGRAM_BOT_USERNAME:sma3141_bot}
+    bot-token: ${TELEGRAM_BOT_TOKEN:8629037780:AAFF30_UFWEYRY7XRDsWELER7X-S-ziQlq4}
+
+spring:
+  application:
+    name: open-fire-backend

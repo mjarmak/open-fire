@@ -1,0 +1,25 @@
+<section class="indicator-grid" aria-label="Macro market indicators">
+  @for (indicator of state.indicators; track indicator.id) {
+    <article class="indicator-card" [class.compact-indicator]="isCompactIndicator(indicator)" [ngClass]="statusClass(indicator.status)">
+      <div class="indicator-head">
+        <p>{{ indicator.category }}</p>
+        <h2>{{ indicator.name }}</h2>
+        @if (isCompactIndicator(indicator)) {
+          <button
+            type="button"
+            class="indicator-help app-tooltip"
+            [attr.data-tooltip]="indicator.description"
+            [attr.aria-label]="indicator.description"
+          >
+            i
+          </button>
+        }
+      </div>
+      <strong>{{ indicator.value }}</strong>
+      <span>{{ indicator.unit }}</span>
+      @if (!isCompactIndicator(indicator)) {
+      <small>{{ indicator.description }}</small>
+      }
+    </article>
+  }
+</section>

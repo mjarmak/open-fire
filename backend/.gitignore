@@ -1,0 +1,6 @@
+# Compiled output
+/out-tsc
+/bazel-out
+/target
+main.iml
+.idea/

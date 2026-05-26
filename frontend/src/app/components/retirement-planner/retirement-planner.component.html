@@ -1,0 +1,215 @@
+<section class="ticker-board retirement-board" aria-label="Retirement planner">
+  <div class="section-heading retirement-heading">
+    <h2>Retirement Planner</h2>
+    <div class="portfolio-actions">
+      <button type="button" class="secondary" (click)="configure.emit()">Configure</button>
+    </div>
+  </div>
+
+  @if (state.isLoadingRetirement || !state.hasLoadedRetirementSettings) {
+    <div class="empty-state">
+      Loading retirement settings...
+    </div>
+  } @else {
+    <div class="retirement-content">
+      <div class="retirement-metrics-grid">
+        <div class="metric-card current-assets-card">
+          <span class="label">Portfolio Summary</span>
+          <strong class="value">{{ formatMoney(currentPortfolioValue) }}</strong>
+          <div class="assets-subtext-grid">
+            <div class="subtext-item">
+              <span>Holdings:</span>
+              <strong>{{ state.portfolio.length }}</strong>
+            </div>
+            <div class="subtext-item">
+              <span>Deposited:</span>
+              <strong>{{ currentPortfolioCost | currency }}</strong>
+            </div>
+            <div class="subtext-item">
+              <span>Total P&amp;L:</span>
+              <strong [class.value-pos]="totalProfitLoss > 0" [class.value-neg]="totalProfitLoss < 0">
+                {{ totalProfitLoss | currency }}
+              </strong>
+            </div>
+            <div class="subtext-item">
+              <span>Total P&amp;L %:</span>
+              <strong [class.value-pos]="totalProfitLoss > 0" [class.value-neg]="totalProfitLoss < 0">
+                {{ totalProfitLoss > 0 ? '+' : '' }}{{ totalProfitLossPercent | number: '1.1-2' }}%
+              </strong>
+            </div>
+            <div class="subtext-item">
+              <span>Annualized Return:</span>
+              <strong [class.value-pos]="actualCAGR > 0" [class.value-neg]="actualCAGR < 0">
+                {{ actualCAGR * 100 | number: '1.1-1' }}%
+              </strong>
+            </div>
+            <div class="subtext-item">
+              <span>Return Since:</span>
+              <strong>{{ state.investingStartDate || 'N/A' }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric-card target-fund-card">
+          <span class="label">Target Retirement Fund</span>
+          <strong class="value">{{ formatMoney(targetRetirementFund) }}</strong>
+          <span class="subtext metric-note">Today, using {{ state.safeWithdrawalRate }}% SWR for {{ formatMoney(state.desiredMonthlyIncome) }}/mo</span>
+          <div class="time-grid">
+            <div class="time-item">
+              <span>Realistic (10%):</span>
+              <strong>{{ getYearsToRetire('ideal') }}</strong>
+            </div>
+            <div class="time-item">
+              <span>Actual:</span>
+              <strong>{{ getYearsToRetire('actual') }}</strong>
+            </div>
+            <div class="time-item">
+              <span>Custom ({{ state.customReturnRate }}%):</span>
+              <strong>{{ getYearsToRetire('custom') }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="metric-card config-metric-card">
+          <span class="label">Retirement Configuration</span>
+          <div class="config-text-grid">
+            <div class="config-item">
+              <span class="cfg-lbl">Start Date</span>
+              <strong class="cfg-val">{{ state.investingStartDate || 'N/A' }}</strong>
+            </div>
+            <div class="config-item">
+              <span class="cfg-lbl">Initial Deposit</span>
+              <strong class="cfg-val">{{ formatMoney(state.otherSavings) }}</strong>
+            </div>
+            <div class="config-item">
+              <span class="cfg-lbl">Monthly Add</span>
+              <strong class="cfg-val">{{ formatMoney(state.monthlySavings) }}</strong>
+            </div>
+            <div class="config-item">
+              <span class="cfg-lbl">Target Income</span>
+              <strong class="cfg-val">{{ formatMoney(state.desiredMonthlyIncome) }}/mo</strong>
+            </div>
+            <div class="config-item">
+              <span class="cfg-lbl">Inflation</span>
+              <strong class="cfg-val">{{ state.yearlyInflationRate }}%/yr</strong>
+            </div>
+            <div class="config-item">
+              <span class="cfg-lbl">SWR</span>
+              <strong class="cfg-val">{{ state.safeWithdrawalRate }}%</strong>
+            </div>
+            <div class="config-item">
+              <span class="cfg-lbl">Custom Return</span>
+              <strong class="cfg-val">{{ state.customReturnRate }}%</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-wrapper">
+        <h3 class="chart-title">30-Year Wealth Projection with Inflation-Adjusted Withdrawals (Log Scale)</h3>
+
+        <div class="chart-container" (mousemove)="onChartMouseMove($event)" (mouseleave)="onChartMouseLeave()">
+          <svg viewBox="0 0 800 300" class="projection-svg">
+            @for (tick of chartYTicks; track tick.y) {
+              <line x1="60" [attr.y1]="tick.y" x2="740" [attr.y2]="tick.y" stroke="var(--border)" stroke-dasharray="3,3" opacity="0.42" />
+              <text x="52" [attr.y]="tick.y + 3" text-anchor="end" font-size="10" fill="var(--muted-strong)">{{ tick.label }}</text>
+            }
+
+            <path class="no-draw-animation" [attr.d]="getTargetSvgPath()" fill="none" stroke="#ff4d4d" stroke-width="2" opacity="0.95" />
+
+            <text x="70" [attr.y]="targetYCoordinate - 6" fill="#ff4d4d" font-size="10" font-weight="bold">
+              Required Retirement Fund (Inflation-Adjusted): {{ formatMoney(targetRetirementFund) }} today
+            </text>
+
+            <path class="no-draw-animation" [attr.d]="getSvgAreaPath('ideal')" fill="url(#ideal-grad)" opacity="0.08" />
+            <path class="no-draw-animation" [attr.d]="getSvgAreaPath('actual')" fill="url(#actual-grad)" opacity="0.08" />
+            <path class="no-draw-animation" [attr.d]="getSvgAreaPath('custom')" fill="url(#custom-grad)" opacity="0.08" />
+
+            <path [attr.d]="getSvgPath('ideal')" fill="none" stroke="#2680eb" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+            <path [attr.d]="getSvgPath('actual')" fill="none" stroke="#10b981" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+            <path [attr.d]="getSvgPath('custom')" fill="none" stroke="#8b5cf6" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+            <path class="no-draw-animation no-withdraw-line" [attr.d]="getSvgPath('idealNoWithdraw')" fill="none" stroke="#2680eb" stroke-width="2.2" stroke-dasharray="6,5" opacity="0.8" />
+            <path class="no-draw-animation no-withdraw-line" [attr.d]="getSvgPath('actualNoWithdraw')" fill="none" stroke="#10b981" stroke-width="2.2" stroke-dasharray="6,5" opacity="0.8" />
+            <path class="no-draw-animation no-withdraw-line" [attr.d]="getSvgPath('customNoWithdraw')" fill="none" stroke="#8b5cf6" stroke-width="2.2" stroke-dasharray="6,5" opacity="0.8" />
+
+            @if (hoveredYear !== null) {
+              <line [attr.x1]="hoverX" y1="40" [attr.x2]="hoverX" y2="260" stroke="var(--text)" stroke-dasharray="2,2" opacity="0.5" />
+            }
+
+            <defs>
+              <linearGradient id="ideal-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#2680eb" />
+                <stop offset="100%" stop-color="#2680eb" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="actual-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#10b981" />
+                <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
+              </linearGradient>
+              <linearGradient id="custom-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#8b5cf6" />
+                <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+
+            <text x="60" y="280" text-anchor="middle" font-size="10" fill="var(--muted-strong)">Year 0</text>
+            <text x="173" y="280" text-anchor="middle" font-size="10" fill="var(--muted-strong)">Year 5</text>
+            <text x="286" y="280" text-anchor="middle" font-size="10" fill="var(--muted-strong)">Year 10</text>
+            <text x="400" y="280" text-anchor="middle" font-size="10" fill="var(--muted-strong)">Year 15</text>
+            <text x="513" y="280" text-anchor="middle" font-size="10" fill="var(--muted-strong)">Year 20</text>
+            <text x="626" y="280" text-anchor="middle" font-size="10" fill="var(--muted-strong)">Year 25</text>
+            <text x="740" y="280" text-anchor="middle" font-size="10" fill="var(--muted-strong)">Year 30</text>
+          </svg>
+
+          @if (hoveredYear !== null && hoveredProjection) {
+            <div class="chart-tooltip" [style.left.px]="hoverX + 15" [style.top.px]="hoverY - 40">
+              <p class="tooltip-title">Year {{ hoveredProjection.year }} Projection</p>
+              <div class="tooltip-row ideal-row">
+                <span class="dot"></span>
+                <span class="label">Realistic (10%):</span>
+                <strong class="val">{{ formatMoney(hoveredProjection.ideal) }}</strong>
+              </div>
+              <div class="tooltip-row actual-row">
+                <span class="dot"></span>
+                <span class="label">Actual ({{ actualCAGR * 100 | number: '1.1-1' }}%):</span>
+                <strong class="val">{{ formatMoney(hoveredProjection.actual) }}</strong>
+              </div>
+              <div class="tooltip-row custom-row">
+                <span class="dot"></span>
+                <span class="label">Custom ({{ state.customReturnRate }}%):</span>
+                <strong class="val">{{ formatMoney(hoveredProjection.custom) }}</strong>
+              </div>
+              <div class="tooltip-row target-row">
+                <span class="dot"></span>
+                <span class="label">Required Retirement Fund (Inflation-Adjusted):</span>
+                <strong class="val">{{ formatMoney(hoveredProjection.target) }}</strong>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="chart-legend">
+          <div class="legend-item ideal-item">
+            <span class="legend-line"></span>
+            <span>Realistic 10% Return</span>
+          </div>
+          <div class="legend-item actual-item">
+            <span class="legend-line"></span>
+            <span>Actual Annualized ({{ actualCAGR * 100 | number: '1.1-1' }}%)</span>
+          </div>
+          <div class="legend-item custom-item">
+            <span class="legend-line"></span>
+            <span>Custom {{ state.customReturnRate }}% Return</span>
+          </div>
+          <div class="legend-item dotted-item">
+            <span class="legend-line dashed-blue"></span>
+            <span>Dotted = no salary withdrawals</span>
+          </div>
+          <div class="legend-item target-item">
+            <span class="legend-line"></span>
+            <span>Required Retirement Fund (Inflation-Adjusted) ({{ state.yearlyInflationRate }}%/yr)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</section>

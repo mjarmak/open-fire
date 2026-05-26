@@ -1,0 +1,107 @@
+<main class="app-shell">
+  <app-header
+    (toggleTheme)="toggleTheme()"
+    (openAlerts)="openAlertsDialog()"
+    (refresh)="refreshDashboard()"
+    (logout)="logout()"
+    (openLogin)="openLoginDialog()"
+    (openCreateUser)="openCreateUserDialog()"
+  />
+
+  @if (isLoggedIn) {
+    <app-dca-panel
+      (configureDca)="openDcaDialog()"
+    />
+
+    <app-indicator-grid />
+
+    <app-retirement-planner
+      (configure)="openRetirementSettings()"
+    />
+
+    <app-portfolio-board
+      (addPosition)="openAddPosition()"
+      (exportPositions)="exportPositions()"
+      (importPositions)="importPositions($event)"
+      (editPosition)="openEditPosition($event)"
+      (deletePosition)="confirmDelete($event)"
+    />
+  } @else if (isLoading && authCredentialsValid) {
+    <section class="welcome-shell loading-shell" aria-label="Loading dashboard">
+      <div class="welcome-animated-bg" aria-hidden="true"></div>
+      <div class="welcome-content">
+        <img class="welcome-logo" src="openfire-logo.svg" alt="" width="92" height="92" />
+        <div class="loading-spinner" aria-hidden="true"></div>
+        <h2>Loading your dashboard...</h2>
+        <p>Fetching your portfolio, market indicators, and alerts.</p>
+      </div>
+    </section>
+  } @else {
+    <section class="welcome-shell" aria-label="Welcome">
+      <div class="welcome-animated-bg" aria-hidden="true"></div>
+      <div class="welcome-content">
+        <img class="welcome-logo" src="openfire-logo.svg" alt="" width="92" height="92" />
+        <h2>Welcome to OpenFIRE</h2>
+        <p>Please log in to view your market dashboard, portfolio, alerts, and retirement planner.</p>
+      </div>
+    </section>
+  }
+</main>
+
+<app-login-dialog
+  (closeDialog)="closeLoginDialog()"
+  (submitDialog)="submitAuthDialog()"
+/>
+
+<app-add-position-dialog
+  (closeDialog)="closeAddPosition()"
+  (save)="saveHolding()"
+  (search)="searchSymbols()"
+  (openDropdown)="openSymbolDropdown()"
+  (chooseSymbol)="chooseSymbol($event)"
+/>
+
+<app-edit-position-dialog
+  (closeDialog)="closeEditPosition()"
+  (save)="saveEditedPosition()"
+  (search)="searchEditSymbols()"
+  (openDropdown)="openEditSymbolDropdown()"
+  (chooseSymbol)="chooseEditSymbol($event)"
+/>
+
+<app-delete-confirm-dialog
+  (cancel)="cancelDelete()"
+  (confirm)="confirmDeleteAction()"
+/>
+
+<app-alerts-dialog
+  (closeDialog)="closeAlertsDialog()"
+  (configureTelegram)="openTelegramFromAlertsDialog()"
+/>
+
+<app-telegram-dialog
+  (closeDialog)="closeTelegramDialog()"
+  (save)="saveTelegramChatId()"
+  (test)="sendTelegramTest()"
+/>
+
+<app-retirement-settings-dialog
+  (closeDialog)="closeRetirementSettings()"
+  (save)="saveRetirementSettings()"
+/>
+
+<app-dca-settings-dialog
+  (closeDialog)="closeDcaDialog()"
+  (save)="saveDcaSettings()"
+  (openSuggestions)="openDcaSuggestionDialog()"
+  (closeSuggestions)="closeDcaSuggestionDialog()"
+  (copySuggestion)="copyDcaSuggestion($event)"
+/>
+
+@if (snackbarMessage) {
+  <div class="snackbar" [class.snackbar-error]="snackbarTone === 'error'" role="status" aria-live="polite">
+    {{ snackbarMessage }}
+  </div>
+}
+
+<router-outlet />

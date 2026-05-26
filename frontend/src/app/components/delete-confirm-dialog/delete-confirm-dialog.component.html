@@ -1,0 +1,18 @@
+@if (state.deleteDialogOpen) {
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop (mousedown)="$event.target === $event.currentTarget && cancel.emit()">
+    <section class="edit-dialog confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title" @dialogPanel (click)="$event.stopPropagation()">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">Confirm deletion</p>
+          <h2 id="delete-confirm-title">Remove {{ state.deleteTargetSymbol }}?</h2>
+        </div>
+        <button type="button" class="icon-action" title="Close dialog" (click)="cancel.emit()">x</button>
+      </div>
+      <p class="confirm-body">Are you sure you want to remove <strong>{{ state.deleteTargetSymbol }}</strong> from your portfolio? This action cannot be undone.</p>
+      <div class="dialog-actions">
+        <button type="button" class="secondary" (click)="cancel.emit()">Cancel</button>
+        <button type="button" class="danger" (click)="confirm.emit()">Delete</button>
+      </div>
+    </section>
+  </div>
+}

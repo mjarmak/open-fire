@@ -1,0 +1,81 @@
+@if (state.editDialogOpen) {
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop (click)="$event.target === $event.currentTarget && closeDialog.emit()">
+    <section class="edit-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-position-title" @dialogPanel (mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">Edit position</p>
+          <h2 id="edit-position-title">{{ state.editOriginalSymbol }}</h2>
+        </div>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
+      </div>
+
+      <form class="edit-form" (ngSubmit)="save.emit()">
+        <div class="symbol-field">
+          <label class="field-label" for="edit-symbol">Ticker</label>
+          <input
+            id="edit-symbol"
+            name="editSymbol"
+            autocomplete="off"
+            required
+            [(ngModel)]="state.editSymbolQuery"
+            (focus)="openDropdown.emit()"
+            (ngModelChange)="search.emit()"
+            placeholder="AAPL or Apple"
+          />
+          @if (state.showEditSymbolDropdown) {
+            <div class="symbol-dropdown" role="listbox" aria-label="Edit stock search results">
+              @for (result of state.editSymbolSuggestions; track result.symbol) {
+                <button type="button" class="symbol-option" role="option" (click)="chooseSymbol.emit(result)">
+                  <strong>{{ result.symbol }}</strong>
+                  <span>{{ result.name }}</span>
+                  <small>{{ result.region }} - {{ result.currency }}</small>
+                </button>
+              } @empty {
+                <div class="symbol-empty">{{ state.editSymbolMessage }}</div>
+              }
+            </div>
+          }
+          <small class="field-hint">{{ state.editSymbolMessage }}</small>
+        </div>
+
+        <div class="watch-toggle">
+          <label
+            class="remember-login app-tooltip"
+            data-tooltip="Track this stock without position size, average cost, or P&L calculations."
+            aria-label="Track this stock without position size, average cost, or P&L calculations."
+          >
+            <input name="editWatchOnly" type="checkbox" [ngModel]="state.editForm.watchOnly" (ngModelChange)="state.setEditWatchOnly($event)" />
+            <span>Watch only</span>
+          </label>
+        </div>
+        <label>
+          <span>Position</span>
+          <input
+            name="editQuantity"
+            type="number"
+            min="0"
+            step="0.000001"
+            [(ngModel)]="state.editForm.quantity"
+            [disabled]="state.editForm.watchOnly"
+          />
+        </label>
+        <label>
+          <span>Avg Cost</span>
+          <input
+            name="editAverageCost"
+            type="number"
+            min="0"
+            step="0.01"
+            [(ngModel)]="state.editForm.averageCost"
+            [disabled]="state.editForm.watchOnly"
+          />
+        </label>
+
+        <div class="dialog-actions">
+          <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+          <button type="submit" [disabled]="!state.canSaveEdit">{{ state.isSavingHolding ? 'Saving' : 'Save' }}</button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

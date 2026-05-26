@@ -1,0 +1,151 @@
+<section class="ticker-board" aria-label="Portfolio tickers">
+  <div class="section-heading portfolio-heading">
+    <h2>Portfolio</h2>
+    <div class="portfolio-actions">
+      <button type="button" (click)="addPosition.emit()">Add</button>
+      <button type="button" class="secondary" (click)="exportPositions.emit()">Export CSV</button>
+      <button type="button" class="secondary" [disabled]="state.isImportingPortfolio" (click)="portfolioCsvInput.click()">
+        {{ state.isImportingPortfolio ? 'Importing' : 'Import CSV' }}
+      </button>
+      <input
+        #portfolioCsvInput
+        class="file-input"
+        type="file"
+        accept=".csv,text/csv"
+        (change)="importPositions.emit($event)"
+      />
+    </div>
+  </div>
+
+  @if (positionTypeSlices.length) {
+    <section class="position-type-panel" aria-label="Portfolio position type mix">
+      <div class="position-type-chart">
+        <div class="pie-chart" [style.background]="positionTypePieGradient" role="img" [attr.aria-label]="'Position type mix. ' + positionTypeBasisLabel">
+          <span>{{ positionTypeSlices.length }}</span>
+        </div>
+        <div>
+          <p class="eyebrow">Position mix</p>
+          <h3>Types</h3>
+          <small>{{ positionTypeBasisLabel }}</small>
+        </div>
+      </div>
+      <div class="position-type-legend">
+        @for (slice of positionTypeSlices; track slice.label) {
+          <div
+            class="position-type-item app-tooltip category-tooltip"
+            [style.--type-color]="slice.color"
+            [attr.data-tooltip]="getPieCategoryTooltip(slice.label)"
+            [attr.aria-label]="getPieCategoryTooltip(slice.label)"
+            tabindex="0"
+          >
+            <strong class="type-name">{{ slice.label }}</strong>
+            <span class="type-count-badge">{{ slice.count }}</span>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <div class="stock-table">
+    @for (stock of displayedStocks; track stock.symbol) {
+      <div class="stock-row" [class.alerting]="stock.alert" [class.watch-only-row]="stock.watchOnly" [class.collapsed-row]="isCollapsed(stock)">
+        <div class="ticker-identity">
+          <div class="ticker-symbol-line">
+            <span
+              class="position-type-dot app-tooltip"
+              [style.background]="getStockTypeColor(stock)"
+              [attr.data-tooltip]="getStockTypeLabel(stock)"
+              [attr.aria-label]="getStockTypeLabel(stock)"
+              tabindex="0"
+            ></span>
+            <strong
+              class="ticket-type-indicator"
+            >{{ stock.symbol }}</strong>
+          </div>
+          @if (stock.watchOnly) {
+            <span class="watch-only-badge">Watch only</span>
+          }
+          <span>{{ stock.companyName }}</span>
+        </div>
+        @if (!isCollapsed(stock)) {
+        <div class="ticker-metrics">
+          <span><small>Price</small>{{ stock.latestPrice === null ? '-' : (stock.latestPrice | currency) }}</span>
+          <span
+            class="metric-tooltip risk-metric risk-fear"
+            tabindex="0"
+            data-tooltip="Fear score: composite risk score from valuation, beta, 30-day volatility, 30-day drawdown, and 30-day price moves. Alert threshold: 65/100."
+            aria-label="Fear score: composite risk score from valuation, beta, 30-day volatility, 30-day drawdown, and 30-day price moves. Alert threshold: 65 out of 100."
+            [class.fear-high]="stock.fearScore !== null && stock.fearScore >= 65"
+          ><small>Fear</small>{{ stock.fearScore === null ? '-' : (stock.fearScore | number: '1.0-0') + '/100' }}</span>
+          <span
+            class="metric-tooltip risk-metric risk-pe"
+            tabindex="0"
+            data-tooltip="P/E: price-to-earnings ratio, a valuation measure comparing share price with earnings per share. Alert threshold: above 25."
+            aria-label="P/E: price-to-earnings ratio, a valuation measure comparing share price with earnings per share. Alert threshold: above 25."
+            [class.pe-high]="stock.peRatio !== null && stock.peRatio > 25"
+          ><small>P/E</small>{{ stock.peRatio === null ? '-' : (stock.peRatio | number: '1.0-2') }}</span>
+          <span
+            class="metric-tooltip risk-metric risk-beta"
+            tabindex="0"
+            data-tooltip="Beta: sensitivity to broad market moves. 1 tracks the market; above 1 tends to move more. Alert threshold: above 1.5."
+            aria-label="Beta: sensitivity to broad market moves. 1 tracks the market; above 1 tends to move more. Alert threshold: above 1.5."
+            [class.beta-high]="stock.beta !== null && stock.beta > 1.5"
+          ><small>Beta</small>{{ stock.beta === null ? '-' : (stock.beta | number: '1.0-2') }}</span>
+          <span
+            class="metric-tooltip risk-metric risk-vol"
+            tabindex="0"
+            data-tooltip="Vol: annualized realized volatility from the latest 30 daily returns, using 31 closes. Falls back to quote high/low if history is unavailable. Alert threshold: above 40%."
+            aria-label="Vol: annualized realized volatility from the latest 30 daily returns, using 31 closes. Falls back to quote high and low if history is unavailable. Alert threshold: above 40 percent."
+            [class.vol-high]="stock.realizedVolatilityPercent !== null && stock.realizedVolatilityPercent > 40"
+          ><small>Vol</small>{{ stock.realizedVolatilityPercent === null ? '-' : (stock.realizedVolatilityPercent | number: '1.0-2') + '%' }}</span>
+          <span
+            class="metric-tooltip risk-metric risk-dd"
+            tabindex="0"
+            data-tooltip="DD: drawdown from the highest close in the last 30 calendar days to the latest price. Falls back to 52-week high if history is unavailable. Alert threshold: above 20%."
+            aria-label="DD: drawdown from the highest close in the last 30 calendar days to the latest price. Falls back to 52-week high if history is unavailable. Alert threshold: above 20 percent."
+            [class.drawdown-high]="stock.drawdownPercent !== null && stock.drawdownPercent > 20"
+          ><small>DD</small>{{ stock.drawdownPercent === null ? '-' : (stock.drawdownPercent | number: '1.0-2') + '%' }}</span>
+          <span><small>Market Cap</small>{{ formatMoney(stock.marketCap) }}</span>
+          @if (!stock.watchOnly) {
+          <span><small>Qty</small>{{ stock.quantity | number: '1.0-2' }}</span>
+          <span><small>Avg</small>{{ stock.averageCost | currency }}</span>
+          <span [class.value-pos]="stock.dayGainLoss !== null && stock.dayGainLoss > 0" [class.value-neg]="stock.dayGainLoss !== null && stock.dayGainLoss < 0"><small>Today</small>{{ stock.dayGainLoss === null ? '-' : (stock.dayGainLoss | currency) }}</span>
+          <span [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0" [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"><small>Today %</small>{{ stock.dayGainLossPercent === null ? '-' : (stock.dayGainLossPercent | number: '1.0-2') + '%' }}</span>
+          <span [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0" [class.value-neg]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss < 0"><small>Total</small>{{ stock.unrealizedGainLoss === null ? '-' : (stock.unrealizedGainLoss | currency) }}</span>
+          <span [class.value-pos]="stock.unrealizedGainLossPercent !== null && stock.unrealizedGainLossPercent > 0" [class.value-neg]="stock.unrealizedGainLossPercent !== null && stock.unrealizedGainLossPercent < 0"><small>Total %</small>{{ stock.unrealizedGainLossPercent === null ? '-' : (stock.unrealizedGainLossPercent | number: '1.0-2') + '%' }}</span>
+          <span><small>Value</small>{{ formatMoney(stock.marketValue) }}</span>
+          }
+          <span [class.value-pos]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent > 0" [class.value-neg]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent < 0"><small>30D</small>{{ stock.thirtyDayChangePercent === null ? '-' : (stock.thirtyDayChangePercent | number: '1.0-2') + '%' }}</span>
+        </div>
+        } @else {
+        <div class="ticker-metrics collapsed-metrics">
+          <span><small>Price</small>{{ stock.latestPrice === null ? '-' : (stock.latestPrice | currency) }}</span>
+          <span><small>Avg</small>{{ stock.watchOnly ? '-' : (stock.averageCost | currency) }}</span>
+          <span><small>Qty</small>{{ stock.watchOnly ? '-' : (stock.quantity | number: '1.0-2') }}</span>
+          <span [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0" [class.value-neg]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss < 0"><small>Total</small>{{ stock.unrealizedGainLoss === null ? '-' : (stock.unrealizedGainLoss | currency) }}</span>
+          <span [class.value-pos]="stock.unrealizedGainLossPercent !== null && stock.unrealizedGainLossPercent > 0" [class.value-neg]="stock.unrealizedGainLossPercent !== null && stock.unrealizedGainLossPercent < 0"><small>Total %</small>{{ stock.unrealizedGainLossPercent === null ? '-' : (stock.unrealizedGainLossPercent | number: '1.0-2') + '%' }}</span>
+        </div>
+        }
+        <div class="row-actions">
+          @if (!stock.watchOnly) {
+          <button
+            type="button"
+            class="row-action collapse-action"
+            [class.is-collapsed]="isCollapsed(stock)"
+            [title]="isCollapsed(stock) ? 'Expand position' : 'Collapse position'"
+            [attr.aria-label]="isCollapsed(stock) ? 'Expand position' : 'Collapse position'"
+            (click)="toggleCollapsed(stock)"
+          ></button>
+          }
+          <button type="button" class="row-action edit-action" title="Edit position" aria-label="Edit position" (click)="editPosition.emit(stock)"></button>
+          <button type="button" class="icon-action delete-action" title="Remove holding" aria-label="Remove holding" (click)="deletePosition.emit(stock.symbol)"></button>
+        </div>
+        <small>{{ stock.reason }}</small>
+      </div>
+    } @empty {
+      <div class="empty-state">
+        Add a portfolio position above, then configure Finnhub to enrich it with live market data.
+      </div>
+    }
+  </div>
+</section>
