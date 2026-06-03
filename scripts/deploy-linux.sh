@@ -14,10 +14,10 @@ Common options:
   BRANCH           Git branch to deploy. Defaults to main.
   APP_DIR          Local clone path. Defaults to /opt/open-fire.
   DEPLOY_DIR       Compose/env directory. Defaults to /home/docker_files/open-fire.
-  ENV_FILE         Deploy env file. Defaults to $DEPLOY_DIR/.env.
+  ENV_FILE         Deploy env file. Defaults to $DEPLOY_DIR/openfire.env.production.
 
 Optional registry login:
-  DOCKER_REGISTRY  Registry host, for example ghcr.io.
+  DOCKER_REGISTRY  Registry host override, for example ghcr.io. Defaults from IMAGE_NAMESPACE.
   DOCKER_USERNAME  Registry username.
   DOCKER_TOKEN     Registry token or password.
 
@@ -62,13 +62,43 @@ fi
 BRANCH="${BRANCH:-main}"
 APP_DIR="${APP_DIR:-/opt/open-fire}"
 DEPLOY_DIR="${DEPLOY_DIR:-/home/docker_files/open-fire}"
-ENV_FILE="${ENV_FILE:-$DEPLOY_DIR/.env}"
+ENV_FILE="${ENV_FILE:-$DEPLOY_DIR/openfire.env.production}"
 
 require_command git
 require_command docker
 
+image_registry() {
+  local first_segment="${IMAGE_NAMESPACE%%/*}"
+
+  if [[ -n "${DOCKER_REGISTRY:-}" ]]; then
+    if [[ "$DOCKER_REGISTRY" == "$first_segment" && "$first_segment" != *.* && "$first_segment" != *:* && "$first_segment" != "localhost" ]]; then
+      echo "DOCKER_REGISTRY=$DOCKER_REGISTRY looks like a Docker Hub namespace; using docker.io for login." >&2
+      printf '%s\n' "docker.io"
+      return
+    fi
+
+    printf '%s\n' "$DOCKER_REGISTRY"
+  elif [[ "$first_segment" == *.* || "$first_segment" == *:* || "$first_segment" == "localhost" ]]; then
+    printf '%s\n' "$first_segment"
+  else
+    printf '%s\n' "docker.io"
+  fi
+}
+
+service_image() {
+  local service="$1"
+  local registry
+  registry="$(image_registry)"
+
+  if [[ "$registry" == "docker.io" && "$IMAGE_NAMESPACE" == */* ]]; then
+    printf '%s-%s:%s\n' "$IMAGE_NAMESPACE" "$service" "$VERSION"
+  else
+    printf '%s/%s:%s\n' "$IMAGE_NAMESPACE" "$service" "$VERSION"
+  fi
+}
+
 if [[ -n "${DOCKER_USERNAME:-}" && -n "${DOCKER_TOKEN:-}" ]]; then
-  registry="${DOCKER_REGISTRY:-docker.io}"
+  registry="$(image_registry)"
   log "Logging in to $registry"
   printf '%s' "$DOCKER_TOKEN" | docker login "$registry" -u "$DOCKER_USERNAME" --password-stdin
 fi
@@ -85,8 +115,8 @@ else
 fi
 
 VERSION="${VERSION:-$(git -C "$APP_DIR" rev-parse --short HEAD)}"
-BACKEND_IMAGE="${IMAGE_NAMESPACE}/backend:${VERSION}"
-FRONTEND_IMAGE="${IMAGE_NAMESPACE}/frontend:${VERSION}"
+BACKEND_IMAGE="${BACKEND_IMAGE:-$(service_image backend)}"
+FRONTEND_IMAGE="${FRONTEND_IMAGE:-$(service_image frontend)}"
 
 log "Preparing deploy directory $DEPLOY_DIR"
 mkdir -p "$DEPLOY_DIR"
@@ -116,7 +146,9 @@ log "Building frontend image $FRONTEND_IMAGE"
 docker build --pull -f "$APP_DIR/frontend/Dockerfile" -t "$FRONTEND_IMAGE" "$APP_DIR"
 
 log "Pushing images"
+log "Pushing backend image:  $BACKEND_IMAGE"
 docker push "$BACKEND_IMAGE"
+log "Pushing frontend image: $FRONTEND_IMAGE"
 docker push "$FRONTEND_IMAGE"
 
 log "Deploying version $VERSION"

@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 app:
   security:
@@ -27,6 +27,8 @@ app:
     enabled: ${TELEGRAM_ENABLED:true}
     bot-username: ${TELEGRAM_BOT_USERNAME:sma3141_bot}
     bot-token: ${TELEGRAM_BOT_TOKEN:8629037780:AAFF30_UFWEYRY7XRDsWELER7X-S-ziQlq4}
+  cors:
+    allowed-origin-patterns: ${APP_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:4200,http://127.0.0.1:4200}
 
 spring:
   application:

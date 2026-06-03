@@ -38,6 +38,7 @@ class DatabaseServiceTest {
         new AppProperties.Security("admin", "salt", "hash"),
         null,
         new AppProperties.Database(url, username, "password"),
+        null,
         null
     );
   }

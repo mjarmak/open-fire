@@ -12,6 +12,7 @@ export interface IndicatorSnapshot {
 }
 
 export interface StockAlert {
+  id: number | null;
   symbol: string;
   companyName: string;
   positionType: string;
@@ -37,6 +38,7 @@ export interface StockAlert {
 }
 
 export interface PortfolioHolding {
+  id: number | null;
   symbol: string;
   companyName: string;
   quantity: number;
@@ -54,6 +56,7 @@ export interface SymbolSearchResult {
   name: string;
   region: string;
   currency: string;
+  indicators?: StockAlert | null;
 }
 
 export interface UserAccountResponse {

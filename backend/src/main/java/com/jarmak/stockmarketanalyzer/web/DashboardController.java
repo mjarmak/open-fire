@@ -1,5 +1,6 @@
 package com.jarmak.stockmarketanalyzer.web;
 
+import com.jarmak.stockmarketanalyzer.alerts.StockAlertService;
 import com.jarmak.stockmarketanalyzer.market.DashboardService;
 import com.jarmak.stockmarketanalyzer.market.FinnhubClient;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.DashboardResponse;
@@ -48,19 +49,22 @@ public class DashboardController {
   private final PortfolioService portfolioService;
   private final FinnhubClient finnhubClient;
   private final UserAccountService userAccountService;
+  private final StockAlertService stockAlertService;
 
   public DashboardController(
       DashboardService dashboardService,
       TelegramNotificationService telegramNotificationService,
       PortfolioService portfolioService,
       FinnhubClient finnhubClient,
-      UserAccountService userAccountService
+      UserAccountService userAccountService,
+      StockAlertService stockAlertService
   ) {
     this.dashboardService = dashboardService;
     this.telegramNotificationService = telegramNotificationService;
     this.portfolioService = portfolioService;
     this.finnhubClient = finnhubClient;
     this.userAccountService = userAccountService;
+    this.stockAlertService = stockAlertService;
   }
 
   @PostMapping({"/users", "/users/"})
@@ -88,6 +92,16 @@ public class DashboardController {
   @GetMapping("/stocks")
   List<StockAlert> stocks() {
     return dashboardService.stocks();
+  }
+
+  @GetMapping("/stocks/preview")
+  StockAlert stockPreview(@RequestParam String symbol) {
+    SymbolSearchResult match = finnhubClient.findExactSymbol(symbol)
+        .orElseThrow(() -> new ResponseStatusException(
+            HttpStatus.BAD_REQUEST,
+            "Choose an existing stock from autocomplete before previewing it."
+        ));
+    return stockAlertService.preview(match.symbol(), match.name());
   }
 
   @GetMapping("/notifications/status")
@@ -167,14 +181,44 @@ public class DashboardController {
     }
   }
 
-  @DeleteMapping("/portfolio/{symbol}")
-  void deleteHolding(@PathVariable String symbol) {
-    portfolioService.delete(symbol);
+  @PutMapping("/portfolio/{holdingId}")
+  PortfolioHolding updateHolding(@PathVariable long holdingId, @Valid @RequestBody PortfolioHoldingRequest request) {
+    try {
+      SymbolSearchResult symbol = finnhubClient.findExactSymbol(request.symbol())
+          .orElseThrow(() -> new ResponseStatusException(
+              HttpStatus.BAD_REQUEST,
+              "Choose an existing stock from autocomplete before saving it."
+          ));
+      return portfolioService.update(holdingId, symbol.symbol(), symbol.name(), request.quantity(), request.averageCost(), request.watchOnly());
+    } catch (IllegalArgumentException exception) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage(), exception);
+    }
+  }
+
+  @DeleteMapping("/portfolio/{holdingId}")
+  void deleteHolding(@PathVariable long holdingId) {
+    portfolioService.delete(holdingId);
   }
 
   @GetMapping("/symbols/search")
-  List<SymbolSearchResult> searchSymbols(@RequestParam String keywords) {
-    return finnhubClient.searchSymbols(keywords);
+  List<SymbolSearchResult> searchSymbols(
+      @RequestParam String keywords,
+      @RequestParam(defaultValue = "false") boolean includeIndicators
+  ) {
+    List<SymbolSearchResult> results = finnhubClient.searchSymbols(keywords);
+    if (!includeIndicators) {
+      return results;
+    }
+
+    return results.stream()
+        .map(result -> new SymbolSearchResult(
+            result.symbol(),
+            result.name(),
+            result.region(),
+            result.currency(),
+            previewOrNull(result)
+        ))
+        .toList();
   }
 
   @PostMapping("/notifications/telegram")
@@ -261,6 +305,14 @@ public class DashboardController {
       @DecimalMin(value = "0.0") BigDecimal averageCost,
       boolean watchOnly
   ) {
+  }
+
+  private StockAlert previewOrNull(SymbolSearchResult result) {
+    try {
+      return stockAlertService.preview(result.symbol(), result.name());
+    } catch (RuntimeException exception) {
+      return null;
+    }
   }
 
   private String toCsv(List<StockAlert> stocks) {

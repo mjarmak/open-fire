@@ -1,5 +1,5 @@
 @if (state.deleteDialogOpen) {
-  <div class="modal-backdrop" role="presentation" @dialogBackdrop (mousedown)="$event.target === $event.currentTarget && cancel.emit()">
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop>
     <section class="edit-dialog confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title" @dialogPanel (click)="$event.stopPropagation()">
       <div class="dialog-heading">
         <div>

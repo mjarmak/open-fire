@@ -50,24 +50,29 @@ nano /home/docker_files/open-fire/.env
 Build, push, and deploy a version from your Linux server:
 
 ```bash
-export REPO_URL=git@github.com:your-user/open-fire.git
-export IMAGE_NAMESPACE=ghcr.io/your-user/open-fire
-export VERSION=2026.06.03-1
-export DOCKER_REGISTRY=ghcr.io
-export DOCKER_USERNAME=your-user
+export REPO_URL=https://github.com/mjarmak/open-fire.git
+export IMAGE_NAMESPACE=jeniustech/open-fire
+export VERSION=1.1.100
+export DOCKER_USERNAME=jeniustech
 export DOCKER_TOKEN=your-registry-token
 
+sed -i 's/\r$//' deploy-linux.sh
 bash scripts/deploy-linux.sh
 ```
 
 On the first run the script clones the repo into `/opt/open-fire`. On later runs it updates the clone, builds both images, pushes:
 
 ```text
-ghcr.io/your-user/open-fire/backend:$VERSION
-ghcr.io/your-user/open-fire/frontend:$VERSION
+jeniustech/open-fire-backend:$VERSION
+jeniustech/open-fire-frontend:$VERSION
 ```
 
 Then it deploys `/home/docker_files/open-fire/docker-compose.yml` with the new image tags.
+
+For Docker Hub, leave `DOCKER_REGISTRY` unset or set it to `docker.io`. Only set `DOCKER_REGISTRY` to a registry hostname such as `ghcr.io` when your `IMAGE_NAMESPACE` uses that registry.
+Docker Hub image names are flattened to `jeniustech/open-fire-backend:$VERSION` and `jeniustech/open-fire-frontend:$VERSION`.
+
+If the repository is private and you use an SSH URL such as `git@github.com:mjarmak/open-fire.git`, the Linux user running the script must have a GitHub SSH key with repository access. When running as root, that means configuring `/root/.ssh`.
 
 Useful overrides:
 
@@ -76,10 +81,29 @@ BRANCH=main
 APP_DIR=/opt/open-fire
 DEPLOY_DIR=/home/docker_files/open-fire
 ENV_FILE=/home/docker_files/open-fire/.env
+BACKEND_IMAGE=jeniustech/open-fire-backend:$VERSION
+FRONTEND_IMAGE=jeniustech/open-fire-frontend:$VERSION
+APP_CORS_ALLOWED_ORIGIN_PATTERNS=*
 FRONTEND_PORT=80
+BACKEND_PORT=8080
+BACKEND_CONTAINER_PORT=8080
+```
+
+`FRONTEND_PORT` and `BACKEND_PORT` are host ports. `BACKEND_CONTAINER_PORT` is the port Spring Boot listens on inside the Docker network, and nginx uses the same value when proxying `/api` to the backend container. In most deployments, change only the host ports:
+
+```bash
+FRONTEND_PORT=8081
+BACKEND_PORT=8280
+BACKEND_CONTAINER_PORT=8080
 ```
 
 The frontend container serves Angular through nginx and proxies `/api` to the backend container, so users open only the frontend URL.
+
+If the browser calls the backend through a different origin than the frontend, set `APP_CORS_ALLOWED_ORIGIN_PATTERNS` to the frontend origin, for example:
+
+```bash
+APP_CORS_ALLOWED_ORIGIN_PATTERNS=https://your-domain.com,http://45.133.178.241:8081
+```
 
 ## PostgreSQL Only Compose
 

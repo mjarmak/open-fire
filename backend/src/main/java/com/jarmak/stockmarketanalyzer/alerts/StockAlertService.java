@@ -36,6 +36,18 @@ public class StockAlertService {
         .toList();
   }
 
+  public StockAlert preview(String symbol, String companyName) {
+    PortfolioHolding holding = new PortfolioHolding(
+        null,
+        symbol,
+        companyName,
+        BigDecimal.ONE,
+        BigDecimal.ZERO,
+        true
+    );
+    return evaluate(holding, null);
+  }
+
   private StockAlert evaluate(PortfolioHolding holding, BigDecimal vixFearIndex) {
     BigDecimal roundedVixFearIndex = vixFearIndex == null ? null : vixFearIndex.setScale(1, RoundingMode.HALF_UP);
     boolean highFear = aboveOrEqual(roundedVixFearIndex, properties.market().highVixThreshold());
@@ -46,6 +58,7 @@ public class StockAlertService {
           ? "VIX fear index is high at " + roundedVixFearIndex + ". Live stock market data is not available yet."
           : "Live market data is not available for this symbol yet.";
       return new StockAlert(
+          holding.id(),
           holding.symbol(),
           holding.companyName(),
           "Unknown",
@@ -119,6 +132,7 @@ public class StockAlertService {
     );
 
     return new StockAlert(
+        holding.id(),
         snapshot.symbol(),
         snapshot.name(),
         positionType(snapshot),

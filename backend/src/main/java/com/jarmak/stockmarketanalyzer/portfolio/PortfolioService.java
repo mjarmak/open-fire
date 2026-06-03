@@ -41,6 +41,18 @@ public class PortfolioService {
 
   @CacheEvict(cacheNames = CacheConfig.STOCK_ALERTS_CACHE, key = "T(org.springframework.security.core.context.SecurityContextHolder).context.authentication.name")
   public PortfolioHolding upsert(String symbol, String companyName, BigDecimal quantity, BigDecimal averageCost, boolean watchOnly) {
+    return postgresInsert(validHolding(null, symbol, companyName, quantity, averageCost, watchOnly));
+  }
+
+  @CacheEvict(cacheNames = CacheConfig.STOCK_ALERTS_CACHE, key = "T(org.springframework.security.core.context.SecurityContextHolder).context.authentication.name")
+  public PortfolioHolding update(long id, String symbol, String companyName, BigDecimal quantity, BigDecimal averageCost, boolean watchOnly) {
+    if (id <= 0) {
+      throw new IllegalArgumentException("Position id is required.");
+    }
+    return postgresUpdate(validHolding(id, symbol, companyName, quantity, averageCost, watchOnly));
+  }
+
+  private PortfolioHolding validHolding(Long id, String symbol, String companyName, BigDecimal quantity, BigDecimal averageCost, boolean watchOnly) {
     String normalizedSymbol = normalizeSymbol(symbol);
     if (!StringUtils.hasText(normalizedSymbol)) {
       throw new IllegalArgumentException("Symbol is required.");
@@ -54,19 +66,22 @@ public class PortfolioService {
       throw new IllegalArgumentException("Average cost must be zero or greater.");
     }
 
-    PortfolioHolding holding = new PortfolioHolding(
+    return new PortfolioHolding(
+        id,
         normalizedSymbol,
         StringUtils.hasText(companyName) ? companyName.trim() : normalizedSymbol,
         savedQuantity,
         savedAverageCost,
         watchOnly
     );
-    return postgresUpsert(holding);
   }
 
   @CacheEvict(cacheNames = CacheConfig.STOCK_ALERTS_CACHE, key = "T(org.springframework.security.core.context.SecurityContextHolder).context.authentication.name")
-  public void delete(String symbol) {
-    postgresDelete(normalizeSymbol(symbol));
+  public void delete(long id) {
+    if (id <= 0) {
+      throw new IllegalArgumentException("Position id is required.");
+    }
+    postgresDelete(id);
   }
 
   private String normalizeSymbol(String symbol) {
@@ -80,7 +95,7 @@ public class PortfolioService {
     try (
         Connection connection = connection();
         PreparedStatement statement = connection.prepareStatement(
-            "select symbol, company_name, quantity, average_cost, watch_only from portfolio_holdings where username = ? order by watch_only, symbol"
+            "select id, symbol, company_name, quantity, average_cost, watch_only from portfolio_holdings where username = ? order by watch_only, symbol, id"
         )
     ) {
       statement.setString(1, username);
@@ -88,6 +103,7 @@ public class PortfolioService {
         List<PortfolioHolding> rows = new ArrayList<>();
         while (results.next()) {
           rows.add(new PortfolioHolding(
+              results.getLong("id"),
               results.getString("symbol"),
               results.getString("company_name"),
               results.getBigDecimal("quantity"),
@@ -158,18 +174,13 @@ public class PortfolioService {
     return holdingsForUser(currentUsername());
   }
 
-  private PortfolioHolding postgresUpsert(PortfolioHolding holding) {
+  private PortfolioHolding postgresInsert(PortfolioHolding holding) {
     try (
         Connection connection = connection();
         PreparedStatement statement = connection.prepareStatement("""
             insert into portfolio_holdings (username, symbol, company_name, quantity, average_cost, watch_only, updated_at)
             values (?, ?, ?, ?, ?, ?, now())
-            on conflict (username, symbol) do update set
-              company_name = excluded.company_name,
-              quantity = excluded.quantity,
-              average_cost = excluded.average_cost,
-              watch_only = excluded.watch_only,
-              updated_at = now()
+            returning id
             """)
     ) {
       statement.setString(1, currentUsername());
@@ -178,20 +189,62 @@ public class PortfolioService {
       statement.setBigDecimal(4, holding.quantity());
       statement.setBigDecimal(5, holding.averageCost());
       statement.setBoolean(6, holding.watchOnly());
-      statement.executeUpdate();
-      return holding;
+      try (ResultSet results = statement.executeQuery()) {
+        if (results.next()) {
+          return new PortfolioHolding(
+              results.getLong("id"),
+              holding.symbol(),
+              holding.companyName(),
+              holding.quantity(),
+              holding.averageCost(),
+              holding.watchOnly()
+          );
+        }
+      }
+      throw new IllegalStateException("Could not save portfolio holding to Postgres.");
     } catch (SQLException exception) {
       throw new IllegalStateException("Could not save portfolio holding to Postgres.", exception);
     }
   }
 
-  private void postgresDelete(String symbol) {
+  private PortfolioHolding postgresUpdate(PortfolioHolding holding) {
     try (
         Connection connection = connection();
-        PreparedStatement statement = connection.prepareStatement("delete from portfolio_holdings where username = ? and symbol = ?")
+        PreparedStatement statement = connection.prepareStatement("""
+            update portfolio_holdings
+            set symbol = ?,
+                company_name = ?,
+                quantity = ?,
+                average_cost = ?,
+                watch_only = ?,
+                updated_at = now()
+            where username = ? and id = ?
+            """)
+    ) {
+      statement.setString(1, holding.symbol());
+      statement.setString(2, holding.companyName());
+      statement.setBigDecimal(3, holding.quantity());
+      statement.setBigDecimal(4, holding.averageCost());
+      statement.setBoolean(5, holding.watchOnly());
+      statement.setString(6, currentUsername());
+      statement.setLong(7, holding.id());
+      int updated = statement.executeUpdate();
+      if (updated == 0) {
+        throw new IllegalArgumentException("Portfolio position was not found.");
+      }
+      return holding;
+    } catch (SQLException exception) {
+      throw new IllegalStateException("Could not update portfolio holding in Postgres.", exception);
+    }
+  }
+
+  private void postgresDelete(long id) {
+    try (
+        Connection connection = connection();
+        PreparedStatement statement = connection.prepareStatement("delete from portfolio_holdings where username = ? and id = ?")
     ) {
       statement.setString(1, currentUsername());
-      statement.setString(2, symbol);
+      statement.setLong(2, id);
       statement.executeUpdate();
     } catch (SQLException exception) {
       throw new IllegalStateException("Could not delete portfolio holding from Postgres.", exception);

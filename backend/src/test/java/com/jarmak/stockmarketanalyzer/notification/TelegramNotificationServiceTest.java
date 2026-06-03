@@ -85,7 +85,8 @@ class TelegramNotificationServiceTest {
             BigDecimal.valueOf(65)
         ),
         null,
-        new AppProperties.Telegram(enabled, "sma3141_bot", botToken)
+        new AppProperties.Telegram(enabled, "sma3141_bot", botToken),
+        null
     );
   }
 }

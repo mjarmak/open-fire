@@ -1,0 +1,37 @@
+<section class="add-stock-risk-panel" aria-label="Selected stock indicators and risks">
+  <div class="add-stock-risk-heading">
+    <div>
+      <span class="field-label">Indicators &amp; Risks</span>
+      <strong>{{ stock.symbol }}</strong>
+    </div>
+    @if (stock.alert) {
+      <span class="risk-alert-badge">Alert</span>
+    }
+  </div>
+  <div class="add-stock-risk-grid">
+    <span><small>Price</small>{{ stock.latestPrice === null ? '-' : (stock.latestPrice | currency) }}</span>
+    <span [class.risk-high]="stock.fearScore !== null && stock.fearScore >= 65">
+      <small>Fear</small>{{ stock.fearScore === null ? '-' : (stock.fearScore | number: '1.0-0') + '/100' }}
+    </span>
+    <span [class.risk-high]="stock.peRatio !== null && stock.peRatio > 25">
+      <small>P/E</small>{{ stock.peRatio === null ? '-' : (stock.peRatio | number: '1.0-2') }}
+    </span>
+    <span [class.risk-high]="stock.beta !== null && stock.beta > 1.5">
+      <small>Beta</small>{{ stock.beta === null ? '-' : (stock.beta | number: '1.0-2') }}
+    </span>
+    <span [class.risk-high]="stock.realizedVolatilityPercent !== null && stock.realizedVolatilityPercent > 40">
+      <small>Vol</small>{{ stock.realizedVolatilityPercent === null ? '-' : (stock.realizedVolatilityPercent | number: '1.0-2') + '%' }}
+    </span>
+    <span [class.risk-high]="stock.drawdownPercent !== null && stock.drawdownPercent > 20">
+      <small>DD</small>{{ stock.drawdownPercent === null ? '-' : (stock.drawdownPercent | number: '1.0-2') + '%' }}
+    </span>
+    <span><small>Market Cap</small>{{ formatMoney(stock.marketCap) }}</span>
+    <span [class.value-pos]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent > 0" [class.value-neg]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent < 0">
+      <small>30D</small>{{ stock.thirtyDayChangePercent === null ? '-' : (stock.thirtyDayChangePercent | number: '1.0-2') + '%' }}
+    </span>
+    <span><small>Type</small>{{ stock.positionType || '-' }}</span>
+  </div>
+  @if (stock.reason) {
+    <p class="add-stock-risk-reason">{{ stock.reason }}</p>
+  }
+</section>

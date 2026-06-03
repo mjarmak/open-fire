@@ -1,5 +1,5 @@
 @if (state.editDialogOpen) {
-  <div class="modal-backdrop" role="presentation" @dialogBackdrop (click)="$event.target === $event.currentTarget && closeDialog.emit()">
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop>
     <section class="edit-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-position-title" @dialogPanel (mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()">
       <div class="dialog-heading">
         <div>
@@ -49,7 +49,7 @@
           </label>
         </div>
         <label>
-          <span>Position</span>
+          <span>Quantity</span>
           <input
             name="editQuantity"
             type="number"

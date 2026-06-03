@@ -23,6 +23,7 @@ public final class MarketModels {
   }
 
   public record StockAlert(
+      Long id,
       String symbol,
       String companyName,
       String positionType,
@@ -49,6 +50,7 @@ public final class MarketModels {
   }
 
   public record PortfolioHolding(
+      Long id,
       String symbol,
       String companyName,
       BigDecimal quantity,
@@ -61,8 +63,12 @@ public final class MarketModels {
       String symbol,
       String name,
       String region,
-      String currency
+      String currency,
+      StockAlert indicators
   ) {
+    public SymbolSearchResult(String symbol, String name, String region, String currency) {
+      this(symbol, name, region, currency, null);
+    }
   }
 
   public record NotificationStatus(boolean enabled, boolean configured, String provider) {

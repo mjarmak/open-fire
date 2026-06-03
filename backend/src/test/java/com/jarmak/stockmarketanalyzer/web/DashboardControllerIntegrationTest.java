@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jarmak.stockmarketanalyzer.alerts.StockAlertService;
 import com.jarmak.stockmarketanalyzer.market.DashboardService;
 import com.jarmak.stockmarketanalyzer.market.FinnhubClient;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.DashboardResponse;
@@ -70,6 +71,9 @@ class DashboardControllerIntegrationTest {
 
   @MockBean
   private UserAccountService userAccountService;
+
+  @MockBean
+  private StockAlertService stockAlertService;
 
   @Test
   void createsUser() throws Exception {
@@ -240,11 +244,76 @@ class DashboardControllerIntegrationTest {
   }
 
   @Test
+  void previewsStockIndicators() throws Exception {
+    when(finnhubClient.findExactSymbol("AAPL")).thenReturn(Optional.of(new SymbolSearchResult("AAPL", "Apple Inc.", "US", "USD")));
+    when(stockAlertService.preview("AAPL", "Apple Inc.")).thenReturn(new StockAlert(
+        null,
+        "AAPL",
+        "Apple Inc.",
+        "Technology",
+        BigDecimal.ONE,
+        BigDecimal.ZERO,
+        BigDecimal.valueOf(192.25),
+        BigDecimal.valueOf(3000000000000L),
+        BigDecimal.valueOf(28.4),
+        BigDecimal.valueOf(1.2),
+        BigDecimal.valueOf(22.5),
+        BigDecimal.valueOf(8.3),
+        BigDecimal.valueOf(42),
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        BigDecimal.valueOf(6.7),
+        true,
+        false,
+        "No watched stock alerts fired under current thresholds."
+    ));
+
+    mockMvc.perform(get("/api/stocks/preview").param("symbol", "AAPL"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.symbol").value("AAPL"))
+        .andExpect(jsonPath("$.latestPrice").value(192.25))
+        .andExpect(jsonPath("$.fearScore").value(42));
+  }
+
+  @Test
+  void updatesPortfolioHoldingById() throws Exception {
+    when(finnhubClient.findExactSymbol("AAPL"))
+        .thenReturn(Optional.of(new SymbolSearchResult("AAPL", "Apple Inc.", "US", "USD")));
+    when(portfolioService.update(eq(42L), anyString(), anyString(), any(BigDecimal.class), any(BigDecimal.class), eq(false)))
+        .thenReturn(holding());
+
+    mockMvc.perform(put("/api/portfolio/42")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json(Map.of(
+                "symbol", "AAPL",
+                "quantity", 3,
+                "averageCost", 120,
+                "watchOnly", false
+            ))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(1))
+        .andExpect(jsonPath("$.symbol").value("AAPL"));
+
+    verify(portfolioService).update(
+        eq(42L),
+        eq("AAPL"),
+        eq("Apple Inc."),
+        any(BigDecimal.class),
+        any(BigDecimal.class),
+        eq(false)
+    );
+  }
+
+  @Test
   void deletesPortfolioHolding() throws Exception {
-    mockMvc.perform(delete("/api/portfolio/AAPL"))
+    mockMvc.perform(delete("/api/portfolio/42"))
         .andExpect(status().isOk());
 
-    verify(portfolioService).delete("AAPL");
+    verify(portfolioService).delete(42L);
   }
 
   @Test
@@ -256,6 +325,22 @@ class DashboardControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].symbol").value("AAPL"))
         .andExpect(jsonPath("$[0].currency").value("USD"));
+  }
+
+  @Test
+  void searchesSymbolsWithIndicators() throws Exception {
+    when(finnhubClient.searchSymbols("app"))
+        .thenReturn(List.of(new SymbolSearchResult("AAPL", "Apple Inc.", "US", "USD")));
+    when(stockAlertService.preview("AAPL", "Apple Inc.")).thenReturn(stock());
+
+    mockMvc.perform(get("/api/symbols/search")
+            .param("keywords", "app")
+            .param("includeIndicators", "true"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].symbol").value("AAPL"))
+        .andExpect(jsonPath("$[0].indicators.latestPrice").value(110))
+        .andExpect(jsonPath("$[0].indicators.fearScore").value(40))
+        .andExpect(jsonPath("$[0].indicators.reason").value("Risk is elevated"));
   }
 
   @Test
@@ -369,6 +454,7 @@ class DashboardControllerIntegrationTest {
 
   private StockAlert stock() {
     return new StockAlert(
+        1L,
         "AAPL",
         "Apple Inc.",
         "Core",
@@ -395,7 +481,7 @@ class DashboardControllerIntegrationTest {
   }
 
   private PortfolioHolding holding() {
-    return new PortfolioHolding("AAPL", "Apple Inc.", BigDecimal.valueOf(2), BigDecimal.valueOf(100), false);
+    return new PortfolioHolding(1L, "AAPL", "Apple Inc.", BigDecimal.valueOf(2), BigDecimal.valueOf(100), false);
   }
 
   private UserRetirementSettings retirementSettings() {

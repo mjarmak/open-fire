@@ -8,42 +8,81 @@
 
   @if (state.isLoadingRetirement || !state.hasLoadedRetirementSettings) {
     <div class="empty-state">
-      Loading retirement settings...
+      Loading retirement plan...
     </div>
   } @else {
     <div class="retirement-content">
       <div class="retirement-metrics-grid">
         <div class="metric-card current-assets-card">
           <span class="label">Portfolio Summary</span>
-          <strong class="value">{{ formatMoney(currentPortfolioValue) }}</strong>
+          <strong class="value">{{ formatCompactCurrency(currentPortfolioValue) }}</strong>
           <div class="assets-subtext-grid">
-            <div class="subtext-item">
+            <div
+              class="subtext-item app-tooltip"
+              tabindex="0"
+              [attr.data-tooltip]="portfolioSummaryTooltips.holdings"
+              [attr.aria-label]="portfolioSummaryTooltips.holdings"
+            >
               <span>Holdings:</span>
               <strong>{{ state.portfolio.length }}</strong>
             </div>
-            <div class="subtext-item">
-              <span>Deposited:</span>
-              <strong>{{ currentPortfolioCost | currency }}</strong>
+            <div
+              class="subtext-item app-tooltip"
+              tabindex="0"
+              [attr.data-tooltip]="portfolioSummaryTooltips.initialDeposit"
+              [attr.aria-label]="portfolioSummaryTooltips.initialDeposit"
+            >
+              <span>Initial Deposit:</span>
+              <strong>{{ formatCompactCurrency(state.otherSavings) }}</strong>
             </div>
-            <div class="subtext-item">
+            <div
+              class="subtext-item app-tooltip"
+              tabindex="0"
+              [attr.data-tooltip]="portfolioSummaryTooltips.totalInvested"
+              [attr.aria-label]="portfolioSummaryTooltips.totalInvested"
+            >
+              <span>Total Invested:</span>
+              <strong>{{ formatCompactCurrency(currentPortfolioCost) }}</strong>
+            </div>
+            <div
+              class="subtext-item app-tooltip"
+              tabindex="0"
+              [attr.data-tooltip]="portfolioSummaryTooltips.totalProfitLoss"
+              [attr.aria-label]="portfolioSummaryTooltips.totalProfitLoss"
+            >
               <span>Total P&amp;L:</span>
               <strong [class.value-pos]="totalProfitLoss > 0" [class.value-neg]="totalProfitLoss < 0">
-                {{ totalProfitLoss | currency }}
+                {{ formatCompactCurrency(totalProfitLoss) }}
               </strong>
             </div>
-            <div class="subtext-item">
+            <div
+              class="subtext-item app-tooltip"
+              tabindex="0"
+              [attr.data-tooltip]="portfolioSummaryTooltips.totalProfitLossPercent"
+              [attr.aria-label]="portfolioSummaryTooltips.totalProfitLossPercent"
+            >
               <span>Total P&amp;L %:</span>
               <strong [class.value-pos]="totalProfitLoss > 0" [class.value-neg]="totalProfitLoss < 0">
                 {{ totalProfitLoss > 0 ? '+' : '' }}{{ totalProfitLossPercent | number: '1.1-2' }}%
               </strong>
             </div>
-            <div class="subtext-item">
-              <span>Annualized Return:</span>
+            <div
+              class="subtext-item app-tooltip"
+              tabindex="0"
+              [attr.data-tooltip]="portfolioSummaryTooltips.annualizedReturn"
+              [attr.aria-label]="portfolioSummaryTooltips.annualizedReturn"
+            >
+              <span>Annualized Return %:</span>
               <strong [class.value-pos]="actualCAGR > 0" [class.value-neg]="actualCAGR < 0">
                 {{ actualCAGR * 100 | number: '1.1-1' }}%
               </strong>
             </div>
-            <div class="subtext-item">
+            <div
+              class="subtext-item app-tooltip"
+              tabindex="0"
+              [attr.data-tooltip]="portfolioSummaryTooltips.returnSince"
+              [attr.aria-label]="portfolioSummaryTooltips.returnSince"
+            >
               <span>Return Since:</span>
               <strong>{{ state.investingStartDate || 'N/A' }}</strong>
             </div>
@@ -52,8 +91,8 @@
 
         <div class="metric-card target-fund-card">
           <span class="label">Target Retirement Fund</span>
-          <strong class="value">{{ formatMoney(targetRetirementFund) }}</strong>
-          <span class="subtext metric-note">Today, using {{ state.safeWithdrawalRate }}% SWR for {{ formatMoney(state.desiredMonthlyIncome) }}/mo</span>
+          <strong class="value">{{ formatCompactCurrency(targetRetirementFund) }}</strong>
+          <span class="subtext metric-note">Today, using {{ state.safeWithdrawalRate }}% SWR for {{ formatCompactCurrency(state.desiredMonthlyIncome) }}/mo</span>
           <div class="time-grid">
             <div class="time-item">
               <span>Realistic (10%):</span>
@@ -79,15 +118,15 @@
             </div>
             <div class="config-item">
               <span class="cfg-lbl">Initial Deposit</span>
-              <strong class="cfg-val">{{ formatMoney(state.otherSavings) }}</strong>
+              <strong class="cfg-val">{{ formatCompactCurrency(state.otherSavings) }}</strong>
             </div>
             <div class="config-item">
               <span class="cfg-lbl">Monthly Add</span>
-              <strong class="cfg-val">{{ formatMoney(state.monthlySavings) }}</strong>
+              <strong class="cfg-val">{{ formatCompactCurrency(state.monthlySavings) }}</strong>
             </div>
             <div class="config-item">
               <span class="cfg-lbl">Target Income</span>
-              <strong class="cfg-val">{{ formatMoney(state.desiredMonthlyIncome) }}/mo</strong>
+              <strong class="cfg-val">{{ formatCompactCurrency(state.desiredMonthlyIncome) }}/mo</strong>
             </div>
             <div class="config-item">
               <span class="cfg-lbl">Inflation</span>
@@ -112,13 +151,13 @@
           <svg viewBox="0 0 800 300" class="projection-svg">
             @for (tick of chartYTicks; track tick.y) {
               <line x1="60" [attr.y1]="tick.y" x2="740" [attr.y2]="tick.y" stroke="var(--border)" stroke-dasharray="3,3" opacity="0.42" />
-              <text x="52" [attr.y]="tick.y + 3" text-anchor="end" font-size="10" fill="var(--muted-strong)">{{ tick.label }}</text>
+              <text x="52" [attr.y]="tick.y + 3" text-anchor="end" font-size="10" fill="var(--muted-strong)">{{ formatCompactCurrency(tick.label) }}</text>
             }
 
             <path class="no-draw-animation" [attr.d]="getTargetSvgPath()" fill="none" stroke="#ff4d4d" stroke-width="2" opacity="0.95" />
 
             <text x="70" [attr.y]="targetYCoordinate - 6" fill="#ff4d4d" font-size="10" font-weight="bold">
-              Required Retirement Fund (Inflation-Adjusted): {{ formatMoney(targetRetirementFund) }} today
+              Required Retirement Fund (Inflation-Adjusted): {{ formatCompactCurrency(targetRetirementFund) }} today
             </text>
 
             <path class="no-draw-animation" [attr.d]="getSvgAreaPath('ideal')" fill="url(#ideal-grad)" opacity="0.08" />
@@ -166,22 +205,22 @@
               <div class="tooltip-row ideal-row">
                 <span class="dot"></span>
                 <span class="label">Realistic (10%):</span>
-                <strong class="val">{{ formatMoney(hoveredProjection.ideal) }}</strong>
+                <strong class="val">{{ formatCompactCurrency(hoveredProjection.ideal) }}</strong>
               </div>
               <div class="tooltip-row actual-row">
                 <span class="dot"></span>
                 <span class="label">Actual ({{ actualCAGR * 100 | number: '1.1-1' }}%):</span>
-                <strong class="val">{{ formatMoney(hoveredProjection.actual) }}</strong>
+                <strong class="val">{{ formatCompactCurrency(hoveredProjection.actual) }}</strong>
               </div>
               <div class="tooltip-row custom-row">
                 <span class="dot"></span>
                 <span class="label">Custom ({{ state.customReturnRate }}%):</span>
-                <strong class="val">{{ formatMoney(hoveredProjection.custom) }}</strong>
+                <strong class="val">{{ formatCompactCurrency(hoveredProjection.custom) }}</strong>
               </div>
               <div class="tooltip-row target-row">
                 <span class="dot"></span>
                 <span class="label">Required Retirement Fund (Inflation-Adjusted):</span>
-                <strong class="val">{{ formatMoney(hoveredProjection.target) }}</strong>
+                <strong class="val">{{ formatCompactCurrency(hoveredProjection.target) }}</strong>
               </div>
             </div>
           }

@@ -18,7 +18,9 @@ import { LoginDialogComponent } from './components/login-dialog/login-dialog.com
 import { PortfolioBoardComponent } from './components/portfolio-board/portfolio-board.component';
 import { RetirementPlannerComponent } from './components/retirement-planner/retirement-planner.component';
 import { RetirementSettingsDialogComponent } from './components/retirement-settings-dialog/retirement-settings-dialog.component';
+import { StockRiskPanelComponent } from './components/stock-risk-panel/stock-risk-panel.component';
 import { TelegramDialogComponent } from './components/telegram-dialog/telegram-dialog.component';
+import { dialogBackdropAnimation, dialogPanelAnimation } from './components/dialog.animations';
 
 @Component({
   selector: 'app-root',
@@ -39,10 +41,12 @@ import { TelegramDialogComponent } from './components/telegram-dialog/telegram-d
     PortfolioBoardComponent,
     RetirementPlannerComponent,
     RetirementSettingsDialogComponent,
+    StockRiskPanelComponent,
     TelegramDialogComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
+  animations: [dialogBackdropAnimation, dialogPanelAnimation],
   encapsulation: ViewEncapsulation.None,
   host: {
     '[class.light-theme]': "themeMode === 'light'",
@@ -59,6 +63,7 @@ export class AppComponent implements OnDestroy, OnInit {
   private readonly loginCookieMaxAgeSeconds = 60 * 60 * 24 * 14;
   private symbolSearchHandle?: ReturnType<typeof setTimeout>;
   private editSymbolSearchHandle?: ReturnType<typeof setTimeout>;
+  private stockLookupSearchHandle?: ReturnType<typeof setTimeout>;
   private snackbarHandle?: ReturnType<typeof setTimeout>;
   private dashboardLoadToken = 0;
 
@@ -103,6 +108,8 @@ export class AppComponent implements OnDestroy, OnInit {
   set symbolMessage(value: string) { this.marketDashboardService.symbolMessage = value; }
   get editDialogOpen(): boolean { return this.marketDashboardService.editDialogOpen; }
   set editDialogOpen(value: boolean) { this.marketDashboardService.editDialogOpen = value; }
+  get editOriginalId(): number | null { return this.marketDashboardService.editOriginalId; }
+  set editOriginalId(value: number | null) { this.marketDashboardService.editOriginalId = value; }
   get editOriginalSymbol(): string { return this.marketDashboardService.editOriginalSymbol; }
   set editOriginalSymbol(value: string) { this.marketDashboardService.editOriginalSymbol = value; }
   get editSymbolQuery(): string { return this.marketDashboardService.editSymbolQuery; }
@@ -117,6 +124,8 @@ export class AppComponent implements OnDestroy, OnInit {
   set editSymbolMessage(value: string) { this.marketDashboardService.editSymbolMessage = value; }
   get deleteDialogOpen(): boolean { return this.marketDashboardService.deleteDialogOpen; }
   set deleteDialogOpen(value: boolean) { this.marketDashboardService.deleteDialogOpen = value; }
+  get deleteTargetId(): number | null { return this.marketDashboardService.deleteTargetId; }
+  set deleteTargetId(value: number | null) { this.marketDashboardService.deleteTargetId = value; }
   get deleteTargetSymbol(): string { return this.marketDashboardService.deleteTargetSymbol; }
   set deleteTargetSymbol(value: string) { this.marketDashboardService.deleteTargetSymbol = value; }
   get alertsDialogOpen(): boolean { return this.marketDashboardService.alertsDialogOpen; }
@@ -199,6 +208,9 @@ export class AppComponent implements OnDestroy, OnInit {
     }
     if (this.editSymbolSearchHandle) {
       clearTimeout(this.editSymbolSearchHandle);
+    }
+    if (this.stockLookupSearchHandle) {
+      clearTimeout(this.stockLookupSearchHandle);
     }
     if (this.snackbarHandle) {
       clearTimeout(this.snackbarHandle);
@@ -611,6 +623,127 @@ export class AppComponent implements OnDestroy, OnInit {
     this.alertsDialogOpen = true;
   }
 
+  searchHeaderStock(): void {
+    if (!this.isLoggedIn) {
+      this.showSnackbar('Login before searching stock risks.', 'error');
+      return;
+    }
+
+    this.marketDashboardService.stockLookupDialogOpen = true;
+    this.marketDashboardService.stockLookupMessage = this.marketDashboardService.stockLookupQuery.trim().length >= 2
+      ? this.marketDashboardService.stockLookupMessage
+      : 'Type at least 2 characters to search stocks.';
+    if (this.marketDashboardService.stockLookupQuery.trim().length >= 2) {
+      this.scheduleStockLookupSearch();
+    }
+  }
+
+  onStockLookupQueryChange(event: Event): void {
+    this.marketDashboardService.stockLookupQuery = (event.target as HTMLInputElement).value;
+    this.marketDashboardService.stockLookupResult = undefined;
+    this.marketDashboardService.selectedStockLookup = undefined;
+    this.marketDashboardService.stockLookupRisks = {};
+    this.scheduleStockLookupSearch();
+  }
+
+  runStockLookupSearch(): void {
+    if (this.stockLookupSearchHandle) {
+      clearTimeout(this.stockLookupSearchHandle);
+      this.stockLookupSearchHandle = undefined;
+    }
+
+    const query = this.marketDashboardService.stockLookupQuery.trim();
+    if (query.length < 2) {
+      this.marketDashboardService.stockLookupSuggestions = [];
+      this.marketDashboardService.stockLookupRisks = {};
+      this.marketDashboardService.stockLookupMessage = 'Type at least 2 characters to search stocks.';
+      return;
+    }
+
+    this.marketDashboardService.isSearchingStockLookup = true;
+    this.marketDashboardService.stockLookupMessage = 'Searching...';
+    this.marketDashboardService.searchSymbols(this.username, this.password, query, true)
+      .pipe(finalize(() => (this.marketDashboardService.isSearchingStockLookup = false)))
+      .subscribe({
+        next: (results) => {
+          if (query !== this.marketDashboardService.stockLookupQuery.trim()) {
+            return;
+          }
+
+          this.marketDashboardService.stockLookupSuggestions = results;
+          this.marketDashboardService.stockLookupRisks = results.reduce<Record<string, StockAlert | null>>((risks, result) => {
+            risks[result.symbol.toUpperCase()] = result.indicators ?? null;
+            return risks;
+          }, {});
+          this.marketDashboardService.stockLookupMessage = results.length
+            ? 'Indicators loaded.'
+            : 'No matching stocks found. Try a different ticker or company name.';
+        },
+        error: () => {
+          if (query !== this.marketDashboardService.stockLookupQuery.trim()) {
+            return;
+          }
+
+          this.marketDashboardService.stockLookupSuggestions = [];
+          this.marketDashboardService.stockLookupMessage = 'Could not search stocks. Check backend auth and Finnhub configuration.';
+        },
+      });
+  }
+
+  closeStockLookupDialog(): void {
+    this.marketDashboardService.stockLookupDialogOpen = false;
+    this.marketDashboardService.isSearchingStockLookup = false;
+    if (this.stockLookupSearchHandle) {
+      clearTimeout(this.stockLookupSearchHandle);
+      this.stockLookupSearchHandle = undefined;
+    }
+  }
+
+  private scheduleStockLookupSearch(): void {
+    if (this.stockLookupSearchHandle) {
+      clearTimeout(this.stockLookupSearchHandle);
+    }
+
+    this.stockLookupSearchHandle = setTimeout(() => this.runStockLookupSearch(), 500);
+  }
+
+  stockLookupRiskFor(symbol: string): StockAlert | null | undefined {
+    return this.marketDashboardService.stockLookupRisks[symbol.toUpperCase()];
+  }
+
+  addStockLookupResult(result: SymbolSearchResult): void {
+    this.closeStockLookupDialog();
+    this.openAddPosition();
+    this.chooseSymbol(result);
+  }
+
+  formatStockLookupMoney(value: number | null | undefined): string {
+    if (value === null || value === undefined) {
+      return '-';
+    }
+
+    const abs = Math.abs(value);
+    if (!Number.isFinite(abs)) {
+      return value < 0 ? '-$Infinity' : '$Infinity';
+    }
+
+    if (abs < 1000) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: abs >= 100 ? 0 : 2,
+      }).format(value);
+    }
+
+    const suffixes = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
+    const tier = Math.min(Math.floor(Math.log10(abs) / 3), suffixes.length - 1);
+    const scaled = value / Math.pow(1000, tier);
+    const compact = new Intl.NumberFormat('en-US', {
+      maximumFractionDigits: Math.abs(scaled) >= 100 ? 0 : Math.abs(scaled) >= 10 ? 1 : 2,
+    }).format(scaled);
+
+    return `$${compact}${suffixes[tier]}`;
+  }
   closeAlertsDialog(): void {
     this.alertsDialogOpen = false;
   }
@@ -876,7 +1009,7 @@ export class AppComponent implements OnDestroy, OnInit {
     }
 
     this.showSymbolDropdown = true;
-    this.symbolMessage = 'Searching Finnhub...';
+    this.symbolMessage = 'Searching...';
     this.symbolSearchHandle = setTimeout(() => {
       this.marketDashboardService.searchSymbols(this.username, this.password, query).subscribe({
         next: (results) => {
@@ -885,6 +1018,11 @@ export class AppComponent implements OnDestroy, OnInit {
           }
 
           this.symbolSuggestions = results;
+          const exactMatch = results.find((result) => result.symbol.toUpperCase() === query.toUpperCase());
+          if (exactMatch) {
+            this.holdingForm.symbol = exactMatch.symbol;
+            this.holdingForm.companyName = exactMatch.name;
+          }
           this.symbolMessage = results.length
             ? 'Choose one of the dropdown results to link this position.'
             : 'No matching stocks found. Try a different ticker or company name.';
@@ -951,7 +1089,7 @@ export class AppComponent implements OnDestroy, OnInit {
   }
 
   private resetAddForm(): void {
-    this.holdingForm = { symbol: '', companyName: '', quantity: 0, averageCost: 0, watchOnly: false };
+    this.holdingForm = { id: null, symbol: '', companyName: '', quantity: 0, averageCost: 0, watchOnly: false };
     this.symbolQuery = '';
     this.symbolSuggestions = [];
     this.selectedSymbol = undefined;
@@ -962,8 +1100,8 @@ export class AppComponent implements OnDestroy, OnInit {
     }
   }
 
-  deleteHolding(symbol: string): void {
-    this.marketDashboardService.deleteHolding(this.username, this.password, symbol).subscribe({
+  deleteHolding(holdingId: number, symbol: string): void {
+    this.marketDashboardService.deleteHolding(this.username, this.password, holdingId).subscribe({
       next: () => {
         this.showSnackbar(`${symbol} removed from portfolio.`);
         this.refreshDashboard();
@@ -972,26 +1110,35 @@ export class AppComponent implements OnDestroy, OnInit {
     });
   }
 
-  confirmDelete(symbol: string): void {
-    this.deleteTargetSymbol = symbol;
+  confirmDelete(stock: StockAlert): void {
+    this.deleteTargetId = stock.id;
+    this.deleteTargetSymbol = stock.symbol;
     this.deleteDialogOpen = true;
   }
 
   cancelDelete(): void {
     this.deleteDialogOpen = false;
+    this.deleteTargetId = null;
     this.deleteTargetSymbol = '';
   }
 
   confirmDeleteAction(): void {
+    const id = this.deleteTargetId;
     const symbol = this.deleteTargetSymbol;
     this.deleteDialogOpen = false;
+    this.deleteTargetId = null;
     this.deleteTargetSymbol = '';
-    this.deleteHolding(symbol);
+    if (id === null) {
+      this.showSnackbar('Could not remove position. Missing row id.', 'error');
+      return;
+    }
+    this.deleteHolding(id, symbol);
   }
 
   openEditPosition(stock: StockAlert): void {
     this.isSavingHolding = false;
     this.editDialogOpen = true;
+    this.editOriginalId = stock.id;
     this.editOriginalSymbol = stock.symbol;
     this.editSymbolQuery = stock.symbol;
     this.editSymbolSuggestions = [];
@@ -999,6 +1146,7 @@ export class AppComponent implements OnDestroy, OnInit {
     this.showEditSymbolDropdown = false;
     this.editSymbolMessage = 'Keep this ticker or choose a new stock from the dropdown.';
     this.editForm = {
+      id: stock.id,
       symbol: stock.symbol,
       companyName: stock.companyName,
       quantity: stock.quantity,
@@ -1009,6 +1157,7 @@ export class AppComponent implements OnDestroy, OnInit {
 
   closeEditPosition(): void {
     this.editDialogOpen = false;
+    this.editOriginalId = null;
     this.editOriginalSymbol = '';
     this.editSymbolQuery = '';
     this.editSymbolSuggestions = [];
@@ -1045,7 +1194,7 @@ export class AppComponent implements OnDestroy, OnInit {
     }
 
     this.showEditSymbolDropdown = true;
-    this.editSymbolMessage = 'Searching Finnhub...';
+    this.editSymbolMessage = 'Searching...';
     this.editSymbolSearchHandle = setTimeout(() => {
       this.marketDashboardService.searchSymbols(this.username, this.password, query).subscribe({
         next: (results) => {
@@ -1095,17 +1244,16 @@ export class AppComponent implements OnDestroy, OnInit {
     }
 
     const originalSymbol = this.editOriginalSymbol;
+    const originalId = this.editOriginalId;
     const nextSymbol = this.editForm.symbol.toUpperCase();
     const symbolChanged = originalSymbol.toUpperCase() !== nextSymbol;
+    if (originalId === null) {
+      this.showSnackbar('Could not update position. Missing row id.', 'error');
+      return;
+    }
     this.isSavingHolding = true;
-    this.marketDashboardService.saveHolding(this.username, this.password, this.editForm)
-      .pipe(
-        switchMap(() => symbolChanged
-          ? this.marketDashboardService.deleteHolding(this.username, this.password, originalSymbol)
-          : of(undefined)
-        ),
-        finalize(() => (this.isSavingHolding = false)),
-      )
+    this.marketDashboardService.updateHolding(this.username, this.password, originalId, this.editForm)
+      .pipe(finalize(() => (this.isSavingHolding = false)))
       .subscribe({
         next: () => {
           this.showSnackbar(symbolChanged

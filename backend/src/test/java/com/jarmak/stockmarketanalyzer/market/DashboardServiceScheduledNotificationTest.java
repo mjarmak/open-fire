@@ -133,7 +133,8 @@ class DashboardServiceScheduledNotificationTest {
         null,
         null,
         null,
-        new AppProperties.Telegram(telegramEnabled, "sma3141_bot", "test-token")
+        new AppProperties.Telegram(telegramEnabled, "sma3141_bot", "test-token"),
+        null
     );
     return new DashboardService(
         properties,
@@ -160,6 +161,7 @@ class DashboardServiceScheduledNotificationTest {
   private StockAlert alertStock(String symbol, String marketValue) {
     BigDecimal value = new BigDecimal(marketValue);
     return new StockAlert(
+        1L,
         symbol,
         symbol,
         "Technology",
@@ -188,6 +190,7 @@ class DashboardServiceScheduledNotificationTest {
   private StockAlert stockAlert(String symbol, String marketValue) {
     BigDecimal value = new BigDecimal(marketValue);
     return new StockAlert(
+        2L,
         symbol,
         symbol,
         "Technology",
@@ -216,6 +219,7 @@ class DashboardServiceScheduledNotificationTest {
   private StockAlert watchOnlyStock(String symbol, String marketValue) {
     BigDecimal value = new BigDecimal(marketValue);
     return new StockAlert(
+        3L,
         symbol,
         symbol,
         "Technology",

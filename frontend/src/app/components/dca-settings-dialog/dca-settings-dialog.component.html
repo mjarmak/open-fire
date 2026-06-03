@@ -1,5 +1,5 @@
 @if (state.dcaDialogOpen) {
-  <div class="modal-backdrop" role="presentation" @dialogBackdrop (mousedown)="$event.target === $event.currentTarget && closeDialog.emit()">
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop>
     <section class="edit-dialog dca-dialog" role="dialog" aria-modal="true" aria-labelledby="dca-settings-title" @dialogPanel (click)="$event.stopPropagation()">
       <div class="dialog-heading">
         <div>
@@ -44,7 +44,7 @@
 }
 
 @if (state.dcaSuggestionDialogOpen) {
-  <div class="modal-backdrop" role="presentation" @dialogBackdrop (mousedown)="$event.target === $event.currentTarget && closeSuggestions.emit()">
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop>
     <section class="edit-dialog dca-suggestions-dialog" role="dialog" aria-modal="true" aria-labelledby="dca-suggestions-title" @dialogPanel (click)="$event.stopPropagation()">
       <div class="dialog-heading">
         <div>

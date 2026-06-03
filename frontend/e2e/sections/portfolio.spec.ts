@@ -18,7 +18,7 @@ test.describe('Portfolio Section', () => {
     await symbolInput.fill('NVDA');
     await expect(addDialog.locator('.symbol-option').first()).toBeVisible({ timeout: 4_000 });
     await addDialog.locator('.symbol-option').first().click();
-    await addDialog.getByRole('spinbutton', { name: 'Position' }).fill('3');
+    await addDialog.getByRole('spinbutton', { name: 'Quantity' }).fill('3');
     await addDialog.getByRole('spinbutton', { name: 'Avg Cost' }).fill('900');
     await addDialog.getByRole('button', { name: 'Add' }).click();
     await expect(addDialog).toBeHidden();
@@ -32,7 +32,7 @@ test.describe('Portfolio Section', () => {
     await nvdaRow.getByRole('button', { name: 'Edit position' }).click();
     const editDialog = page.getByRole('dialog', { name: 'NVDA' });
     await expect(editDialog).toBeVisible();
-    await editDialog.getByRole('spinbutton', { name: 'Position' }).fill('5');
+    await editDialog.getByRole('spinbutton', { name: 'Quantity' }).fill('5');
     await editDialog.getByRole('button', { name: 'Save' }).click();
     await expect(editDialog).toBeHidden();
 
@@ -40,6 +40,25 @@ test.describe('Portfolio Section', () => {
     const deleteDialog = page.getByRole('alertdialog', { name: /Remove NVDA/ });
     await deleteDialog.getByRole('button', { name: 'Delete' }).click();
     await expect(page.locator('.stock-row').filter({ hasText: 'NVDA' })).toHaveCount(0);
+  });
+
+  test('keeps add position dialog open when dragging from the dialog to the backdrop', async ({ page }) => {
+    const portfolio = page.getByLabel('Portfolio tickers');
+    await portfolio.getByRole('button', { name: 'Add' }).click();
+
+    const addDialog = page.getByRole('dialog', { name: 'Add Position' });
+    await expect(addDialog).toBeVisible();
+    const box = await addDialog.boundingBox();
+    expect(box).not.toBeNull();
+
+    await page.mouse.move((box?.x || 0) + (box?.width || 0) / 2, (box?.y || 0) + (box?.height || 0) / 2);
+    await page.mouse.down();
+    await page.mouse.move(4, 4);
+    await page.mouse.up();
+
+    await expect(addDialog).toBeVisible();
+    await addDialog.getByRole('button', { name: 'Cancel' }).click();
+    await expect(addDialog).toBeHidden();
   });
 
   test('supports watch-only entry plus export and import CSV', async ({ page }) => {
@@ -51,7 +70,7 @@ test.describe('Portfolio Section', () => {
     await expect(addDialog.locator('.symbol-option').first()).toBeVisible({ timeout: 4_000 });
     await addDialog.locator('.symbol-option').first().click();
     await addDialog.locator('input[name="watchOnly"]').check();
-    await expect(addDialog.getByRole('spinbutton', { name: 'Position' })).toBeDisabled();
+    await expect(addDialog.getByRole('spinbutton', { name: 'Quantity' })).toBeDisabled();
     await expect(addDialog.getByRole('spinbutton', { name: 'Avg Cost' })).toBeDisabled();
     await expect(addDialog.getByRole('button', { name: 'Add' })).toBeEnabled();
     await addDialog.getByRole('button', { name: 'Cancel' }).click();

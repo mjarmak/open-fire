@@ -15,6 +15,20 @@
         (change)="importPositions.emit($event)"
       />
     </div>
+    <div class="portfolio-filter" role="group" aria-label="Position filter">
+      @for (filter of positionFilters; track filter.value) {
+        <button
+          type="button"
+          class="filter-option"
+          [class.active]="positionFilter === filter.value"
+          [attr.aria-pressed]="positionFilter === filter.value"
+          (click)="setPositionFilter(filter.value)"
+        >
+          <span>{{ filter.label }}</span>
+          <strong>{{ positionFilterCount(filter.value) }}</strong>
+        </button>
+      }
+    </div>
   </div>
 
   @if (positionTypeSlices.length) {
@@ -47,7 +61,7 @@
   }
 
   <div class="stock-table">
-    @for (stock of displayedStocks; track stock.symbol) {
+    @for (stock of displayedStocks; track positionRowKey(stock)) {
       <div class="stock-row" [class.alerting]="stock.alert" [class.watch-only-row]="stock.watchOnly" [class.collapsed-row]="isCollapsed(stock)">
         <div class="ticker-identity">
           <div class="ticker-symbol-line">
@@ -138,13 +152,17 @@
           ></button>
           }
           <button type="button" class="row-action edit-action" title="Edit position" aria-label="Edit position" (click)="editPosition.emit(stock)"></button>
-          <button type="button" class="icon-action delete-action" title="Remove holding" aria-label="Remove holding" (click)="deletePosition.emit(stock.symbol)"></button>
+          <button type="button" class="icon-action delete-action" title="Remove holding" aria-label="Remove holding" (click)="deletePosition.emit(stock)"></button>
         </div>
         <small>{{ stock.reason }}</small>
       </div>
     } @empty {
       <div class="empty-state">
-        Add a portfolio position above, then configure Finnhub to enrich it with live market data.
+        @if (state.stocks.length) {
+          No positions match this filter.
+        } @else {
+          Add a portfolio position above, then configure Finnhub to enrich it with live market data.
+        }
       </div>
     }
   </div>

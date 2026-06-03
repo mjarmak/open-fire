@@ -1,6 +1,7 @@
 <main class="app-shell">
   <app-header
     (toggleTheme)="toggleTheme()"
+    (searchStock)="searchHeaderStock()"
     (openAlerts)="openAlertsDialog()"
     (refresh)="refreshDashboard()"
     (logout)="logout()"
@@ -60,6 +61,138 @@
   (openDropdown)="openSymbolDropdown()"
   (chooseSymbol)="chooseSymbol($event)"
 />
+
+@if (marketDashboardService.stockLookupDialogOpen) {
+  <div class="modal-backdrop stock-lookup-backdrop" role="presentation" @dialogBackdrop>
+    <section class="edit-dialog stock-lookup-dialog" role="dialog" aria-modal="true" aria-labelledby="stock-lookup-title" @dialogPanel (mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()">
+      <div class="dialog-heading">
+        <div>
+          <h2 id="stock-lookup-title">Find Stock Risks</h2>
+        </div>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeStockLookupDialog()">x</button>
+      </div>
+
+      <form class="stock-lookup-search" role="search" (ngSubmit)="runStockLookupSearch()">
+        <label class="field-label" for="stock-lookup-query">Ticker or company</label>
+        <div>
+          <input
+            id="stock-lookup-query"
+            name="stockLookupQuery"
+            autocomplete="off"
+            [value]="marketDashboardService.stockLookupQuery"
+            (input)="onStockLookupQueryChange($event)"
+            placeholder="Search AAPL, Apple, MSFT..."
+            aria-label="Search stocks"
+          />
+          <button type="submit" [disabled]="marketDashboardService.isSearchingStockLookup || marketDashboardService.stockLookupQuery.trim().length < 2">
+            @if (marketDashboardService.isSearchingStockLookup) {
+              Searching
+            } @else {
+              Search
+            }
+          </button>
+        </div>
+      </form>
+
+      <div class="stock-lookup-body">
+        <section class="stock-lookup-results" aria-label="Stock search results">
+          <div class="stock-table stock-lookup-list">
+            @for (result of marketDashboardService.stockLookupSuggestions; track result.symbol) {
+              @if (stockLookupRiskFor(result.symbol); as stock) {
+                <div class="stock-row stock-lookup-result-row" [class.alerting]="stock.alert">
+                  <div class="ticker-identity">
+                    <div class="ticker-symbol-line">
+                      <span
+                        class="position-type-dot"
+                        [style.background]="stock.alert ? 'var(--status-risk)' : 'var(--status-calm)'"
+                      ></span>
+                      <strong class="ticket-type-indicator">{{ result.symbol }}</strong>
+                    </div>
+                    <span>{{ result.name }}</span>
+                    <span>{{ result.region }} - {{ result.currency }}</span>
+                  </div>
+                  <div class="ticker-metrics">
+                    <span><small>Price</small>{{ formatStockLookupMoney(stock.latestPrice) }}</span>
+                    <span
+                      class="metric-tooltip risk-metric risk-fear"
+                      tabindex="0"
+                      data-tooltip="Fear score: composite risk score from valuation, beta, 30-day volatility, 30-day drawdown, and 30-day price moves. Alert threshold: 65/100."
+                      aria-label="Fear score: composite risk score from valuation, beta, 30-day volatility, 30-day drawdown, and 30-day price moves. Alert threshold: 65 out of 100."
+                      [class.fear-high]="stock.fearScore !== null && stock.fearScore >= 65"
+                    ><small>Fear</small>{{ stock.fearScore === null ? '-' : (stock.fearScore | number: '1.0-0') + '/100' }}</span>
+                    <span
+                      class="metric-tooltip risk-metric risk-pe"
+                      tabindex="0"
+                      data-tooltip="P/E: price-to-earnings ratio, a valuation measure comparing share price with earnings per share. Alert threshold: above 25."
+                      aria-label="P/E: price-to-earnings ratio, a valuation measure comparing share price with earnings per share. Alert threshold: above 25."
+                      [class.pe-high]="stock.peRatio !== null && stock.peRatio > 25"
+                    ><small>P/E</small>{{ stock.peRatio === null ? '-' : (stock.peRatio | number: '1.0-2') }}</span>
+                    <span
+                      class="metric-tooltip risk-metric risk-beta"
+                      tabindex="0"
+                      data-tooltip="Beta: sensitivity to broad market moves. 1 tracks the market; above 1 tends to move more. Alert threshold: above 1.5."
+                      aria-label="Beta: sensitivity to broad market moves. 1 tracks the market; above 1 tends to move more. Alert threshold: above 1.5."
+                      [class.beta-high]="stock.beta !== null && stock.beta > 1.5"
+                    ><small>Beta</small>{{ stock.beta === null ? '-' : (stock.beta | number: '1.0-2') }}</span>
+                    <span
+                      class="metric-tooltip risk-metric risk-vol"
+                      tabindex="0"
+                      data-tooltip="Vol: annualized realized volatility from the latest 30 daily returns, using 31 closes. Falls back to quote high/low if history is unavailable. Alert threshold: above 40%."
+                      aria-label="Vol: annualized realized volatility from the latest 30 daily returns, using 31 closes. Falls back to quote high and low if history is unavailable. Alert threshold: above 40 percent."
+                      [class.vol-high]="stock.realizedVolatilityPercent !== null && stock.realizedVolatilityPercent > 40"
+                    ><small>Vol</small>{{ stock.realizedVolatilityPercent === null ? '-' : (stock.realizedVolatilityPercent | number: '1.0-1') + '%' }}</span>
+                    <span
+                      class="metric-tooltip risk-metric risk-dd"
+                      tabindex="0"
+                      data-tooltip="DD: drawdown from the highest close in the last 30 calendar days to the latest price. Falls back to 52-week high if history is unavailable. Alert threshold: above 20%."
+                      aria-label="DD: drawdown from the highest close in the last 30 calendar days to the latest price. Falls back to 52-week high if history is unavailable. Alert threshold: above 20 percent."
+                      [class.drawdown-high]="stock.drawdownPercent !== null && stock.drawdownPercent > 20"
+                    ><small>DD</small>{{ stock.drawdownPercent === null ? '-' : (stock.drawdownPercent | number: '1.0-1') + '%' }}</span>
+                    <span><small>Market Cap</small>{{ formatStockLookupMoney(stock.marketCap) }}</span>
+                    <span [class.value-pos]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent > 0" [class.value-neg]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent < 0">
+                      <small>30D</small>{{ stock.thirtyDayChangePercent === null ? '-' : (stock.thirtyDayChangePercent | number: '1.0-1') + '%' }}
+                    </span>
+                    <span><small>Type</small>{{ stock.positionType || '-' }}</span>
+                    <span><small>Alert</small>{{ stock.alert ? 'Alert' : 'OK' }}</span>
+                  </div>
+                  <small>{{ stock.reason || 'No watched stock alerts fired under current thresholds.' }}</small>
+                  <button type="button" class="stock-lookup-add-button" (click)="addStockLookupResult(result)">Add</button>
+                </div>
+              } @else {
+                <div class="stock-row stock-lookup-result-row">
+                  <div class="ticker-identity">
+                    <div class="ticker-symbol-line">
+                      <span class="position-type-dot"></span>
+                      <strong class="ticket-type-indicator">{{ result.symbol }}</strong>
+                    </div>
+                    <span>{{ result.name }}</span>
+                    <span>{{ result.region }} - {{ result.currency }}</span>
+                  </div>
+                  <div class="ticker-metrics">
+                    <span><small>Price</small>-</span>
+                    <span><small>Fear</small>-</span>
+                    <span><small>P/E</small>-</span>
+                    <span><small>Beta</small>-</span>
+                    <span><small>Vol</small>-</span>
+                    <span><small>DD</small>-</span>
+                    <span><small>Market Cap</small>-</span>
+                    <span><small>30D</small>-</span>
+                    <span><small>Type</small>-</span>
+                    <span><small>Alert</small>Unavailable</span>
+                  </div>
+                  <small>Could not load indicators.</small>
+                  <button type="button" class="stock-lookup-add-button" (click)="addStockLookupResult(result)">Add</button>
+                </div>
+              }
+            } @empty {
+              <div class="stock-lookup-empty">{{ marketDashboardService.stockLookupMessage || 'Search for stocks to see results.' }}</div>
+            }
+          </div>
+        </section>
+      </div>
+    </section>
+  </div>
+}
 
 <app-edit-position-dialog
   (closeDialog)="closeEditPosition()"

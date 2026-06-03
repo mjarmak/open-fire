@@ -22,4 +22,8 @@ export class AlertsDialogComponent {
       .filter((stock) => stock.alert)
       .sort((left, right) => left.symbol.localeCompare(right.symbol));
   }
+
+  protected stockRowKey(stock: StockAlert): string {
+    return String(stock.id ?? stock.symbol);
+  }
 }

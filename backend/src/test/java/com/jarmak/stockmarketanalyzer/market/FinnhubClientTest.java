@@ -63,6 +63,7 @@ class FinnhubClientTest {
             BigDecimal.valueOf(65)
         ),
         null,
+        null,
         null
     );
   }

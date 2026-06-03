@@ -23,7 +23,7 @@ class StockAlertServiceTest {
     StockAlertService service = new StockAlertService(properties(), finnhubClient, portfolioService);
 
     when(portfolioService.holdings()).thenReturn(List.of(
-        new PortfolioHolding("AAPL", "Apple Inc.", BigDecimal.valueOf(2), BigDecimal.valueOf(100), false)
+        new PortfolioHolding(1L, "AAPL", "Apple Inc.", BigDecimal.valueOf(2), BigDecimal.valueOf(100), false)
     ));
     when(finnhubClient.companySnapshot("AAPL")).thenReturn(Optional.of(new CompanySnapshot(
         "AAPL",
@@ -54,7 +54,7 @@ class StockAlertServiceTest {
     StockAlertService service = new StockAlertService(properties(), finnhubClient, portfolioService);
 
     when(portfolioService.holdings()).thenReturn(List.of(
-        new PortfolioHolding("AAPL", "Apple Inc.", BigDecimal.ZERO, BigDecimal.ZERO, true)
+        new PortfolioHolding(1L, "AAPL", "Apple Inc.", BigDecimal.ZERO, BigDecimal.ZERO, true)
     ));
     when(finnhubClient.companySnapshot("AAPL")).thenReturn(Optional.of(new CompanySnapshot(
         "AAPL",
@@ -100,6 +100,7 @@ class StockAlertServiceTest {
             BigDecimal.valueOf(20),
             BigDecimal.valueOf(65)
         ),
+        null,
         null,
         null
     );

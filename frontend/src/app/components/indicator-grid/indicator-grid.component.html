@@ -1,25 +1,62 @@
 <section class="indicator-grid" aria-label="Macro market indicators">
   @for (indicator of state.indicators; track indicator.id) {
     <article class="indicator-card" [class.compact-indicator]="isCompactIndicator(indicator)" [ngClass]="statusClass(indicator.status)">
-      <div class="indicator-head">
-        <p>{{ indicator.category }}</p>
-        <h2>{{ indicator.name }}</h2>
-        @if (isCompactIndicator(indicator)) {
-          <button
-            type="button"
-            class="indicator-help app-tooltip"
-            [attr.data-tooltip]="indicator.description"
-            [attr.aria-label]="indicator.description"
-          >
-            i
-          </button>
-        }
-      </div>
-      <strong>{{ indicator.value }}</strong>
-      <span>{{ indicator.unit }}</span>
-      @if (!isCompactIndicator(indicator)) {
-      <small>{{ indicator.description }}</small>
+      @if (isCompactIndicator(indicator)) {
+        <div
+          class="mini-speedometer"
+          [style.--gauge-sweep]="gaugeSweep(indicator) + 'deg'"
+          [style.--gauge-needle]="gaugeNeedleRotation(indicator) + 'deg'"
+          aria-hidden="true"
+        >
+          <span class="speedometer-needle"></span>
+        </div>
+        <div class="compact-indicator-copy">
+          <p>{{ indicator.category }}</p>
+          <h2>{{ indicator.name }}</h2>
+          <strong>{{ indicator.value }}</strong>
+          <span>{{ indicator.unit }}</span>
+        </div>
+        <button
+          type="button"
+          class="indicator-help app-tooltip"
+          [attr.data-tooltip]="indicator.description"
+          [attr.aria-label]="indicator.description"
+        >
+          i
+        </button>
+      } @else {
+        <div class="indicator-head">
+          <p>{{ indicator.category }}</p>
+          <h2>{{ indicator.name }}</h2>
+        </div>
+        <strong>{{ indicator.value }}</strong>
+        <span>{{ indicator.unit }}</span>
+        <small>{{ indicator.description }}</small>
       }
     </article>
   }
+  <article class="indicator-card compact-indicator retirement-progress-indicator" [ngClass]="retirementProgressStatusClass">
+    <div
+      class="mini-speedometer"
+      [style.--gauge-sweep]="retirementProgressSweep + 'deg'"
+      [style.--gauge-needle]="retirementProgressNeedleRotation + 'deg'"
+      aria-hidden="true"
+    >
+      <span class="speedometer-needle"></span>
+    </div>
+    <div class="compact-indicator-copy">
+      <p>Retirement</p>
+      <h2>Progress</h2>
+      <strong>{{ retirementProgressPercent | number: '1.0-1' }}%</strong>
+      <span>of target</span>
+    </div>
+    <button
+      type="button"
+      class="indicator-help app-tooltip"
+      [attr.data-tooltip]="retirementProgressTooltip"
+      [attr.aria-label]="retirementProgressTooltip"
+    >
+      i
+    </button>
+  </article>
 </section>

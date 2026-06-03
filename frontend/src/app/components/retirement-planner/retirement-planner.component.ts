@@ -38,7 +38,17 @@ type RetirementSnapshot = {
   templateUrl: './retirement-planner.component.html',
 })
 export class RetirementPlannerComponent {
+  private readonly projectionChartLimit = 10_000_000_000_000;
   protected readonly state = inject(MarketDashboardService);
+  protected readonly portfolioSummaryTooltips = {
+    holdings: 'Number of portfolio rows you have saved, including watch-only holdings.',
+    initialDeposit: 'Initial starting capital from your retirement configuration. This is used as the projection starting balance.',
+    totalInvested: 'Sum of cost basis across non-watch-only positions: quantity multiplied by average cost.',
+    totalProfitLoss: 'Unrealized gain or loss across non-watch-only positions.',
+    totalProfitLossPercent: 'Total P&L divided by total invested for non-watch-only positions.',
+    annualizedReturn: 'Annualized return from total invested to the current non-watch-only portfolio value, using your configured return start date.',
+    returnSince: 'Investing start date from your retirement configuration, used for annualized return timing.',
+  };
   private snapshotCacheKey = '';
   private snapshotCache: RetirementSnapshot | null = null;
 
@@ -94,7 +104,7 @@ export class RetirementPlannerComponent {
     return this.chartYForValue(this.targetRetirementFund);
   }
 
-  get chartYTicks(): { value: number; y: number; label: string }[] {
+  get chartYTicks(): { value: number; y: number; label: number }[] {
     const minLog = Math.log10(this.minChartValue);
     const maxLog = Math.log10(this.maxChartValue);
     return [1, 0.75, 0.5, 0.25, 0].map((ratio) => {
@@ -102,7 +112,7 @@ export class RetirementPlannerComponent {
       return {
         value,
         y: this.chartYForValue(value),
-        label: this.formatMoney(value),
+        label: value,
       };
     });
   }
@@ -125,32 +135,19 @@ export class RetirementPlannerComponent {
   }
 
   getSvgPath(line: ExtendedProjectionLine): string {
-    const proj = this.projections;
-    if (proj.length === 0) return '';
-
-    return proj.map((p, index) => {
-      const x = 60 + (p.year / 30) * 680;
-      const val = line === 'ideal'
-        ? p.ideal
-        : line === 'actual'
-        ? p.actual
-        : line === 'custom'
-        ? p.custom
-        : line === 'idealNoWithdraw'
-        ? p.idealNoWithdraw
-        : line === 'actualNoWithdraw'
-        ? p.actualNoWithdraw
-        : p.customNoWithdraw;
-      const y = this.chartYForValue(val);
-      return `${index === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    }).join(' ');
+    return this.getChartPoints(line)
+      .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
+      .join(' ');
   }
 
   getSvgAreaPath(line: ProjectionLine): string {
-    const linePath = this.getSvgPath(line);
-    if (!linePath) return '';
+    const points = this.getChartPoints(line);
+    if (!points.length) return '';
+    const linePath = points
+      .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`)
+      .join(' ');
     const x0 = 60;
-    const xEnd = 60 + 680;
+    const xEnd = points[points.length - 1].x;
     const yBaseline = 260;
     return `${linePath} L ${xEnd.toFixed(1)} ${yBaseline} L ${x0.toFixed(1)} ${yBaseline} Z`;
   }
@@ -186,7 +183,7 @@ export class RetirementPlannerComponent {
     this.hoveredYear = null;
   }
 
-  formatMoney(value: number | null | undefined): string {
+  formatCompactCurrency(value: number | null | undefined): string {
     if (value === null || value === undefined) {
       return '-';
     }
@@ -242,6 +239,7 @@ export class RetirementPlannerComponent {
       .filter((stock) => !stock.watchOnly)
       .reduce((sum, stock) => sum + (stock.unrealizedGainLoss || 0), 0);
     const safeWithdrawalRatio = Math.max(0.001, this.state.safeWithdrawalRate / 100);
+    const initialDeposit = Math.max(0, this.state.otherSavings);
     const actualCagr = this.computeActualCagr(currentPortfolioValue, currentPortfolioCost);
     const targetRetirementFund = this.retirementTargetAtYear(
       0,
@@ -251,7 +249,7 @@ export class RetirementPlannerComponent {
     );
 
     const projections: RetirementProjection[] = [];
-    const startVal = currentPortfolioValue || this.state.otherSavings;
+    const startVal = initialDeposit;
     const monthly = this.state.monthlySavings;
     const idealRate = 0.10;
     const customRate = this.state.customReturnRate / 100;
@@ -280,16 +278,16 @@ export class RetirementPlannerComponent {
 
     const maxProjectionValue = Math.max(
       ...projections.map((projection) => Math.max(
-        projection.ideal,
-        projection.actual,
-        projection.custom,
-        projection.idealNoWithdraw,
-        projection.actualNoWithdraw,
-        projection.customNoWithdraw,
-        projection.target,
+        Math.min(projection.ideal, this.projectionChartLimit),
+        Math.min(projection.actual, this.projectionChartLimit),
+        Math.min(projection.custom, this.projectionChartLimit),
+        Math.min(projection.idealNoWithdraw, this.projectionChartLimit),
+        Math.min(projection.actualNoWithdraw, this.projectionChartLimit),
+        Math.min(projection.customNoWithdraw, this.projectionChartLimit),
+        Math.min(projection.target, this.projectionChartLimit),
       )),
     );
-    const maxChartValue = Math.max(1, maxProjectionValue * 1.12);
+    const maxChartValue = Math.max(1, Math.min(this.projectionChartLimit, maxProjectionValue * 1.12));
     const positiveValues = projections
       .flatMap((projection) => [
         projection.ideal,
@@ -300,9 +298,10 @@ export class RetirementPlannerComponent {
         projection.customNoWithdraw,
         projection.target,
       ])
+      .map((value) => Math.min(value, this.projectionChartLimit))
       .filter((value) => value > 0);
     const minPositive = positiveValues.length ? Math.min(...positiveValues) : 1;
-    const minChartValue = Math.max(1, Math.min(minPositive, currentPortfolioValue || this.state.otherSavings || 1));
+    const minChartValue = Math.max(1, Math.min(minPositive, initialDeposit || 1));
 
     this.snapshotCacheKey = key;
     this.snapshotCache = {
@@ -319,8 +318,8 @@ export class RetirementPlannerComponent {
     return this.snapshotCache;
   }
 
-  private computeActualCagr(currentPortfolioValue: number, currentPortfolioCost: number): number {
-    if (!this.state.investingStartDate || currentPortfolioValue <= 0 || currentPortfolioCost <= 0) {
+  private computeActualCagr(currentPortfolioValue: number, investedCostBasis: number): number {
+    if (!this.state.investingStartDate || currentPortfolioValue <= 0 || investedCostBasis <= 0) {
       return 0;
     }
     const startDate = new Date(this.state.investingStartDate);
@@ -331,7 +330,7 @@ export class RetirementPlannerComponent {
     if (years <= 0) {
       return 0.08;
     }
-    return Math.pow(currentPortfolioValue / currentPortfolioCost, 1 / years) - 1;
+    return Math.pow(currentPortfolioValue / investedCostBasis, 1 / years) - 1;
   }
 
   private projectRetirementBalanceWithInputs(
@@ -393,10 +392,51 @@ export class RetirementPlannerComponent {
       return 260;
     }
 
-    const safeValue = Math.max(minValue, value);
+    const safeValue = Math.min(this.projectionChartLimit, Math.max(minValue, value));
     const minLog = Math.log10(minValue);
     const maxLog = Math.log10(maxValue);
     const ratio = (Math.log10(safeValue) - minLog) / (maxLog - minLog);
     return 260 - ratio * 210;
+  }
+
+  private getChartPoints(line: ExtendedProjectionLine): { x: number; y: number }[] {
+    const points: { x: number; y: number }[] = [];
+    let previousValue: number | null = null;
+    let previousX: number | null = null;
+
+    for (const projection of this.projections) {
+      const x = 60 + (projection.year / 30) * 680;
+      const value = this.valueForLine(projection, line);
+
+      if (value <= this.projectionChartLimit) {
+        points.push({ x, y: this.chartYForValue(value) });
+        previousValue = value;
+        previousX = x;
+        continue;
+      }
+
+      if (previousValue !== null && previousX !== null && previousValue < this.projectionChartLimit) {
+        const ratio = (this.projectionChartLimit - previousValue) / (value - previousValue);
+        const cappedX = previousX + (x - previousX) * Math.max(0, Math.min(1, ratio));
+        points.push({ x: cappedX, y: this.chartYForValue(this.projectionChartLimit) });
+      }
+      break;
+    }
+
+    return points;
+  }
+
+  private valueForLine(projection: RetirementProjection, line: ExtendedProjectionLine): number {
+    return line === 'ideal'
+      ? projection.ideal
+      : line === 'actual'
+      ? projection.actual
+      : line === 'custom'
+      ? projection.custom
+      : line === 'idealNoWithdraw'
+      ? projection.idealNoWithdraw
+      : line === 'actualNoWithdraw'
+      ? projection.actualNoWithdraw
+      : projection.customNoWithdraw;
   }
 }

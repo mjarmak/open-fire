@@ -1,5 +1,5 @@
 @if (state.addDialogOpen) {
-  <div class="modal-backdrop" role="presentation" @dialogBackdrop (click)="$event.target === $event.currentTarget && closeDialog.emit()">
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop>
     <section class="edit-dialog" role="dialog" aria-modal="true" aria-labelledby="add-position-title" @dialogPanel (mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()">
       <div class="dialog-heading">
         <div>
@@ -22,7 +22,7 @@
             placeholder="AAPL or Apple"
           />
           @if (state.showSymbolDropdown) {
-            <div class="symbol-dropdown" [class.refreshing]="state.symbolMessage === 'Searching Finnhub...'" role="listbox" aria-label="Stock search results">
+            <div class="symbol-dropdown" [class.refreshing]="state.symbolMessage === 'Searching...'" role="listbox" aria-label="Stock search results">
               @for (result of state.symbolSuggestions; track result.symbol) {
                 <button type="button" class="symbol-option" role="option" (click)="chooseSymbol.emit(result)">
                   <strong>{{ result.symbol }}</strong>
@@ -47,7 +47,7 @@
           </label>
         </div>
         <label [class.watch-mode-dim]="state.holdingForm.watchOnly">
-          <span>Position</span>
+          <span>Quantity</span>
           <input
             name="quantity"
             type="number"

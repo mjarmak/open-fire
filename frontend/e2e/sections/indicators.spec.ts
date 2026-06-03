@@ -17,8 +17,26 @@ test.describe('Indicators Section', () => {
     await expect(indicatorGrid.getByText('spread %')).toBeVisible();
   });
 
-  test('shows compact indicator help buttons', async ({ page }) => {
-    const helpButtons = page.locator('.indicator-grid .indicator-help');
-    await expect(helpButtons).toHaveCount(2);
+  test('renders compact speedometer gauges for macro and retirement progress', async ({ page }) => {
+    const indicatorGrid = page.getByLabel('Macro market indicators');
+    const compactCards = indicatorGrid.locator('.compact-indicator');
+    await expect(compactCards).toHaveCount(3);
+    await expect(compactCards.locator('.mini-speedometer')).toHaveCount(3);
+    await expect(indicatorGrid.locator('.retirement-progress-indicator')).toContainText('Progress');
+    await expect(indicatorGrid.locator('.retirement-progress-indicator')).toContainText('of target');
+    await expect(indicatorGrid.locator('.indicator-help')).toHaveCount(3);
+  });
+
+  test('keeps the compact indicator grid inside a mobile viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const indicatorGrid = page.getByLabel('Macro market indicators');
+    await expect(indicatorGrid.locator('.compact-indicator')).toHaveCount(3);
+    await expect.poll(() => indicatorGrid.evaluate((element) => {
+      const gridBounds = element.getBoundingClientRect();
+      return Array.from(element.querySelectorAll('.compact-indicator')).every((card) => {
+        const cardBounds = card.getBoundingClientRect();
+        return cardBounds.left >= gridBounds.left - 1 && cardBounds.right <= gridBounds.right + 1;
+      });
+    })).toBe(true);
   });
 });

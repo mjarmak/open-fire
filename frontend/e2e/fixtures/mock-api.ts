@@ -59,13 +59,14 @@ const defaultIndicators: IndicatorSnapshot[] = [
 ];
 
 const defaultPortfolio: PortfolioHolding[] = [
-  { symbol: 'AAPL', companyName: 'Apple Inc.', quantity: 12, averageCost: 170, watchOnly: false },
-  { symbol: 'MSFT', companyName: 'Microsoft Corp.', quantity: 8, averageCost: 320, watchOnly: false },
-  { symbol: 'TSLA', companyName: 'Tesla Inc.', quantity: 0, averageCost: 0, watchOnly: true },
+  { id: 1, symbol: 'AAPL', companyName: 'Apple Inc.', quantity: 12, averageCost: 170, watchOnly: false },
+  { id: 2, symbol: 'MSFT', companyName: 'Microsoft Corp.', quantity: 8, averageCost: 320, watchOnly: false },
+  { id: 3, symbol: 'TSLA', companyName: 'Tesla Inc.', quantity: 0, averageCost: 0, watchOnly: true },
 ];
 
 const defaultStocks: StockAlert[] = [
   {
+    id: 1,
     symbol: 'AAPL',
     companyName: 'Apple Inc.',
     positionType: 'Tech',
@@ -90,6 +91,7 @@ const defaultStocks: StockAlert[] = [
     reason: 'No active alert.',
   },
   {
+    id: 2,
     symbol: 'MSFT',
     companyName: 'Microsoft Corp.',
     positionType: 'Tech',
@@ -114,6 +116,7 @@ const defaultStocks: StockAlert[] = [
     reason: 'P/E and fear thresholds are elevated.',
   },
   {
+    id: 3,
     symbol: 'TSLA',
     companyName: 'Tesla Inc.',
     positionType: 'Auto',
@@ -210,6 +213,7 @@ function authorized(state: MockApiState, authHeader: string | undefined): boolea
 
 function normalizeHolding(raw: PortfolioHolding): PortfolioHolding {
   return {
+    id: raw.id ?? null,
     symbol: raw.symbol.trim().toUpperCase(),
     companyName: raw.companyName?.trim() || raw.symbol.trim().toUpperCase(),
     quantity: Number(raw.quantity ?? 0),
@@ -230,6 +234,7 @@ function buildStockFromHolding(holding: PortfolioHolding): StockAlert {
     : Number((((unrealizedGainLoss || 0) / costBasis) * 100).toFixed(2));
 
   return {
+    id: holding.id ?? null,
     symbol: holding.symbol,
     companyName: holding.companyName,
     positionType: 'Other',
@@ -282,6 +287,26 @@ function exportCsvRows(portfolio: PortfolioHolding[]): string {
 
 function increment(calls: Record<string, number>, key: string): void {
   calls[key] = (calls[key] || 0) + 1;
+}
+
+function nextPortfolioId(portfolio: PortfolioHolding[]): number {
+  return Math.max(0, ...portfolio.map((holding) => holding.id ?? 0)) + 1;
+}
+
+function syncStockFromHolding(state: MockApiState, holding: PortfolioHolding): StockAlert {
+  const stockIndex = state.stocks.findIndex((item) =>
+    (holding.id !== null && item.id === holding.id) || item.symbol === holding.symbol,
+  );
+  const mergedStock = {
+    ...(stockIndex >= 0 ? state.stocks[stockIndex] : buildStockFromHolding(holding)),
+    ...buildStockFromHolding(holding),
+  };
+  if (stockIndex >= 0) {
+    state.stocks[stockIndex] = mergedStock;
+  } else {
+    state.stocks.push(mergedStock);
+  }
+  return mergedStock;
 }
 
 export async function registerMockApi(page: Page, initial?: Partial<MockApiState>): Promise<MockApiController> {
@@ -376,40 +401,71 @@ export async function registerMockApi(page: Page, initial?: Partial<MockApiState
     }
     if (method === 'GET' && path === '/symbols/search') {
       const query = (url.searchParams.get('keywords') || '').trim().toLowerCase();
+      const includeIndicators = url.searchParams.get('includeIndicators') === 'true';
       const results = state.symbolCatalog.filter((item) =>
         item.symbol.toLowerCase().includes(query) || item.name.toLowerCase().includes(query),
-      );
-      await route.fulfill({ status: 200, json: results.slice(0, 8) });
+      ).slice(0, 8);
+      await route.fulfill({
+        status: 200,
+        json: includeIndicators
+          ? results.map((item) => ({
+              ...item,
+              indicators: state.stocks.find((stock) => stock.symbol === item.symbol) || null,
+            }))
+          : results,
+      });
       return;
     }
     if (method === 'POST' && path === '/portfolio') {
       const payload = JSON.parse(request.postData() || '{}') as PortfolioHolding;
-      const nextHolding = normalizeHolding(payload);
+      const nextHolding = {
+        ...normalizeHolding(payload),
+        id: payload.id ?? nextPortfolioId(state.portfolio),
+      };
       const portfolioIndex = state.portfolio.findIndex((item) => item.symbol === nextHolding.symbol);
+      if (portfolioIndex >= 0) {
+        state.portfolio[portfolioIndex] = {
+          ...nextHolding,
+          id: state.portfolio[portfolioIndex].id ?? nextHolding.id,
+        };
+      } else {
+        state.portfolio.push(nextHolding);
+      }
+
+      syncStockFromHolding(state, state.portfolio.find((item) => item.symbol === nextHolding.symbol) ?? nextHolding);
+
+      await route.fulfill({ status: 200, json: nextHolding });
+      return;
+    }
+    if (method === 'PUT' && path.startsWith('/portfolio/')) {
+      const holdingId = Number(decodeURIComponent(path.replace('/portfolio/', '')));
+      const payload = JSON.parse(request.postData() || '{}') as PortfolioHolding;
+      const nextHolding = {
+        ...normalizeHolding(payload),
+        id: Number.isFinite(holdingId) ? holdingId : payload.id ?? null,
+      };
+      const portfolioIndex = state.portfolio.findIndex((item) =>
+        (nextHolding.id !== null && item.id === nextHolding.id) || item.symbol === nextHolding.symbol,
+      );
       if (portfolioIndex >= 0) {
         state.portfolio[portfolioIndex] = nextHolding;
       } else {
         state.portfolio.push(nextHolding);
       }
-
-      const stockIndex = state.stocks.findIndex((item) => item.symbol === nextHolding.symbol);
-      const mergedStock = {
-        ...(stockIndex >= 0 ? state.stocks[stockIndex] : buildStockFromHolding(nextHolding)),
-        ...buildStockFromHolding(nextHolding),
-      };
-      if (stockIndex >= 0) {
-        state.stocks[stockIndex] = mergedStock;
-      } else {
-        state.stocks.push(mergedStock);
-      }
-
+      syncStockFromHolding(state, nextHolding);
       await route.fulfill({ status: 200, json: nextHolding });
       return;
     }
     if (method === 'DELETE' && path.startsWith('/portfolio/')) {
-      const symbol = decodeURIComponent(path.replace('/portfolio/', '')).toUpperCase();
-      state.portfolio = state.portfolio.filter((item) => item.symbol !== symbol);
-      state.stocks = state.stocks.filter((item) => item.symbol !== symbol);
+      const target = decodeURIComponent(path.replace('/portfolio/', ''));
+      const holdingId = Number(target);
+      const symbol = target.toUpperCase();
+      state.portfolio = state.portfolio.filter((item) =>
+        Number.isFinite(holdingId) ? item.id !== holdingId : item.symbol !== symbol,
+      );
+      state.stocks = state.stocks.filter((item) =>
+        Number.isFinite(holdingId) ? item.id !== holdingId : item.symbol !== symbol,
+      );
       await route.fulfill({ status: 200, json: {} });
       return;
     }
@@ -425,22 +481,17 @@ export async function registerMockApi(page: Page, initial?: Partial<MockApiState
       const csv = request.postData() || '';
       const imported = parseCsv(csv);
       for (const holding of imported) {
-        const portfolioIndex = state.portfolio.findIndex((item) => item.symbol === holding.symbol);
-        if (portfolioIndex >= 0) {
-          state.portfolio[portfolioIndex] = holding;
-        } else {
-          state.portfolio.push(holding);
-        }
-        const stockIndex = state.stocks.findIndex((item) => item.symbol === holding.symbol);
-        const enriched = {
-          ...(stockIndex >= 0 ? state.stocks[stockIndex] : buildStockFromHolding(holding)),
-          ...buildStockFromHolding(holding),
+        const normalized = {
+          ...holding,
+          id: holding.id ?? state.portfolio.find((item) => item.symbol === holding.symbol)?.id ?? nextPortfolioId(state.portfolio),
         };
-        if (stockIndex >= 0) {
-          state.stocks[stockIndex] = enriched;
+        const portfolioIndex = state.portfolio.findIndex((item) => item.symbol === normalized.symbol);
+        if (portfolioIndex >= 0) {
+          state.portfolio[portfolioIndex] = normalized;
         } else {
-          state.stocks.push(enriched);
+          state.portfolio.push(normalized);
         }
+        syncStockFromHolding(state, normalized);
       }
 
       await route.fulfill({ status: 200, json: { imported: imported.length, errors: [] } });

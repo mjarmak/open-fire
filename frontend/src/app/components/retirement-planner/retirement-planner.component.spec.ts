@@ -1,0 +1,128 @@
+import { TestBed } from '@angular/core/testing';
+import { StockAlert } from '../../market-dashboard.models';
+import { MarketDashboardService } from '../../market-dashboard.service';
+import { RetirementPlannerComponent } from './retirement-planner.component';
+
+describe('RetirementPlannerComponent', () => {
+  function createState(overrides: Partial<MarketDashboardService> = {}): MarketDashboardService {
+    const stocks = overrides.stocks || [stock()];
+    return {
+      isLoadingRetirement: false,
+      hasLoadedRetirementSettings: true,
+      stocks,
+      portfolio: stocks.map((item) => ({
+        id: item.id,
+        symbol: item.symbol,
+        companyName: item.companyName,
+        quantity: item.quantity,
+        averageCost: item.averageCost,
+        watchOnly: item.watchOnly,
+      })),
+      investingStartDate: '2024-01-01',
+      desiredMonthlyIncome: 2000,
+      customReturnRate: 12,
+      monthlySavings: 4000,
+      otherSavings: 100,
+      yearlyInflationRate: 3,
+      safeWithdrawalRate: 4,
+      ...overrides,
+    } as MarketDashboardService;
+  }
+
+  async function render(state: MarketDashboardService) {
+    await TestBed.configureTestingModule({
+      imports: [RetirementPlannerComponent],
+      providers: [{ provide: MarketDashboardService, useValue: state }],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(RetirementPlannerComponent);
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  afterEach(() => {
+    TestBed.resetTestingModule();
+  });
+
+  it('renders all portfolio summary fields with Annualized Return% based on total invested', async () => {
+    const element = await render(createState());
+    const summary = normalizedText(element.querySelector('.current-assets-card'));
+
+    expect(summary).toContain('Portfolio Summary');
+    expect(summary).toContain('$2K');
+    expect(summary).toContain('Holdings: 1');
+    expect(summary).toContain('Initial Deposit: $100');
+    expect(summary).toContain('Total Invested: $2K');
+    expect(summary).toContain('Total P&L: $0');
+    expect(summary).toContain('Total P&L %: 0.0%');
+    expect(summary).toContain('Annualized Return%: 0.0%');
+    expect(summary).toContain('Return Since: 2024-01-01');
+  });
+
+  it('renders all target fund and retirement configuration fields', async () => {
+    const element = await render(createState());
+    const targetFund = normalizedText(element.querySelector('.target-fund-card'));
+    const config = normalizedText(element.querySelector('.config-metric-card'));
+
+    expect(targetFund).toContain('Target Retirement Fund');
+    expect(targetFund).toContain('$600K');
+    expect(targetFund).toContain('Today, using 4% SWR for $2K/mo');
+    expect(targetFund).toContain('Realistic (10%):');
+    expect(targetFund).toContain('Actual:');
+    expect(targetFund).toContain('Custom (12%):');
+
+    expect(config).toContain('Retirement Configuration');
+    expect(config).toContain('Start Date 2024-01-01');
+    expect(config).toContain('Initial Deposit $100');
+    expect(config).toContain('Monthly Add $4K');
+    expect(config).toContain('Target Income $2K/mo');
+    expect(config).toContain('Inflation 3%/yr');
+    expect(config).toContain('SWR 4%');
+    expect(config).toContain('Custom Return 12%');
+  });
+
+  it('does not use configured initial deposit as the annualized return denominator', async () => {
+    const element = await render(createState({
+      otherSavings: 1,
+      stocks: [stock({ marketValue: 2000, costBasis: 2000 })],
+    }));
+    const summary = normalizedText(element.querySelector('.current-assets-card'));
+
+    expect(summary).toContain('Initial Deposit: $1');
+    expect(summary).toContain('Total Invested: $2K');
+    expect(summary).toContain('Annualized Return%: 0.0%');
+  });
+
+  function normalizedText(element: Element | null): string {
+    return (element?.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function stock(overrides: Partial<StockAlert> = {}): StockAlert {
+    return {
+      id: 1,
+      symbol: 'AAPL',
+      companyName: 'Apple Inc.',
+      positionType: 'Technology',
+      quantity: 10,
+      averageCost: 200,
+      latestPrice: 200,
+      marketCap: 3_000_000_000_000,
+      peRatio: 28,
+      beta: 1.2,
+      realizedVolatilityPercent: 22,
+      drawdownPercent: 8,
+      fearScore: 42,
+      marketValue: 2000,
+      costBasis: 2000,
+      dayGainLoss: 0,
+      dayGainLossPercent: 0,
+      unrealizedGainLoss: 0,
+      unrealizedGainLossPercent: 0,
+      thirtyDayChangePercent: 5,
+      watchOnly: false,
+      alert: false,
+      reason: 'No watched stock alerts fired under current thresholds.',
+      ...overrides,
+    };
+  }
+});

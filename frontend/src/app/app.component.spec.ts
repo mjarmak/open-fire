@@ -154,7 +154,7 @@ describe('AppComponent', () => {
     const app = fixture.componentInstance;
     app.username = 'user';
     app.password = 'password123';
-    app.holdingForm = { symbol: '', companyName: '', quantity: 1, averageCost: 10, watchOnly: false };
+    app.holdingForm = { id: null, symbol: '', companyName: '', quantity: 1, averageCost: 10, watchOnly: false };
 
     app.symbolQuery = 'app';
     app.searchSymbols();
@@ -170,7 +170,7 @@ describe('AppComponent', () => {
   it('resets add-position form state whenever the dialog opens', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
-    app.holdingForm = { symbol: 'TSLA', companyName: 'Tesla', quantity: 0, averageCost: 0, watchOnly: true };
+    app.holdingForm = { id: null, symbol: 'TSLA', companyName: 'Tesla', quantity: 0, averageCost: 0, watchOnly: true };
     app.selectedSymbol = { symbol: 'TSLA', name: 'Tesla', region: 'US', currency: 'USD' };
     app.symbolQuery = 'TSLA';
     app.symbolSuggestions = [{ symbol: 'TSLA', name: 'Tesla', region: 'US', currency: 'USD' }];

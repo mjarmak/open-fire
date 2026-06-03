@@ -13,6 +13,7 @@ import com.jarmak.stockmarketanalyzer.database.DatabaseService;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -50,13 +51,14 @@ class PortfolioServiceCacheTest {
     PreparedStatement statement = mock(PreparedStatement.class);
     when(databaseService.connection()).thenReturn(connection);
     when(connection.prepareStatement(any(String.class))).thenReturn(statement);
+    mockInsertedId(statement);
 
     portfolioService.upsert("AAPL", "Apple Inc.", BigDecimal.ONE, BigDecimal.TEN);
 
     verify(statement).setString(1, "alice");
     verify(statement).setString(2, "AAPL");
     verify(statement).setString(eq(3), eq("Apple Inc."));
-    verify(statement).executeUpdate();
+    verify(statement).executeQuery();
   }
 
   @Test
@@ -66,13 +68,14 @@ class PortfolioServiceCacheTest {
     PreparedStatement statement = mock(PreparedStatement.class);
     when(databaseService.connection()).thenReturn(connection);
     when(connection.prepareStatement(any(String.class))).thenReturn(statement);
+    mockInsertedId(statement);
 
     portfolioService.upsert("AAPL", "Apple Inc.", BigDecimal.valueOf(12), BigDecimal.valueOf(170.25), true);
 
     verify(statement).setBigDecimal(4, BigDecimal.ZERO);
     verify(statement).setBigDecimal(5, BigDecimal.ZERO);
     verify(statement).setBoolean(6, true);
-    verify(statement).executeUpdate();
+    verify(statement).executeQuery();
   }
 
   @Test
@@ -82,6 +85,7 @@ class PortfolioServiceCacheTest {
     PreparedStatement statement = mock(PreparedStatement.class);
     when(databaseService.connection()).thenReturn(connection);
     when(connection.prepareStatement(any(String.class))).thenReturn(statement);
+    mockInsertedId(statement);
     Cache cache = cacheManager.getCache(CacheConfig.STOCK_ALERTS_CACHE);
     assertThat(cache).isNotNull();
     cache.put("alice", "cached-stocks");
@@ -89,6 +93,13 @@ class PortfolioServiceCacheTest {
     portfolioService.upsert("AAPL", "Apple Inc.", BigDecimal.valueOf(12), BigDecimal.valueOf(170.25), true);
 
     assertThat(cache.get("alice")).isNull();
+  }
+
+  private void mockInsertedId(PreparedStatement statement) throws Exception {
+    ResultSet resultSet = mock(ResultSet.class);
+    when(resultSet.next()).thenReturn(true);
+    when(resultSet.getLong("id")).thenReturn(1L);
+    when(statement.executeQuery()).thenReturn(resultSet);
   }
 
   @Configuration

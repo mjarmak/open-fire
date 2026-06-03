@@ -37,6 +37,7 @@ export class MarketDashboardService {
   showSymbolDropdown = false;
   symbolMessage = 'Start typing and choose a stock from the dropdown.';
   editDialogOpen = false;
+  editOriginalId: number | null = null;
   editOriginalSymbol = '';
   editSymbolQuery = '';
   editSymbolSuggestions: SymbolSearchResult[] = [];
@@ -44,7 +45,17 @@ export class MarketDashboardService {
   showEditSymbolDropdown = false;
   editSymbolMessage = 'Keep this ticker or choose a new stock from the dropdown.';
   deleteDialogOpen = false;
+  deleteTargetId: number | null = null;
   deleteTargetSymbol = '';
+  stockLookupQuery = '';
+  stockLookupDialogOpen = false;
+  stockLookupSuggestions: SymbolSearchResult[] = [];
+  selectedStockLookup?: SymbolSearchResult;
+  stockLookupRisks: Record<string, StockAlert | null> = {};
+  stockLookupResult?: StockAlert;
+  isSearchingStockLookup = false;
+  isLoadingStockLookupRisk = false;
+  stockLookupMessage = '';
   alertsDialogOpen = false;
   telegramDialogOpen = false;
   telegramChatId = '';
@@ -103,6 +114,7 @@ export class MarketDashboardService {
   draftOtherSavings = 10000;
   isSavingRetirement = false;
   editForm: PortfolioHolding = {
+    id: null,
     symbol: '',
     companyName: '',
     quantity: 0,
@@ -110,6 +122,7 @@ export class MarketDashboardService {
     watchOnly: false,
   };
   holdingForm: PortfolioHolding = {
+    id: null,
     symbol: '',
     companyName: '',
     quantity: 0,
@@ -233,6 +246,13 @@ export class MarketDashboardService {
     });
   }
 
+  previewStock(username: string, password: string, symbol: string): Observable<StockAlert> {
+    return this.http.get<StockAlert>(`${this.apiBaseUrl}/stocks/preview`, {
+      headers: this.basicAuth(username, password),
+      params: { symbol },
+    });
+  }
+
   fetchPortfolio(username: string, password: string): Observable<PortfolioHolding[]> {
     return this.http.get<PortfolioHolding[]>(`${this.apiBaseUrl}/portfolio`, {
       headers: this.basicAuth(username, password),
@@ -280,8 +300,22 @@ export class MarketDashboardService {
     );
   }
 
-  deleteHolding(username: string, password: string, symbol: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiBaseUrl}/portfolio/${encodeURIComponent(symbol)}`, {
+  updateHolding(
+    username: string,
+    password: string,
+    holdingId: number,
+    holding: PortfolioHolding,
+  ): Observable<PortfolioHolding> {
+    const normalizedHolding = this.normalizedHolding(holding);
+    return this.http.put<PortfolioHolding>(
+      `${this.apiBaseUrl}/portfolio/${holdingId}`,
+      normalizedHolding,
+      { headers: this.basicAuth(username, password) },
+    );
+  }
+
+  deleteHolding(username: string, password: string, holdingId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiBaseUrl}/portfolio/${holdingId}`, {
       headers: this.basicAuth(username, password),
     });
   }
@@ -303,10 +337,15 @@ export class MarketDashboardService {
     );
   }
 
-  searchSymbols(username: string, password: string, keywords: string): Observable<SymbolSearchResult[]> {
+  searchSymbols(username: string, password: string, keywords: string, includeIndicators = false): Observable<SymbolSearchResult[]> {
+    const params: Record<string, string> = { keywords };
+    if (includeIndicators) {
+      params['includeIndicators'] = 'true';
+    }
+
     return this.http.get<SymbolSearchResult[]>(`${this.apiBaseUrl}/symbols/search`, {
       headers: this.basicAuth(username, password),
-      params: { keywords },
+      params,
     });
   }
 

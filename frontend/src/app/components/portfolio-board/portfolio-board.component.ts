@@ -11,6 +11,8 @@ type PositionTypeSlice = {
   count: number;
 };
 
+type PositionFilter = 'all' | 'positions' | 'watchlist';
+
 @Component({
   selector: 'app-portfolio-board',
   standalone: true,
@@ -19,6 +21,11 @@ type PositionTypeSlice = {
 })
 export class PortfolioBoardComponent implements OnInit {
   protected readonly state = inject(MarketDashboardService);
+  protected readonly positionFilters: { value: PositionFilter; label: string }[] = [
+    { value: 'all', label: 'All' },
+    { value: 'positions', label: 'Positions' },
+    { value: 'watchlist', label: 'Watchlist' },
+  ];
   private readonly collapsedStateStorageKey = 'sma_collapsed_positions';
   private readonly typeColors = [
     '#2680eb',
@@ -35,20 +42,37 @@ export class PortfolioBoardComponent implements OnInit {
   @Output() exportPositions = new EventEmitter<void>();
   @Output() importPositions = new EventEmitter<Event>();
   @Output() editPosition = new EventEmitter<StockAlert>();
-  @Output() deletePosition = new EventEmitter<string>();
+  @Output() deletePosition = new EventEmitter<StockAlert>();
   collapsedSymbols = new Set<string>();
+  protected positionFilter: PositionFilter = 'all';
 
   ngOnInit(): void {
     this.loadCollapsedState();
   }
 
   get displayedStocks(): StockAlert[] {
-    return [...this.state.stocks].sort((left, right) => {
+    return this.state.stocks.filter((stock) => this.matchesPositionFilter(stock)).sort((left, right) => {
       if (left.watchOnly !== right.watchOnly) {
         return left.watchOnly ? 1 : -1;
       }
       return left.symbol.localeCompare(right.symbol);
     });
+  }
+
+  protected setPositionFilter(filter: PositionFilter): void {
+    this.positionFilter = filter;
+  }
+
+  protected positionFilterCount(filter: PositionFilter): number {
+    if (filter === 'positions') {
+      return this.state.stocks.filter((stock) => !stock.watchOnly).length;
+    }
+
+    if (filter === 'watchlist') {
+      return this.state.stocks.filter((stock) => stock.watchOnly).length;
+    }
+
+    return this.state.stocks.length;
   }
 
   get positionTypeSlices(): PositionTypeSlice[] {
@@ -137,21 +161,21 @@ export class PortfolioBoardComponent implements OnInit {
     if (stock.watchOnly) {
       return false;
     }
-    return this.collapsedSymbols.has(stock.symbol.toUpperCase());
+    return this.collapsedSymbols.has(this.positionRowKey(stock));
   }
 
   toggleCollapsed(stock: StockAlert): void {
     if (stock.watchOnly) {
-      this.collapsedSymbols.delete(stock.symbol.toUpperCase());
+      this.collapsedSymbols.delete(this.positionRowKey(stock));
       this.persistCollapsedState();
       return;
     }
 
-    const symbol = stock.symbol.toUpperCase();
-    if (this.collapsedSymbols.has(symbol)) {
-      this.collapsedSymbols.delete(symbol);
+    const rowKey = this.positionRowKey(stock);
+    if (this.collapsedSymbols.has(rowKey)) {
+      this.collapsedSymbols.delete(rowKey);
     } else {
-      this.collapsedSymbols.add(symbol);
+      this.collapsedSymbols.add(rowKey);
     }
     this.persistCollapsedState();
   }
@@ -186,6 +210,22 @@ export class PortfolioBoardComponent implements OnInit {
       return '-';
     }
     return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
+  }
+
+  private matchesPositionFilter(stock: StockAlert): boolean {
+    if (this.positionFilter === 'positions') {
+      return !stock.watchOnly;
+    }
+
+    if (this.positionFilter === 'watchlist') {
+      return stock.watchOnly;
+    }
+
+    return true;
+  }
+
+  protected positionRowKey(stock: StockAlert): string {
+    return String(stock.id ?? stock.symbol);
   }
 
   private resolveTotalValue(stock: StockAlert): number | null {

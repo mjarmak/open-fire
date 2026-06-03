@@ -14,6 +14,7 @@ export class HeaderComponent {
   @Output() toggleTheme = new EventEmitter<void>();
   @Output() openAlerts = new EventEmitter<void>();
   @Output() refresh = new EventEmitter<void>();
+  @Output() searchStock = new EventEmitter<void>();
   @Output() logout = new EventEmitter<void>();
   @Output() openLogin = new EventEmitter<void>();
   @Output() openCreateUser = new EventEmitter<void>();

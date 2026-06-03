@@ -98,6 +98,7 @@ class MarketIndicatorServiceTest {
               BigDecimal.valueOf(65)
           ),
           null,
+          null,
           null
       );
     }

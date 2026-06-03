@@ -9,7 +9,8 @@ public record AppProperties(
     Security security,
     Market market,
     Database database,
-    Telegram telegram
+    Telegram telegram,
+    Cors cors
 ) {
   public record Security(String username, String fixedSalt, String passwordHash) {
   }
@@ -41,6 +42,11 @@ public record AppProperties(
       boolean enabled,
       String botUsername,
       String botToken
+  ) {
+  }
+
+  public record Cors(
+      List<String> allowedOriginPatterns
   ) {
   }
 }
