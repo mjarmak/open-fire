@@ -7,6 +7,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -42,6 +43,8 @@ class FinnhubClientTest {
     assertThat(snapshot.realizedVolatilityPercent()).isNotNull();
     assertThat(snapshot.realizedVolatilityPercent()).isGreaterThan(BigDecimal.ZERO);
     assertThat(snapshot.drawdownPercent()).isEqualByComparingTo("20.0");
+    assertThat(snapshot.thirtyDayChangePercent().setScale(2, RoundingMode.HALF_UP))
+        .isEqualByComparingTo("2.56");
     server.verify();
   }
 

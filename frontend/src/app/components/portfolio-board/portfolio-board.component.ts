@@ -227,7 +227,15 @@ export class PortfolioBoardComponent implements OnInit {
   }
 
   private calculateStockDayChange(stock: StockAlert): number | null {
-    if (stock.dayGainLoss === null || stock.dayGainLoss === undefined || stock.quantity === 0) {
+    if (stock.dayGainLoss === null || stock.dayGainLoss === undefined) {
+      return null;
+    }
+
+    if (stock.watchOnly) {
+      return stock.dayGainLoss;
+    }
+
+    if (stock.quantity === 0) {
       return null;
     }
 

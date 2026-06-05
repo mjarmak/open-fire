@@ -81,7 +81,7 @@
             <strong
               class="ticket-type-indicator"
             >{{ stock.symbol }}</strong>
-            @if (!stock.watchOnly) {
+            @if (stock.dayGainLoss !== null || stock.dayGainLossPercent !== null) {
               <span
                 class="position-title-inline-metric app-tooltip"
                 data-tooltip="Today's stock change"

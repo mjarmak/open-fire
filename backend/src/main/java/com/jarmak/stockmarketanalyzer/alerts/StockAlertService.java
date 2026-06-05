@@ -90,10 +90,11 @@ public class StockAlertService {
     BigDecimal previousClose = snapshot.previousClose().setScale(2, RoundingMode.HALF_UP);
     BigDecimal costBasis = holding.watchOnly() ? null : holding.quantity().multiply(holding.averageCost()).setScale(2, RoundingMode.HALF_UP);
     BigDecimal marketValue = holding.watchOnly() ? null : holding.quantity().multiply(latestPrice).setScale(2, RoundingMode.HALF_UP);
-    BigDecimal dayGainLoss = holding.watchOnly() ? null : holding.quantity().multiply(latestPrice.subtract(previousClose)).setScale(2, RoundingMode.HALF_UP);
-    BigDecimal dayGainLossPercent = holding.watchOnly() || previousClose.signum() == 0
+    BigDecimal stockDayChange = latestPrice.subtract(previousClose).setScale(2, RoundingMode.HALF_UP);
+    BigDecimal dayGainLoss = holding.watchOnly() ? stockDayChange : holding.quantity().multiply(stockDayChange).setScale(2, RoundingMode.HALF_UP);
+    BigDecimal dayGainLossPercent = previousClose.signum() == 0
         ? null
-        : latestPrice.subtract(previousClose).divide(previousClose, 6, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(1, RoundingMode.HALF_UP);
+        : stockDayChange.divide(previousClose, 6, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(1, RoundingMode.HALF_UP);
     BigDecimal gainLoss = holding.watchOnly() ? null : marketValue.subtract(costBasis).setScale(2, RoundingMode.HALF_UP);
     BigDecimal gainLossPercent = holding.watchOnly() || costBasis.signum() == 0
         ? null

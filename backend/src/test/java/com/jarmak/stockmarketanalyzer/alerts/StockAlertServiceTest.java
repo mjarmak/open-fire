@@ -77,8 +77,8 @@ class StockAlertServiceTest {
     assertThat(alert.averageCost()).isEqualByComparingTo(BigDecimal.ZERO);
     assertThat(alert.marketValue()).isNull();
     assertThat(alert.costBasis()).isNull();
-    assertThat(alert.dayGainLoss()).isNull();
-    assertThat(alert.dayGainLossPercent()).isNull();
+    assertThat(alert.dayGainLoss()).isEqualByComparingTo("5.00");
+    assertThat(alert.dayGainLossPercent()).isEqualByComparingTo("3.4");
     assertThat(alert.unrealizedGainLoss()).isNull();
     assertThat(alert.unrealizedGainLossPercent()).isNull();
   }

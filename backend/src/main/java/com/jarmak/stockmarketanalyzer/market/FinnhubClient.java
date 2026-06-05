@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -108,10 +109,10 @@ public class FinnhubClient {
         drawdownPercent = MarketRiskMetrics.drawdownFromHigh(latestPrice, dailyHigh);
       }
       BigDecimal priceThirtyDaysAgo = closes.stream()
-          .filter(point -> !point.date().isAfter(LocalDate.now(ZoneOffset.UTC).minusDays(30)))
-          .reduce((previous, current) -> current)
+          .filter(point -> point.value() > 0)
+          .min(Comparator.comparingLong(point -> Math.abs(ChronoUnit.DAYS.between(point.date(), LocalDate.now(ZoneOffset.UTC).minusDays(30)))))
           .map(point -> BigDecimal.valueOf(point.value()))
-          .orElse(latestPrice);
+          .orElse(previousClose);
 
       return Optional.of(new CompanySnapshot(
           symbol,
