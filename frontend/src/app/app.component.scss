@@ -1353,6 +1353,7 @@ button:disabled:not(.icon-btn)::after {
 .ticker-identity {
   display: grid;
   gap: 2px;
+  min-width: 0;
 }
 
 .ticker-identity strong {
@@ -1363,9 +1364,11 @@ button:disabled:not(.icon-btn)::after {
   display: inline-flex;
   gap: 6px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   width: auto;
   max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .position-type-dot {
@@ -1618,43 +1621,55 @@ button:disabled:not(.icon-btn)::after {
 }
 
 .ticker-identity > span:not(.watch-only-badge) {
+  overflow: hidden;
   font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .position-title-lines {
   display: grid;
   gap: 2px;
   margin-top: 2px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .position-title-line {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  overflow: hidden;
   color: var(--muted-strong);
   font-size: 0.64rem;
   line-height: 1.25;
+  white-space: nowrap;
 }
 
 .position-title-line-item {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
   min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .position-title-inline-metric {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
   gap: 4px;
   min-width: 0;
+  overflow: hidden;
   color: var(--muted-strong);
   font-size: 0.64rem;
   line-height: 1.25;
+  white-space: nowrap;
 }
 
 .position-title-label {
@@ -1673,9 +1688,10 @@ button:disabled:not(.icon-btn)::after {
 .position-title-change-side {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
   min-width: 0;
+  white-space: nowrap;
 }
 
 .position-title-change-total {
@@ -1685,12 +1701,14 @@ button:disabled:not(.icon-btn)::after {
 }
 
 .position-title-arrow.value-pos,
+.position-title-arrow.value-pos span,
 .position-title-percent.value-pos,
 .position-title-value.value-pos {
   color: var(--positive-text);
 }
 
 .position-title-arrow.value-neg,
+.position-title-arrow.value-neg span,
 .position-title-percent.value-neg,
 .position-title-value.value-neg {
   color: var(--negative-text);
