@@ -76,6 +76,7 @@
         <label class="field-label" for="stock-lookup-query">Ticker or company</label>
         <div>
           <input
+            #stockLookupQueryInput
             id="stock-lookup-query"
             name="stockLookupQuery"
             autocomplete="off"
@@ -107,6 +108,44 @@
                         [style.background]="stock.alert ? 'var(--status-risk)' : 'var(--status-calm)'"
                       ></span>
                       <strong class="ticket-type-indicator">{{ result.symbol }}</strong>
+                      @if (stock.dayGainLoss !== null || stock.dayGainLossPercent !== null) {
+                        <span
+                          class="position-title-inline-metric app-tooltip"
+                          data-tooltip="Today"
+                          aria-label="Today"
+                          tabindex="0"
+                        >
+                          <span class="position-title-change-side">
+                            <span
+                              class="position-title-arrow"
+                              [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
+                              [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
+                            >
+                              @if (stock.dayGainLossPercent === null || stock.dayGainLossPercent === undefined) {
+                                -
+                              } @else if (stock.dayGainLossPercent > 0) {
+                                <span>&#8593;</span>
+                              } @else if (stock.dayGainLossPercent < 0) {
+                                <span>&#8595;</span>
+                              } @else {
+                                <span class="position-title-arrow-flat">&#8594;</span>
+                              }
+                            </span>
+                            <span
+                              class="position-title-percent"
+                              [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
+                              [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
+                            >
+                              {{ stock.dayGainLossPercent === null ? '-' : (stock.dayGainLossPercent | number: '1.0-2') + '%' }}
+                            </span>
+                            <span
+                              class="position-title-value"
+                              [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
+                              [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
+                            >{{ formatStockLookupDayChange(stock.dayGainLoss) }}</span>
+                          </span>
+                        </span>
+                      }
                     </div>
                     <span>{{ result.name }}</span>
                     <span>{{ result.region }} - {{ result.currency }}</span>

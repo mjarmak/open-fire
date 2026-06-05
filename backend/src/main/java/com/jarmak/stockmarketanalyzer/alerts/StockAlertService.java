@@ -172,6 +172,9 @@ public class StockAlertService {
     if (symbol.contains("BTC") || symbol.contains("ETH") || symbol.contains("USDT") || industry.contains("crypto")) {
       return "Crypto";
     }
+    if (industry.contains("currency") || industry.contains("forex")) {
+      return "Currency";
+    }
     if (industry.contains("technology") || industry.contains("software") || industry.contains("semiconductor")) {
       return "Technology";
     }

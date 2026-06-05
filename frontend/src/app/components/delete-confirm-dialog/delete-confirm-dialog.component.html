@@ -3,7 +3,6 @@
     <section class="edit-dialog confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-confirm-title" @dialogPanel (click)="$event.stopPropagation()">
       <div class="dialog-heading">
         <div>
-          <p class="eyebrow">Confirm deletion</p>
           <h2 id="delete-confirm-title">Remove {{ state.deleteTargetSymbol }}?</h2>
         </div>
         <button type="button" class="icon-action" title="Close dialog" (click)="cancel.emit()">x</button>

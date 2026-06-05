@@ -23,6 +23,10 @@ export class MarketDashboardService {
   password = '';
   rememberLogin = true;
   isLoading = false;
+  isLoadingIndicators = false;
+  isLoadingStocks = false;
+  isLoadingPortfolio = false;
+  isLoadingNotification = false;
   isLoggedIn = false;
   isSavingHolding = false;
   isImportingPortfolio = false;

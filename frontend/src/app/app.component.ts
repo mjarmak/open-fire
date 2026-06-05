@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -64,10 +64,20 @@ export class AppComponent implements OnDestroy, OnInit {
   private symbolSearchHandle?: ReturnType<typeof setTimeout>;
   private editSymbolSearchHandle?: ReturnType<typeof setTimeout>;
   private stockLookupSearchHandle?: ReturnType<typeof setTimeout>;
+  private stockLookupInputSelectHandle?: ReturnType<typeof setTimeout>;
   private snackbarHandle?: ReturnType<typeof setTimeout>;
   private dashboardLoadToken = 0;
+  private stockLookupInputElement?: ElementRef<HTMLInputElement>;
 
   constructor(public readonly marketDashboardService: MarketDashboardService) {}
+
+  @ViewChild('stockLookupQueryInput')
+  private set stockLookupQueryInput(input: ElementRef<HTMLInputElement> | undefined) {
+    this.stockLookupInputElement = input;
+    if (input && this.marketDashboardService.stockLookupDialogOpen) {
+      this.queueStockLookupInputSelection();
+    }
+  }
 
   get title(): string { return this.marketDashboardService.title; }
   get themeMode(): 'dark' | 'light' { return this.marketDashboardService.themeMode; }
@@ -212,6 +222,9 @@ export class AppComponent implements OnDestroy, OnInit {
     if (this.stockLookupSearchHandle) {
       clearTimeout(this.stockLookupSearchHandle);
     }
+    if (this.stockLookupInputSelectHandle) {
+      clearTimeout(this.stockLookupInputSelectHandle);
+    }
     if (this.snackbarHandle) {
       clearTimeout(this.snackbarHandle);
     }
@@ -312,6 +325,10 @@ export class AppComponent implements OnDestroy, OnInit {
     this.username = this.username.trim();
     const loadToken = ++this.dashboardLoadToken;
     this.isLoading = true;
+    this.marketDashboardService.isLoadingIndicators = true;
+    this.marketDashboardService.isLoadingStocks = true;
+    this.marketDashboardService.isLoadingPortfolio = true;
+    this.marketDashboardService.isLoadingNotification = true;
     this.dashboard = {
       ...this.dashboard,
       asOf: new Date().toISOString(),
@@ -347,6 +364,14 @@ export class AppComponent implements OnDestroy, OnInit {
         }
       }
     };
+    const completeSectionCall = (
+      flag: 'isLoadingIndicators' | 'isLoadingStocks' | 'isLoadingPortfolio' | 'isLoadingNotification',
+    ) => {
+      if (loadToken === this.dashboardLoadToken) {
+        this.marketDashboardService[flag] = false;
+      }
+      completeCall();
+    };
     const markAuthenticated = () => {
       if (loadToken !== this.dashboardLoadToken) {
         return;
@@ -379,7 +404,7 @@ export class AppComponent implements OnDestroy, OnInit {
     };
 
     this.marketDashboardService.fetchIndicators(this.username, this.password)
-      .pipe(finalize(completeCall))
+      .pipe(finalize(() => completeSectionCall('isLoadingIndicators')))
       .subscribe({
         next: (indicators) => {
           markAuthenticated();
@@ -393,7 +418,7 @@ export class AppComponent implements OnDestroy, OnInit {
       });
 
     this.marketDashboardService.fetchStocks(this.username, this.password)
-      .pipe(finalize(completeCall))
+      .pipe(finalize(() => completeSectionCall('isLoadingStocks')))
       .subscribe({
         next: (stocks) => {
           markAuthenticated();
@@ -407,7 +432,7 @@ export class AppComponent implements OnDestroy, OnInit {
       });
 
     this.marketDashboardService.fetchPortfolio(this.username, this.password)
-      .pipe(finalize(completeCall))
+      .pipe(finalize(() => completeSectionCall('isLoadingPortfolio')))
       .subscribe({
         next: (portfolio) => {
           markAuthenticated();
@@ -420,7 +445,7 @@ export class AppComponent implements OnDestroy, OnInit {
       });
 
     this.marketDashboardService.notificationStatus(this.username, this.password)
-      .pipe(finalize(completeCall))
+      .pipe(finalize(() => completeSectionCall('isLoadingNotification')))
       .subscribe({
         next: (notification) => {
           markAuthenticated();
@@ -486,6 +511,10 @@ export class AppComponent implements OnDestroy, OnInit {
   logout(): void {
     this.dashboardLoadToken++;
     this.isLoading = false;
+    this.marketDashboardService.isLoadingIndicators = false;
+    this.marketDashboardService.isLoadingStocks = false;
+    this.marketDashboardService.isLoadingPortfolio = false;
+    this.marketDashboardService.isLoadingNotification = false;
     this.isLoggedIn = false;
     this.username = '';
     this.password = '';
@@ -630,6 +659,7 @@ export class AppComponent implements OnDestroy, OnInit {
     }
 
     this.marketDashboardService.stockLookupDialogOpen = true;
+    this.queueStockLookupInputSelection();
     this.marketDashboardService.stockLookupMessage = this.marketDashboardService.stockLookupQuery.trim().length >= 2
       ? this.marketDashboardService.stockLookupMessage
       : 'Type at least 2 characters to search stocks.';
@@ -697,6 +727,27 @@ export class AppComponent implements OnDestroy, OnInit {
       clearTimeout(this.stockLookupSearchHandle);
       this.stockLookupSearchHandle = undefined;
     }
+    if (this.stockLookupInputSelectHandle) {
+      clearTimeout(this.stockLookupInputSelectHandle);
+      this.stockLookupInputSelectHandle = undefined;
+    }
+  }
+
+  private queueStockLookupInputSelection(): void {
+    if (this.stockLookupInputSelectHandle) {
+      clearTimeout(this.stockLookupInputSelectHandle);
+    }
+
+    this.stockLookupInputSelectHandle = setTimeout(() => {
+      this.stockLookupInputSelectHandle = undefined;
+      if (!this.marketDashboardService.stockLookupDialogOpen) {
+        return;
+      }
+
+      const input = this.stockLookupInputElement?.nativeElement;
+      input?.focus();
+      input?.select();
+    }, 0);
   }
 
   private scheduleStockLookupSearch(): void {
@@ -744,6 +795,19 @@ export class AppComponent implements OnDestroy, OnInit {
 
     return `$${compact}${suffixes[tier]}`;
   }
+
+  formatStockLookupDayChange(value: number | null | undefined): string {
+    if (value === null || value === undefined) {
+      return '-';
+    }
+
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 2,
+    }).format(value);
+  }
+
   closeAlertsDialog(): void {
     this.alertsDialogOpen = false;
   }

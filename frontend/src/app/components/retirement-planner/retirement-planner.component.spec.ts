@@ -7,7 +7,10 @@ describe('RetirementPlannerComponent', () => {
   function createState(overrides: Partial<MarketDashboardService> = {}): MarketDashboardService {
     const stocks = overrides.stocks || [stock()];
     return {
+      isLoading: false,
       isLoadingRetirement: false,
+      isLoadingStocks: false,
+      isLoadingPortfolio: false,
       hasLoadedRetirementSettings: true,
       stocks,
       portfolio: stocks.map((item) => ({
@@ -59,8 +62,23 @@ describe('RetirementPlannerComponent', () => {
     expect(summary).toContain('Return Since:2024-01-01');
   });
 
-  it('shows a loading indicator while dashboard loading', async () => {
+  it('does not mask retirement content for unrelated dashboard loading', async () => {
     const element = await render(createState({ isLoading: true }));
+
+    expect(element.querySelector('.section-loading')).toBeNull();
+    expect(element.querySelector('.retirement-content')).not.toBeNull();
+  });
+
+  it('shows a loading indicator while positions are loading', async () => {
+    const element = await render(createState({ isLoadingStocks: true }));
+
+    expect(element.querySelector('.section-loading .loading-spinner')).not.toBeNull();
+    expect(element.textContent).toContain('Loading retirement plan...');
+    expect(element.querySelector('.retirement-content')).toBeNull();
+  });
+
+  it('shows a loading indicator while portfolio metadata is loading', async () => {
+    const element = await render(createState({ isLoadingPortfolio: true }));
 
     expect(element.querySelector('.section-loading .loading-spinner')).not.toBeNull();
     expect(element.textContent).toContain('Loading retirement plan...');

@@ -20,12 +20,7 @@
       </button>
     </div>
 
-    @if (state.isLoading) {
-      <div class="empty-state section-loading" role="status" aria-live="polite">
-        <div class="loading-spinner" aria-hidden="true"></div>
-        <small class="field-hint">Loading DCA reminder settings...</small>
-      </div>
-    } @else if (!state.hasLoadedDcaSettings || state.isLoadingDca) {
+    @if (!state.hasLoadedDcaSettings || state.isLoadingDca) {
       <div class="empty-state section-loading" role="status" aria-live="polite">
         <div class="loading-spinner" aria-hidden="true"></div>
         <small class="field-hint">Loading DCA reminder settings...</small>

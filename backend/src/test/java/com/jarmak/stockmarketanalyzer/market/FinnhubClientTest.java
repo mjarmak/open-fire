@@ -6,6 +6,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
+import com.jarmak.stockmarketanalyzer.market.MarketModels.SymbolSearchResult;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
@@ -15,6 +16,95 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
 class FinnhubClientTest {
+  @Test
+  void searchIncludesForeignDottedStockSymbols() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/search")))
+        .andRespond(withSuccess("""
+            {"result":[{"symbol":"1810.HK","description":"XIAOMI CORPORATION","type":"EQS","currency":"HKD"}]}
+            """, MediaType.APPLICATION_JSON));
+    expectEmptyAssetSymbolLists(server);
+
+    List<SymbolSearchResult> results = client.searchSymbols("xiaomi");
+
+    assertThat(results).extracting(SymbolSearchResult::symbol).contains("1810.HK");
+    server.verify();
+  }
+
+  @Test
+  void searchIncludesCryptoAndCurrencySymbols() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/search")))
+        .andRespond(withSuccess("{\"result\":[]}", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/crypto/symbol")))
+        .andRespond(withSuccess("""
+            [{"symbol":"BINANCE:BTCUSDT","displaySymbol":"BTC/USDT","description":"Bitcoin / Tether"}]
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/crypto/symbol")))
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/forex/symbol")))
+        .andRespond(withSuccess("""
+            [{"symbol":"OANDA:EUR_USD","displaySymbol":"EUR/USD","description":"Euro / US Dollar"}]
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/forex/symbol")))
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/search")))
+        .andRespond(withSuccess("{\"result\":[]}", MediaType.APPLICATION_JSON));
+
+    List<SymbolSearchResult> cryptoResults = client.searchSymbols("btc");
+    List<SymbolSearchResult> currencyResults = client.searchSymbols("eur usd");
+
+    assertThat(cryptoResults).extracting(SymbolSearchResult::symbol).contains("BINANCE:BTCUSDT");
+    assertThat(currencyResults).extracting(SymbolSearchResult::symbol).contains("OANDA:EUR_USD");
+    server.verify();
+  }
+
+  @Test
+  void cryptoAndCurrencyCandlesUseAssetSpecificEndpoints() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/crypto/candle")))
+        .andRespond(withSuccess("""
+            {"s":"ok","c":[100,110],"t":[1717200000,1717286400]}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/forex/candle")))
+        .andRespond(withSuccess("""
+            {"s":"ok","c":[1.08,1.09],"t":[1717200000,1717286400]}
+            """, MediaType.APPLICATION_JSON));
+
+    assertThat(client.dailyCloses("BINANCE:BTCUSDT")).hasSize(2);
+    assertThat(client.dailyCloses("OANDA:EUR_USD")).hasSize(2);
+    server.verify();
+  }
+
+  @Test
+  void cryptoSnapshotUsesCandlesWithoutStockQuoteOrProfileCalls() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/crypto/candle")))
+        .andRespond(withSuccess("""
+            {"s":"ok","c":[100,110],"t":[1717200000,1717286400]}
+            """, MediaType.APPLICATION_JSON));
+
+    CompanySnapshot snapshot = client.companySnapshot("BINANCE:BTCUSDT").orElseThrow();
+
+    assertThat(snapshot.latestPrice()).isEqualByComparingTo("110");
+    assertThat(snapshot.previousClose()).isEqualByComparingTo("100");
+    assertThat(snapshot.industry()).isEqualTo("Crypto");
+    assertThat(snapshot.marketCap()).isNull();
+    server.verify();
+  }
+
   @Test
   void fallsBackToQuoteAndMetricDataWhenCandlesAreUnavailable() {
     RestClient.Builder builder = RestClient.builder();
@@ -46,6 +136,17 @@ class FinnhubClientTest {
     assertThat(snapshot.thirtyDayChangePercent().setScale(2, RoundingMode.HALF_UP))
         .isEqualByComparingTo("2.56");
     server.verify();
+  }
+
+  private void expectEmptyAssetSymbolLists(MockRestServiceServer server) {
+    server.expect(requestTo(containsString("/api/v1/crypto/symbol")))
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/crypto/symbol")))
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/forex/symbol")))
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/forex/symbol")))
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
   }
 
   private AppProperties properties() {

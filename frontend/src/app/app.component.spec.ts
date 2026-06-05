@@ -1,24 +1,67 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of, Subject, throwError } from 'rxjs';
 import { AppComponent } from './app.component';
-import { SymbolSearchResult } from './market-dashboard.models';
+import { StockAlert, SymbolSearchResult } from './market-dashboard.models';
 import { MarketDashboardService } from './market-dashboard.service';
 
 describe('AppComponent', () => {
   let marketDashboardService: jasmine.SpyObj<MarketDashboardService>;
 
+  function stockLookupRisk(overrides: Partial<StockAlert> = {}): StockAlert {
+    return {
+      id: null,
+      symbol: 'AAPL',
+      companyName: 'Apple Inc.',
+      positionType: 'Technology',
+      quantity: 0,
+      averageCost: 0,
+      latestPrice: 195.5,
+      marketCap: 3_000_000_000_000,
+      peRatio: 28,
+      beta: 1.2,
+      realizedVolatilityPercent: 18,
+      drawdownPercent: 4,
+      fearScore: 35,
+      marketValue: null,
+      costBasis: null,
+      dayGainLoss: 2.34,
+      dayGainLossPercent: 1.21,
+      unrealizedGainLoss: null,
+      unrealizedGainLossPercent: null,
+      thirtyDayChangePercent: 7,
+      watchOnly: true,
+      alert: false,
+      reason: 'No alert',
+      ...overrides,
+    };
+  }
+
   beforeEach(async () => {
     localStorage.clear();
     marketDashboardService = jasmine.createSpyObj<MarketDashboardService>('MarketDashboardService', [
+      'createUser',
+      'fetchDashboard',
       'fetchIndicators',
       'fetchStocks',
       'fetchPortfolio',
       'notificationStatus',
+      'sendTelegram',
+      'telegramSettings',
+      'saveTelegramSettings',
+      'saveHolding',
+      'updateHolding',
+      'deleteHolding',
+      'exportPortfolio',
+      'importPortfolio',
       'retirementSettings',
+      'saveRetirementSettings',
       'dcaSettings',
+      'saveDcaSettings',
       'searchSymbols',
     ]);
+    Object.assign(marketDashboardService, new MarketDashboardService({} as never));
     marketDashboardService.fetchIndicators.and.returnValue(of([]));
     marketDashboardService.fetchStocks.and.returnValue(of([]));
     marketDashboardService.fetchPortfolio.and.returnValue(of([]));
@@ -46,6 +89,7 @@ describe('AppComponent', () => {
       imports: [AppComponent],
       providers: [
         { provide: MarketDashboardService, useValue: marketDashboardService },
+        provideNoopAnimations(),
       ],
     }).compileComponents();
   });
@@ -185,5 +229,121 @@ describe('AppComponent', () => {
     expect(app.selectedSymbol).toBeUndefined();
     expect(app.symbolQuery).toBe('');
     expect(app.showSymbolDropdown).toBeFalse();
+  });
+
+  it('focuses and selects the stock lookup input when the search dialog opens', fakeAsync(() => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.isLoggedIn = true;
+    app.username = 'user';
+    app.password = 'password123';
+    app.marketDashboardService.stockLookupQuery = 'A';
+
+    app.searchHeaderStock();
+    fixture.detectChanges();
+    tick();
+
+    const input = fixture.nativeElement.querySelector('#stock-lookup-query') as HTMLInputElement | null;
+    expect(input).not.toBeNull();
+    expect(document.activeElement).toBe(input);
+    expect(input?.selectionStart).toBe(0);
+    expect(input?.selectionEnd).toBe(input?.value.length);
+  }));
+
+  it('keeps the stock lookup dialog open when its backdrop is clicked', fakeAsync(() => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.isLoggedIn = true;
+
+    app.searchHeaderStock();
+    fixture.detectChanges();
+    tick();
+
+    const backdrop = fixture.nativeElement.querySelector('.stock-lookup-backdrop') as HTMLElement | null;
+    expect(backdrop).not.toBeNull();
+
+    backdrop?.click();
+    fixture.detectChanges();
+
+    expect(app.marketDashboardService.stockLookupDialogOpen).toBeTrue();
+  }));
+
+  it('opens the add-position dialog from a stock lookup result add button', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    const result: SymbolSearchResult = {
+      symbol: 'AAPL',
+      name: 'Apple Inc.',
+      region: 'US',
+      currency: 'USD',
+    };
+    app.isLoggedIn = true;
+    app.marketDashboardService.stockLookupDialogOpen = true;
+    app.marketDashboardService.stockLookupSuggestions = [result];
+    app.marketDashboardService.stockLookupRisks = {};
+
+    fixture.detectChanges();
+
+    const addButton = fixture.nativeElement.querySelector('.stock-lookup-add-button') as HTMLButtonElement | null;
+    expect(addButton).not.toBeNull();
+
+    addButton?.click();
+
+    expect(app.marketDashboardService.stockLookupDialogOpen).toBeFalse();
+    expect(app.addDialogOpen).toBeTrue();
+    expect(app.selectedSymbol).toEqual(result);
+    expect(app.holdingForm.symbol).toBe('AAPL');
+    expect(app.holdingForm.companyName).toBe('Apple Inc.');
+    expect(app.symbolQuery).toBe('AAPL');
+  });
+
+  it('shows stock-level today change in stock lookup result rows', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    const result: SymbolSearchResult = {
+      symbol: 'AAPL',
+      name: 'Apple Inc.',
+      region: 'US',
+      currency: 'USD',
+    };
+    app.isLoggedIn = true;
+    app.marketDashboardService.stockLookupDialogOpen = true;
+    app.marketDashboardService.stockLookupSuggestions = [result];
+    app.marketDashboardService.stockLookupRisks = {
+      AAPL: stockLookupRisk({
+        dayGainLoss: -3.2,
+        dayGainLossPercent: -1.25,
+      }),
+    };
+
+    fixture.detectChanges();
+
+    const todayMetric = fixture.nativeElement.querySelector('.stock-lookup-result-row .position-title-inline-metric') as HTMLElement | null;
+    expect(todayMetric).not.toBeNull();
+    expect(todayMetric?.textContent).toContain('1.25%');
+    expect(todayMetric?.textContent).toContain('-$3.20');
+    expect(todayMetric?.textContent).not.toContain('=');
+    expect(todayMetric?.querySelector('.position-title-arrow')?.classList.contains('value-neg')).toBeTrue();
+    expect(todayMetric?.querySelector('.position-title-percent')?.classList.contains('value-neg')).toBeTrue();
+    expect(todayMetric?.querySelector('.position-title-value')?.classList.contains('value-neg')).toBeTrue();
+  });
+
+  it('does not show a today change badge for lookup results without indicators', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.isLoggedIn = true;
+    app.marketDashboardService.stockLookupDialogOpen = true;
+    app.marketDashboardService.stockLookupSuggestions = [{
+      symbol: 'MSFT',
+      name: 'Microsoft',
+      region: 'US',
+      currency: 'USD',
+    }];
+    app.marketDashboardService.stockLookupRisks = {};
+
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.stock-lookup-result-row .position-title-inline-metric')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Could not load indicators.');
   });
 });

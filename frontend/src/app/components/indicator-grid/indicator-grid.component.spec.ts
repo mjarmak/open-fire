@@ -6,6 +6,7 @@ describe('IndicatorGridComponent', () => {
   function createState(overrides: Partial<MarketDashboardService> = {}): MarketDashboardService {
     return {
       isLoading: false,
+      isLoadingIndicators: false,
       isLoggedIn: true,
       safeWithdrawalRate: 4,
       desiredMonthlyIncome: 3000,
@@ -32,11 +33,18 @@ describe('IndicatorGridComponent', () => {
   });
 
   it('shows a loading indicator when loading indicators', async () => {
-    const element = await render(createState({ isLoading: true }));
+    const element = await render(createState({ isLoadingIndicators: true }));
 
     expect(element.querySelector('.section-loading .loading-spinner')).not.toBeNull();
     expect(element.textContent).toContain('Loading market indicators and retirement progress...');
     expect(element.querySelector('.retirement-progress-indicator')).toBeNull();
+  });
+
+  it('does not mask indicators for unrelated dashboard loading', async () => {
+    const element = await render(createState({ isLoading: true, isLoadingIndicators: false }));
+
+    expect(element.querySelector('.section-loading .loading-spinner')).toBeNull();
+    expect(element.querySelector('.retirement-progress-indicator')).not.toBeNull();
   });
 
   it('renders retirement progress indicator when loaded with no indicators', async () => {

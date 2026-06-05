@@ -1331,12 +1331,26 @@ button:disabled:not(.icon-btn)::after {
 }
 
 .stock-row.collapsed-row {
-  grid-template-columns: minmax(160px, 0.9fr) minmax(0, 2fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .stock-row:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 18px var(--shadow-soft);
+}
+
+.stock-row:not(.watch-only-row) {
+  cursor: pointer;
+}
+
+.stock-row:not(.watch-only-row):active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 6px var(--shadow-soft);
+}
+
+.stock-row:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .stock-row.watch-only-row {
@@ -1627,37 +1641,6 @@ button:disabled:not(.icon-btn)::after {
   white-space: nowrap;
 }
 
-.position-title-lines {
-  display: grid;
-  gap: 2px;
-  margin-top: 2px;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.position-title-line {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--muted-strong);
-  font-size: 0.64rem;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-
-.position-title-line-item {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 4px;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
 .position-title-inline-metric {
   display: inline-flex;
   align-items: center;
@@ -1672,12 +1655,23 @@ button:disabled:not(.icon-btn)::after {
   white-space: nowrap;
 }
 
-.position-title-label {
-  color: var(--muted-strong);
-  font-size: 0.55rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
+.ticker-identity > .position-title-tooltip {
+  display: block;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.position-title-tooltip > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.position-title-tooltip::after {
+  max-width: min(360px, calc(100vw - 32px));
+  text-align: left;
+  white-space: pre-line;
 }
 
 .position-title-percent {
@@ -1734,11 +1728,12 @@ button:disabled:not(.icon-btn)::after {
 .row-actions {
   display: inline-flex;
   gap: 4px;
+  position: relative;
   justify-self: end;
 }
 
 .stock-row.watch-only-row .row-actions {
-  padding-left: 30px;
+  padding-left: 0;
 }
 
 .icon-action,
@@ -1759,78 +1754,52 @@ button:disabled:not(.icon-btn)::after {
   background: var(--secondary);
 }
 
-.edit-action {
-  display: inline-grid;
-  place-items: center;
-}
-
-.edit-action::before {
-  content: "";
-  width: 14px;
-  height: 14px;
-  background: currentColor;
-  clip-path: polygon(68% 0, 100% 32%, 36% 96%, 0 100%, 4% 64%);
-}
-
-.collapse-action {
+.menu-action {
   position: relative;
   display: inline-grid;
   place-items: center;
   font-size: 0;
 }
 
-.collapse-action::before {
+.menu-action::before {
   content: "";
-  width: 7px;
-  height: 7px;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: rotate(-135deg);
-  transition: transform 180ms ease;
-}
-
-.collapse-action.is-collapsed::before {
-  transform: rotate(45deg);
-}
-
-.collapse-action:hover:not(:disabled),
-.collapse-action:active:not(:disabled) {
-  transform: none;
-}
-
-.delete-action {
-  position: relative;
-  display: inline-block;
-  font-size: 0;
-}
-
-.delete-action::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 9px;
-  width: 10px;
-  height: 11px;
-  border: 2px solid currentColor;
-  border-top: 0;
-  border-radius: 0 0 2px 2px;
-  background:
-    linear-gradient(currentColor, currentColor) 3px 2px / 1.5px 8px no-repeat,
-    linear-gradient(currentColor, currentColor) 7px 2px / 1.5px 8px no-repeat;
-  transform: translateX(-50%);
-}
-
-.delete-action::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 5px;
-  width: 16px;
-  height: 2px;
-  border-radius: 999px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
   background: currentColor;
-  box-shadow: 0 -3px 0 -1px currentColor;
-  transform: translateX(-50%);
+  box-shadow:
+    0 -6px 0 currentColor,
+    0 6px 0 currentColor;
+}
+
+.position-action-dialog {
+  width: min(360px, 100%);
+}
+
+.position-action-dialog-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.position-action-dialog-copy small {
+  color: var(--muted-strong);
+  font-size: 0.74rem;
+}
+
+.position-action-dialog-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.position-action-dialog-actions button {
+  width: 100%;
+  justify-content: center;
+}
+
+.position-action-dialog-actions .danger-action {
+  color: var(--button-text);
+  background: var(--danger);
 }
 
 .stock-row > small {
@@ -1839,10 +1808,6 @@ button:disabled:not(.icon-btn)::after {
 
 .collapsed-row .ticker-identity {
   align-content: center;
-}
-
-.collapsed-metrics {
-  justify-content: flex-end;
 }
 
 .ticker-metrics .value-pos {

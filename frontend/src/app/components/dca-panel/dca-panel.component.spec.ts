@@ -31,9 +31,16 @@ describe('DcaPanelComponent', () => {
   });
 
   it('shows a loading indicator while loading', async () => {
-    const element = await render(createState({ isLoading: true, hasLoadedDcaSettings: true }));
+    const element = await render(createState({ isLoadingDca: true, hasLoadedDcaSettings: true }));
     expect(element.querySelector('.section-loading .loading-spinner')).not.toBeNull();
     expect(element.textContent).toContain('Loading DCA reminder settings...');
+  });
+
+  it('does not mask DCA settings for unrelated dashboard loading', async () => {
+    const element = await render(createState({ isLoading: true, isLoadingDca: false, hasLoadedDcaSettings: true, dcaReminderNote: 'Buy monthly.' }));
+
+    expect(element.querySelector('.section-loading')).toBeNull();
+    expect(element.textContent).toContain('Buy monthly.');
   });
 
   it('shows loading while loading settings after initial dashboard load', async () => {

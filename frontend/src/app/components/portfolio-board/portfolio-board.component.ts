@@ -45,6 +45,7 @@ export class PortfolioBoardComponent implements OnInit {
   @Output() deletePosition = new EventEmitter<StockAlert>();
   collapsedSymbols = new Set<string>();
   protected positionFilter: PositionFilter = 'all';
+  protected actionDialogRowKey: string | null = null;
 
   ngOnInit(): void {
     this.loadCollapsedState();
@@ -180,6 +181,60 @@ export class PortfolioBoardComponent implements OnInit {
     this.persistCollapsedState();
   }
 
+  protected toggleCollapsedFromRow(stock: StockAlert): void {
+    this.actionDialogRowKey = null;
+    if (stock.watchOnly) {
+      return;
+    }
+    this.toggleCollapsed(stock);
+  }
+
+  protected handleRowKeydown(stock: StockAlert, event: KeyboardEvent): void {
+    if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) {
+      return;
+    }
+
+    event.preventDefault();
+    this.toggleCollapsedFromRow(stock);
+  }
+
+  protected get actionDialogStock(): StockAlert | null {
+    if (!this.actionDialogRowKey) {
+      return null;
+    }
+
+    return this.displayedStocks.find((stock) => this.positionRowKey(stock) === this.actionDialogRowKey) ?? null;
+  }
+
+  protected isActionDialogOpen(stock: StockAlert): boolean {
+    return this.actionDialogRowKey === this.positionRowKey(stock);
+  }
+
+  protected openActionDialog(stock: StockAlert, event: Event): void {
+    event.stopPropagation();
+    this.actionDialogRowKey = this.positionRowKey(stock);
+  }
+
+  protected closeActionDialog(): void {
+    this.actionDialogRowKey = null;
+  }
+
+  protected stopRowClick(event: Event): void {
+    event.stopPropagation();
+  }
+
+  protected selectEditPosition(stock: StockAlert, event: Event): void {
+    event.stopPropagation();
+    this.actionDialogRowKey = null;
+    this.editPosition.emit(stock);
+  }
+
+  protected selectDeletePosition(stock: StockAlert, event: Event): void {
+    event.stopPropagation();
+    this.actionDialogRowKey = null;
+    this.deletePosition.emit(stock);
+  }
+
   formatMoney(value: number | null | undefined): string {
     if (value === null || value === undefined) {
       return '-';
@@ -211,6 +266,18 @@ export class PortfolioBoardComponent implements OnInit {
     }
 
     return stock.quantity * stock.averageCost;
+  }
+
+  protected getPositionTitleTooltip(stock: StockAlert): string {
+    const lines = [stock.companyName?.trim() || stock.symbol];
+    if (stock.watchOnly) {
+      lines.push('Watch only');
+      return lines.join('\n');
+    }
+
+    lines.push(`TOTAL: ${this.formatQuantity(stock.quantity)} x ${this.formatMoney(stock.latestPrice)} = ${this.formatMoney(this.calculatePositionMarketValue(stock))} (${this.formatPercent(stock.unrealizedGainLossPercent)})`);
+    lines.push(`Original: ${this.formatQuantity(stock.quantity)} x ${this.formatMoney(stock.averageCost)} = ${this.formatMoney(this.calculatePositionInvested(stock))}`);
+    return lines.join('\n');
   }
 
   formatStockDayChange(stock: StockAlert): string {
@@ -271,6 +338,14 @@ export class PortfolioBoardComponent implements OnInit {
       return '-';
     }
     return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
+  }
+
+  private formatPercent(value: number | null | undefined): string {
+    if (value === null || value === undefined || Number.isNaN(value)) {
+      return '-';
+    }
+
+    return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value)}%`;
   }
 
   private matchesPositionFilter(stock: StockAlert): boolean {

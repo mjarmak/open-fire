@@ -6,7 +6,7 @@
     </div>
   </div>
 
-  @if (state.isLoading || state.isLoadingRetirement || !state.hasLoadedRetirementSettings) {
+  @if (state.isLoadingRetirement || state.isLoadingStocks || state.isLoadingPortfolio || !state.hasLoadedRetirementSettings) {
     <div class="empty-state section-loading">
       <div class="loading-spinner" aria-hidden="true"></div>
       <span>Loading retirement plan...</span>

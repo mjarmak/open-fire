@@ -31,7 +31,7 @@
     </div>
   </div>
 
-  @if (state.isLoading) {
+  @if (state.isLoadingStocks) {
     <div class="empty-state section-loading" role="status" aria-live="polite">
       <div class="loading-spinner" aria-hidden="true"></div>
       <span>Loading portfolio...</span>
@@ -65,10 +65,20 @@
     </section>
   }
 
-  @if (!state.isLoading) {
+  @if (!state.isLoadingStocks) {
   <div class="stock-table">
     @for (stock of displayedStocks; track positionRowKey(stock)) {
-      <div class="stock-row" [class.alerting]="stock.alert" [class.watch-only-row]="stock.watchOnly" [class.collapsed-row]="isCollapsed(stock)">
+      <div
+        class="stock-row"
+        [class.alerting]="stock.alert"
+        [class.watch-only-row]="stock.watchOnly"
+        [class.collapsed-row]="isCollapsed(stock)"
+        [class.menu-open]="isActionDialogOpen(stock)"
+        [attr.aria-expanded]="stock.watchOnly ? null : !isCollapsed(stock)"
+        [attr.tabindex]="stock.watchOnly ? null : 0"
+        (click)="toggleCollapsedFromRow(stock)"
+        (keydown)="handleRowKeydown(stock, $event)"
+      >
         <div class="ticker-identity">
           <div class="ticker-symbol-line">
             <span
@@ -137,37 +147,17 @@
           @if (stock.watchOnly) {
             <span class="watch-only-badge">Watch only</span>
           }
-          <span>{{ stock.companyName }}</span>
-          @if (!stock.watchOnly) {
-            <div class="position-title-lines">
-              <div class="position-title-line position-title-line-primary">
-                <span class="position-title-line-item">
-                  <span class="position-title-label">TOTAL</span>
-                  {{ formatQuantity(stock.quantity) }} × {{ formatMoney(stock.latestPrice) }} =
-                  <strong
-                    class="position-title-value"
-                    [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0"
-                    [class.value-neg]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss < 0"
-                  >{{ formatMoney(calculatePositionMarketValue(stock)) }}</strong>
-                  <span
-                    class="position-title-percent"
-                    [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0"
-                    [class.value-neg]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss < 0"
-                  >
-                    ({{ stock.unrealizedGainLossPercent === null ? '-' : (stock.unrealizedGainLossPercent | number: '1.0-2') + '%' }})
-                  </span>
-                </span>
-              </div>
-              <div class="position-title-line position-title-line-secondary">
-                <span class="position-title-label">Original</span>
-                {{ formatQuantity(stock.quantity) }} × {{ formatMoney(stock.averageCost) }} =
-                <strong>{{ formatMoney(calculatePositionInvested(stock)) }}</strong>
-              </div>
-            </div>
-          }
+          <span
+            class="position-title-tooltip app-tooltip app-tooltip-below"
+            [attr.data-tooltip]="getPositionTitleTooltip(stock)"
+            [attr.aria-label]="getPositionTitleTooltip(stock)"
+            tabindex="0"
+          ><span>{{ stock.companyName }}</span></span>
         </div>
         @if (!isCollapsed(stock)) {
         <div class="ticker-metrics">
+          <span [class.value-pos]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent > 0" [class.value-neg]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent < 0"><small>30D</small>{{ stock.thirtyDayChangePercent === null ? '-' : (stock.thirtyDayChangePercent | number: '1.0-2') + '%' }}</span>
+          <span><small>Market Cap</small>{{ formatMoney(stock.marketCap) }}</span>
           <span
             class="metric-tooltip risk-metric risk-fear"
             tabindex="0"
@@ -203,28 +193,18 @@
             aria-label="DD: drawdown from the highest close in the last 30 calendar days to the latest price. Falls back to 52-week high if history is unavailable. Alert threshold: above 20 percent."
             [class.drawdown-high]="stock.drawdownPercent !== null && stock.drawdownPercent > 20"
           ><small>DD</small>{{ stock.drawdownPercent === null ? '-' : (stock.drawdownPercent | number: '1.0-2') + '%' }}</span>
-          <span><small>Market Cap</small>{{ formatMoney(stock.marketCap) }}</span>
-          <span [class.value-pos]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent > 0" [class.value-neg]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent < 0"><small>30D</small>{{ stock.thirtyDayChangePercent === null ? '-' : (stock.thirtyDayChangePercent | number: '1.0-2') + '%' }}</span>
-        </div>
-        } @else {
-        <div class="ticker-metrics collapsed-metrics">
-          <span><small>Avg</small>{{ stock.watchOnly ? '-' : (stock.averageCost | currency) }}</span>
-          <span><small>Qty</small>{{ stock.watchOnly ? '-' : (stock.quantity | number: '1.0-2') }}</span>
         </div>
         }
-        <div class="row-actions">
-          @if (!stock.watchOnly) {
+        <div class="row-actions" (click)="stopRowClick($event)">
           <button
             type="button"
-            class="row-action collapse-action"
-            [class.is-collapsed]="isCollapsed(stock)"
-            [title]="isCollapsed(stock) ? 'Expand position' : 'Collapse position'"
-            [attr.aria-label]="isCollapsed(stock) ? 'Expand position' : 'Collapse position'"
-            (click)="toggleCollapsed(stock)"
+            class="row-action menu-action"
+            title="Position actions"
+            aria-label="Position actions"
+            aria-haspopup="dialog"
+            [attr.aria-expanded]="isActionDialogOpen(stock)"
+            (click)="openActionDialog(stock, $event)"
           ></button>
-          }
-          <button type="button" class="row-action edit-action" title="Edit position" aria-label="Edit position" (click)="editPosition.emit(stock)"></button>
-          <button type="button" class="icon-action delete-action" title="Remove holding" aria-label="Remove holding" (click)="deletePosition.emit(stock)"></button>
         </div>
         <small>{{ stock.reason }}</small>
       </div>
@@ -238,6 +218,28 @@
       </div>
     }
   </div>
+  }
+
+  @if (actionDialogStock; as actionStock) {
+    <div class="modal-backdrop position-action-backdrop" role="presentation">
+      <div class="edit-dialog position-action-dialog" role="dialog" aria-modal="true" aria-labelledby="position-actions-title">
+        <div class="dialog-heading">
+          <div class="position-action-dialog-copy">
+            <p class="eyebrow">{{ actionStock.symbol }}</p>
+            <h2 id="position-actions-title">Position actions</h2>
+            <small>{{ actionStock.companyName }}</small>
+          </div>
+          <button type="button" class="icon-action" title="Close" aria-label="Close position actions" (click)="closeActionDialog()"></button>
+        </div>
+        <div class="position-action-dialog-actions">
+          <button type="button" (click)="selectEditPosition(actionStock, $event)">Edit</button>
+          <button type="button" class="danger-action" (click)="selectDeletePosition(actionStock, $event)">Delete</button>
+        </div>
+        <div class="dialog-actions">
+          <button type="button" class="secondary" (click)="closeActionDialog()">Cancel</button>
+        </div>
+      </div>
+    </div>
   }
 </section>
 
