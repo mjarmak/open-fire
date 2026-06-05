@@ -89,34 +89,48 @@
                 tabindex="0"
               >
                 <span
-                  class="position-title-arrow"
-                  [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
-                  [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
+                  class="position-title-change-side"
                 >
-                  @if (stock.dayGainLossPercent === null || stock.dayGainLossPercent === undefined) {
-                    -
-                  } @else if (stock.dayGainLossPercent > 0) {
-                    <span>&#8593;</span>
-                  } @else if (stock.dayGainLossPercent < 0) {
-                    <span>&#8595;</span>
-                  } @else {
-                    <span class="position-title-arrow-flat">&#8594;</span>
-                  }
+                  <span
+                    class="position-title-arrow"
+                    [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
+                    [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
+                  >
+                    @if (stock.dayGainLossPercent === null || stock.dayGainLossPercent === undefined) {
+                      -
+                    } @else if (stock.dayGainLossPercent > 0) {
+                      <span>&#8593;</span>
+                    } @else if (stock.dayGainLossPercent < 0) {
+                      <span>&#8595;</span>
+                    } @else {
+                      <span class="position-title-arrow-flat">&#8594;</span>
+                    }
+                  </span>
+                  <span
+                    class="position-title-percent"
+                    [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
+                    [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
+                  >
+                    {{ stock.dayGainLossPercent === null ? '-' : (stock.dayGainLossPercent | number: '1.0-2') + '%' }}
+                  </span>
+                  <span
+                    class="position-title-value"
+                    [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
+                    [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
+                  >{{ formatStockDayChange(stock) }}</span>
                 </span>
-                <span
-                  class="position-title-percent"
-                  [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
-                  [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
-                >
-                  {{ stock.dayGainLossPercent === null ? '-' : (stock.dayGainLossPercent | number: '1.0-2') + '%' }}
-                </span>
-                <span
-                  class="position-title-value"
-                  [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
-                  [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
-                >
-                  {{ formatStockDayChange(stock) }}
-                </span>
+                @if (!stock.watchOnly) {
+                  <span
+                    class="position-title-change-side position-title-change-total"
+                  >
+                    × {{ formatQuantity(stock.quantity) }} =
+                    <span
+                      class="position-title-value"
+                      [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
+                      [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
+                    >{{ formatPositionDayChange(stock) }}</span>
+                  </span>
+                }
               </span>
             }
           </div>

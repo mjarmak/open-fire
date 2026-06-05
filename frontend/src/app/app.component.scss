@@ -1670,6 +1670,20 @@ button:disabled:not(.icon-btn)::after {
   font-weight: 700;
 }
 
+.position-title-change-side {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.position-title-change-total {
+  margin-left: 2px;
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+}
+
 .position-title-arrow.value-pos,
 .position-title-percent.value-pos,
 .position-title-value.value-pos {

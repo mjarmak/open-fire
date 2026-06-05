@@ -146,13 +146,15 @@
       </div>
 
       <div class="chart-wrapper">
-        <h3
-          class="chart-title app-tooltip"
-          tabindex="0"
-          [attr.data-tooltip]="wealthProjectionTooltip"
-          [attr.aria-label]="wealthProjectionTooltip"
-        >
-          30-Year Projection
+        <h3 class="chart-title">
+          <span
+            class="app-tooltip"
+            tabindex="0"
+            [attr.data-tooltip]="wealthProjectionTooltip"
+            [attr.aria-label]="wealthProjectionTooltip"
+          >
+            30-Year Projection
+          </span>
         </h3>
 
         <div class="chart-container" (mousemove)="onChartMouseMove($event)" (mouseleave)="onChartMouseLeave()">

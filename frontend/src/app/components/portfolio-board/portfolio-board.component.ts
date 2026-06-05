@@ -226,6 +226,18 @@ export class PortfolioBoardComponent implements OnInit {
     }).format(value);
   }
 
+  formatPositionDayChange(stock: StockAlert): string {
+    if (stock.dayGainLoss === null || stock.dayGainLoss === undefined || stock.watchOnly) {
+      return '-';
+    }
+
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 2,
+    }).format(stock.dayGainLoss);
+  }
+
   private calculateStockDayChange(stock: StockAlert): number | null {
     if (stock.dayGainLoss === null || stock.dayGainLoss === undefined) {
       return null;
