@@ -193,6 +193,47 @@ export class PortfolioBoardComponent implements OnInit {
     }).format(value);
   }
 
+  calculatePositionMarketValue(stock: StockAlert): number | null {
+    if (stock.marketValue !== null && stock.marketValue !== undefined) {
+      return stock.marketValue;
+    }
+
+    if (stock.latestPrice === null || stock.latestPrice === undefined) {
+      return null;
+    }
+
+    return stock.quantity * stock.latestPrice;
+  }
+
+  calculatePositionInvested(stock: StockAlert): number | null {
+    if (stock.averageCost === null || stock.averageCost === undefined || stock.watchOnly) {
+      return null;
+    }
+
+    return stock.quantity * stock.averageCost;
+  }
+
+  formatStockDayChange(stock: StockAlert): string {
+    const value = this.calculateStockDayChange(stock);
+    if (value === null) {
+      return '-';
+    }
+
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 2,
+    }).format(value);
+  }
+
+  private calculateStockDayChange(stock: StockAlert): number | null {
+    if (stock.dayGainLoss === null || stock.dayGainLoss === undefined || stock.quantity === 0) {
+      return null;
+    }
+
+    return stock.dayGainLoss / stock.quantity;
+  }
+
   private formatTooltipMoney(value: number | null): string {
     if (value === null || Number.isNaN(value)) {
       return '-';
@@ -205,7 +246,7 @@ export class PortfolioBoardComponent implements OnInit {
     }).format(value);
   }
 
-  private formatQuantity(value: number | null | undefined): string {
+  protected formatQuantity(value: number | null | undefined): string {
     if (value === null || value === undefined || Number.isNaN(value)) {
       return '-';
     }

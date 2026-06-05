@@ -17,6 +17,7 @@ app-root {
   --status-risk: #e85d5d;
   --status-watch: #b14b4b;
   --status-calm: #7f3535;
+  --gauge-track: rgb(255 255 255 / 12%);
   --icon-bg: #7f2525;
   --danger: #c62828;
   --button-text: #fff5f5;
@@ -58,6 +59,7 @@ app-root.light-theme {
   --status-risk: #b94444;
   --status-watch: #9f5656;
   --status-calm: #7f6666;
+  --gauge-track: rgb(0 0 0 / 10%);
   --icon-bg: #8f3a3a;
   --danger: #b93434;
   --button-text: #f8f4f4;
@@ -766,10 +768,10 @@ button:disabled:not(.icon-btn)::after {
   border-radius: 50%;
   background:
     radial-gradient(circle at 50% 50%, var(--panel) 0 48%, transparent 49%),
-    conic-gradient(
+  conic-gradient(
       from 270deg,
       var(--indicator-outline) 0deg var(--gauge-sweep),
-      rgb(255 255 255 / 12%) var(--gauge-sweep) 180deg,
+      var(--gauge-track) var(--gauge-sweep) 180deg,
       transparent 180deg 360deg
     );
 }
@@ -887,6 +889,12 @@ button:disabled:not(.icon-btn)::after {
   --indicator-outline: var(--status-calm);
   border-color: var(--status-calm);
   box-shadow: inset 4px 0 0 var(--status-calm);
+}
+
+.retirement-progress-indicator {
+  --indicator-outline: var(--primary);
+  border-color: var(--primary);
+  box-shadow: inset 4px 0 0 var(--primary);
 }
 
 
@@ -1355,7 +1363,9 @@ button:disabled:not(.icon-btn)::after {
   display: inline-flex;
   gap: 6px;
   align-items: center;
-  width: max-content;
+  flex-wrap: wrap;
+  width: auto;
+  max-width: 100%;
 }
 
 .position-type-dot {
@@ -1476,6 +1486,30 @@ button:disabled:not(.icon-btn)::after {
   font-size: 0.78rem;
 }
 
+.ticker-metrics .position-metric {
+  flex: 1 1 260px;
+  max-width: 320px;
+  min-width: 220px;
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.ticker-metrics .position-metric-title {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.ticker-metrics .position-metric-note {
+  color: inherit;
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: none;
+}
+
 .ticker-metrics .risk-metric {
   border-color: var(--risk-accent);
   border-left-width: 4px;
@@ -1585,6 +1619,84 @@ button:disabled:not(.icon-btn)::after {
 
 .ticker-identity > span:not(.watch-only-badge) {
   font-size: 0.72rem;
+}
+
+.position-title-lines {
+  display: grid;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.position-title-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--muted-strong);
+  font-size: 0.64rem;
+  line-height: 1.25;
+}
+
+.position-title-line-item {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.position-title-inline-metric {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  color: var(--muted-strong);
+  font-size: 0.64rem;
+  line-height: 1.25;
+}
+
+.position-title-label {
+  color: var(--muted-strong);
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.position-title-percent {
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+.position-title-arrow.value-pos,
+.position-title-percent.value-pos,
+.position-title-value.value-pos {
+  color: var(--positive-text);
+}
+
+.position-title-arrow.value-neg,
+.position-title-percent.value-neg,
+.position-title-value.value-neg {
+  color: var(--negative-text);
+}
+
+.position-title-value {
+  font-weight: 700;
+}
+
+.position-title-arrow {
+  margin-left: 0;
+  font-size: 0.58rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.position-title-arrow-flat {
+  color: var(--muted-strong);
 }
 
 .row-actions {

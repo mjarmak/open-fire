@@ -62,9 +62,4 @@ export class IndicatorGridComponent {
     return (this.retirementProgressPercent / 100) * 180;
   }
 
-  get retirementProgressStatusClass(): string {
-    if (this.retirementProgressPercent >= 75) return 'status-calm';
-    if (this.retirementProgressPercent >= 35) return 'status-watch';
-    return 'status-risk';
-  }
 }

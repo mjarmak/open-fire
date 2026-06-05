@@ -81,15 +81,79 @@
             <strong
               class="ticket-type-indicator"
             >{{ stock.symbol }}</strong>
+            @if (!stock.watchOnly) {
+              <span
+                class="position-title-inline-metric app-tooltip"
+                data-tooltip="Today's stock change"
+                aria-label="Today's stock change"
+                tabindex="0"
+              >
+                <span
+                  class="position-title-arrow"
+                  [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
+                  [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
+                >
+                  @if (stock.dayGainLossPercent === null || stock.dayGainLossPercent === undefined) {
+                    -
+                  } @else if (stock.dayGainLossPercent > 0) {
+                    <span>&#8593;</span>
+                  } @else if (stock.dayGainLossPercent < 0) {
+                    <span>&#8595;</span>
+                  } @else {
+                    <span class="position-title-arrow-flat">&#8594;</span>
+                  }
+                </span>
+                <span
+                  class="position-title-percent"
+                  [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
+                  [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
+                >
+                  {{ stock.dayGainLossPercent === null ? '-' : (stock.dayGainLossPercent | number: '1.0-2') + '%' }}
+                </span>
+                <span
+                  class="position-title-value"
+                  [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
+                  [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
+                >
+                  {{ formatStockDayChange(stock) }}
+                </span>
+              </span>
+            }
           </div>
           @if (stock.watchOnly) {
             <span class="watch-only-badge">Watch only</span>
           }
           <span>{{ stock.companyName }}</span>
+          @if (!stock.watchOnly) {
+            <div class="position-title-lines">
+              <div class="position-title-line position-title-line-primary">
+                <span class="position-title-line-item">
+                  <span class="position-title-label">TOTAL</span>
+                  {{ formatQuantity(stock.quantity) }} × {{ formatMoney(stock.latestPrice) }} =
+                  <strong
+                    class="position-title-value"
+                    [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0"
+                    [class.value-neg]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss < 0"
+                  >{{ formatMoney(calculatePositionMarketValue(stock)) }}</strong>
+                  <span
+                    class="position-title-percent"
+                    [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0"
+                    [class.value-neg]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss < 0"
+                  >
+                    ({{ stock.unrealizedGainLossPercent === null ? '-' : (stock.unrealizedGainLossPercent | number: '1.0-2') + '%' }})
+                  </span>
+                </span>
+              </div>
+              <div class="position-title-line position-title-line-secondary">
+                <span class="position-title-label">Original</span>
+                {{ formatQuantity(stock.quantity) }} × {{ formatMoney(stock.averageCost) }} =
+                <strong>{{ formatMoney(calculatePositionInvested(stock)) }}</strong>
+              </div>
+            </div>
+          }
         </div>
         @if (!isCollapsed(stock)) {
         <div class="ticker-metrics">
-          <span><small>Price</small>{{ stock.latestPrice === null ? '-' : (stock.latestPrice | currency) }}</span>
           <span
             class="metric-tooltip risk-metric risk-fear"
             tabindex="0"
@@ -126,24 +190,12 @@
             [class.drawdown-high]="stock.drawdownPercent !== null && stock.drawdownPercent > 20"
           ><small>DD</small>{{ stock.drawdownPercent === null ? '-' : (stock.drawdownPercent | number: '1.0-2') + '%' }}</span>
           <span><small>Market Cap</small>{{ formatMoney(stock.marketCap) }}</span>
-          @if (!stock.watchOnly) {
-          <span><small>Qty</small>{{ stock.quantity | number: '1.0-2' }}</span>
-          <span><small>Avg</small>{{ stock.averageCost | currency }}</span>
-          <span [class.value-pos]="stock.dayGainLoss !== null && stock.dayGainLoss > 0" [class.value-neg]="stock.dayGainLoss !== null && stock.dayGainLoss < 0"><small>Today</small>{{ stock.dayGainLoss === null ? '-' : (stock.dayGainLoss | currency) }}</span>
-          <span [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0" [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"><small>Today %</small>{{ stock.dayGainLossPercent === null ? '-' : (stock.dayGainLossPercent | number: '1.0-2') + '%' }}</span>
-          <span [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0" [class.value-neg]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss < 0"><small>Total</small>{{ stock.unrealizedGainLoss === null ? '-' : (stock.unrealizedGainLoss | currency) }}</span>
-          <span [class.value-pos]="stock.unrealizedGainLossPercent !== null && stock.unrealizedGainLossPercent > 0" [class.value-neg]="stock.unrealizedGainLossPercent !== null && stock.unrealizedGainLossPercent < 0"><small>Total %</small>{{ stock.unrealizedGainLossPercent === null ? '-' : (stock.unrealizedGainLossPercent | number: '1.0-2') + '%' }}</span>
-          <span><small>Value</small>{{ formatMoney(stock.marketValue) }}</span>
-          }
           <span [class.value-pos]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent > 0" [class.value-neg]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent < 0"><small>30D</small>{{ stock.thirtyDayChangePercent === null ? '-' : (stock.thirtyDayChangePercent | number: '1.0-2') + '%' }}</span>
         </div>
         } @else {
         <div class="ticker-metrics collapsed-metrics">
-          <span><small>Price</small>{{ stock.latestPrice === null ? '-' : (stock.latestPrice | currency) }}</span>
           <span><small>Avg</small>{{ stock.watchOnly ? '-' : (stock.averageCost | currency) }}</span>
           <span><small>Qty</small>{{ stock.watchOnly ? '-' : (stock.quantity | number: '1.0-2') }}</span>
-          <span [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0" [class.value-neg]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss < 0"><small>Total</small>{{ stock.unrealizedGainLoss === null ? '-' : (stock.unrealizedGainLoss | currency) }}</span>
-          <span [class.value-pos]="stock.unrealizedGainLossPercent !== null && stock.unrealizedGainLossPercent > 0" [class.value-neg]="stock.unrealizedGainLossPercent !== null && stock.unrealizedGainLossPercent < 0"><small>Total %</small>{{ stock.unrealizedGainLossPercent === null ? '-' : (stock.unrealizedGainLossPercent | number: '1.0-2') + '%' }}</span>
         </div>
         }
         <div class="row-actions">
@@ -174,3 +226,4 @@
   </div>
   }
 </section>
+
