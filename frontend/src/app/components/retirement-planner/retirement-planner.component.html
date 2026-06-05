@@ -6,9 +6,10 @@
     </div>
   </div>
 
-  @if (state.isLoadingRetirement || !state.hasLoadedRetirementSettings) {
-    <div class="empty-state">
-      Loading retirement plan...
+  @if (state.isLoading || state.isLoadingRetirement || !state.hasLoadedRetirementSettings) {
+    <div class="empty-state section-loading">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <span>Loading retirement plan...</span>
     </div>
   } @else {
     <div class="retirement-content">
@@ -145,7 +146,14 @@
       </div>
 
       <div class="chart-wrapper">
-        <h3 class="chart-title">30-Year Wealth Projection with Inflation-Adjusted Withdrawals (Log Scale)</h3>
+        <h3
+          class="chart-title app-tooltip"
+          tabindex="0"
+          [attr.data-tooltip]="wealthProjectionTooltip"
+          [attr.aria-label]="wealthProjectionTooltip"
+        >
+          30-Year Projection
+        </h3>
 
         <div class="chart-container" (mousemove)="onChartMouseMove($event)" (mouseleave)="onChartMouseLeave()">
           <svg viewBox="0 0 800 300" class="projection-svg">

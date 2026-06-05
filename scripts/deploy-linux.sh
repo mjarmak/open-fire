@@ -105,9 +105,21 @@ fi
 
 if [[ -d "$APP_DIR/.git" ]]; then
   log "Updating existing clone at $APP_DIR"
-  git -C "$APP_DIR" fetch origin "$BRANCH"
+  git -C "$APP_DIR" fetch origin "$BRANCH:refs/remotes/origin/$BRANCH"
   git -C "$APP_DIR" checkout "$BRANCH"
-  git -C "$APP_DIR" pull --ff-only origin "$BRANCH"
+
+  if ! git -C "$APP_DIR" diff --quiet || ! git -C "$APP_DIR" diff --cached --quiet; then
+    echo "$APP_DIR has uncommitted changes. Commit, stash, or remove them before deploying." >&2
+    exit 1
+  fi
+
+  REMOTE_REF="origin/$BRANCH"
+  if git -C "$APP_DIR" merge-base --is-ancestor HEAD "$REMOTE_REF"; then
+    git -C "$APP_DIR" pull --ff-only origin "$BRANCH"
+  else
+    log "Local $BRANCH cannot fast-forward to $REMOTE_REF; force-syncing deploy clone to remote branch"
+    git -C "$APP_DIR" reset --hard "$REMOTE_REF"
+  fi
 else
   log "Cloning $REPO_URL into $APP_DIR"
   mkdir -p "$(dirname "$APP_DIR")"

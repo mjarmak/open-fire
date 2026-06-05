@@ -825,6 +825,18 @@ button:disabled:not(.icon-btn)::after {
   animation: fade-slide-up 180ms ease-out both;
 }
 
+.section-loading {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.section-loading .loading-spinner {
+  width: 22px;
+  height: 22px;
+}
+
 .retirement-board .empty-state {
   animation: fade-slide-up 180ms ease-out both, subtle-pulse 1.45s ease-in-out infinite;
 }
@@ -2093,9 +2105,28 @@ button.danger:hover {
     grid-column: 1 / -1;
   }
 
+  .stock-row > .ticker-identity {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .stock-row > .row-actions {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+    justify-self: end;
+    padding-left: 0;
+  }
+
   .ticker-metrics {
+    grid-row: 2;
     justify-content: flex-start;
     justify-self: stretch;
+  }
+
+  .stock-row > small {
+    grid-row: 3;
   }
 
   .stock-lookup-add-button,

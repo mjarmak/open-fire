@@ -50,13 +50,35 @@ describe('RetirementPlannerComponent', () => {
 
     expect(summary).toContain('Portfolio Summary');
     expect(summary).toContain('$2K');
-    expect(summary).toContain('Holdings: 1');
-    expect(summary).toContain('Initial Deposit: $100');
-    expect(summary).toContain('Total Invested: $2K');
+    expect(summary).toContain('Holdings:1');
+    expect(summary).toContain('Initial Deposit:$100');
+    expect(summary).toContain('Total Invested:$2K');
     expect(summary).toContain('Total P&L: $0');
     expect(summary).toContain('Total P&L %: 0.0%');
-    expect(summary).toContain('Annualized Return%: 0.0%');
-    expect(summary).toContain('Return Since: 2024-01-01');
+    expect(summary).toContain('Annualized Return %: 0.0%');
+    expect(summary).toContain('Return Since:2024-01-01');
+  });
+
+  it('shows a loading indicator while dashboard loading', async () => {
+    const element = await render(createState({ isLoading: true }));
+
+    expect(element.querySelector('.section-loading .loading-spinner')).not.toBeNull();
+    expect(element.textContent).toContain('Loading retirement plan...');
+    expect(element.querySelector('.retirement-content')).toBeNull();
+  });
+
+  it('shows a loading indicator when retirement settings are loading', async () => {
+    const element = await render(createState({ isLoading: false, isLoadingRetirement: true, hasLoadedRetirementSettings: true }));
+
+    expect(element.querySelector('.section-loading .loading-spinner')).not.toBeNull();
+    expect(element.textContent).toContain('Loading retirement plan...');
+  });
+
+  it('shows a loading indicator before retirement settings are loaded', async () => {
+    const element = await render(createState({ isLoading: false, isLoadingRetirement: false, hasLoadedRetirementSettings: false }));
+
+    expect(element.querySelector('.section-loading .loading-spinner')).not.toBeNull();
+    expect(element.textContent).toContain('Loading retirement plan...');
   });
 
   it('renders all target fund and retirement configuration fields', async () => {
@@ -72,13 +94,13 @@ describe('RetirementPlannerComponent', () => {
     expect(targetFund).toContain('Custom (12%):');
 
     expect(config).toContain('Retirement Configuration');
-    expect(config).toContain('Start Date 2024-01-01');
-    expect(config).toContain('Initial Deposit $100');
-    expect(config).toContain('Monthly Add $4K');
-    expect(config).toContain('Target Income $2K/mo');
-    expect(config).toContain('Inflation 3%/yr');
-    expect(config).toContain('SWR 4%');
-    expect(config).toContain('Custom Return 12%');
+    expect(config).toContain('Start Date2024-01-01');
+    expect(config).toContain('Initial Deposit$100');
+    expect(config).toContain('Monthly Add$4K');
+    expect(config).toContain('Target Income$2K/mo');
+    expect(config).toContain('Inflation3%/yr');
+    expect(config).toContain('SWR4%');
+    expect(config).toContain('Custom Return12%');
   });
 
   it('does not use configured initial deposit as the annualized return denominator', async () => {
@@ -88,9 +110,9 @@ describe('RetirementPlannerComponent', () => {
     }));
     const summary = normalizedText(element.querySelector('.current-assets-card'));
 
-    expect(summary).toContain('Initial Deposit: $1');
-    expect(summary).toContain('Total Invested: $2K');
-    expect(summary).toContain('Annualized Return%: 0.0%');
+    expect(summary).toContain('Initial Deposit:$1');
+    expect(summary).toContain('Total Invested:$2K');
+    expect(summary).toContain('Annualized Return %: 0.0%');
   });
 
   function normalizedText(element: Element | null): string {

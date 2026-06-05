@@ -49,6 +49,8 @@ export class RetirementPlannerComponent {
     annualizedReturn: 'Annualized return from total invested to the current non-watch-only portfolio value, using your configured return start date.',
     returnSince: 'Investing start date from your retirement configuration, used for annualized return timing.',
   };
+  protected readonly wealthProjectionTooltip =
+    '30-Year retirement projection comparing realistic, actual, and custom return growth. Values use logarithmic scaling for long-term clarity, and withdrawals are adjusted for inflation.';
   private snapshotCacheKey = '';
   private snapshotCache: RetirementSnapshot | null = null;
 

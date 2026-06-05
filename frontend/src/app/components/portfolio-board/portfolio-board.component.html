@@ -31,7 +31,12 @@
     </div>
   </div>
 
-  @if (positionTypeSlices.length) {
+  @if (state.isLoading) {
+    <div class="empty-state section-loading" role="status" aria-live="polite">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <span>Loading portfolio...</span>
+    </div>
+  } @else if (positionTypeSlices.length) {
     <section class="position-type-panel" aria-label="Portfolio position type mix">
       <div class="position-type-chart">
         <div class="pie-chart" [style.background]="positionTypePieGradient" role="img" [attr.aria-label]="'Position type mix. ' + positionTypeBasisLabel">
@@ -60,6 +65,7 @@
     </section>
   }
 
+  @if (!state.isLoading) {
   <div class="stock-table">
     @for (stock of displayedStocks; track positionRowKey(stock)) {
       <div class="stock-row" [class.alerting]="stock.alert" [class.watch-only-row]="stock.watchOnly" [class.collapsed-row]="isCollapsed(stock)">
@@ -166,4 +172,5 @@
       </div>
     }
   </div>
+  }
 </section>

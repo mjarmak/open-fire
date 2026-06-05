@@ -90,4 +90,32 @@ test.describe('Portfolio Section', () => {
     await expect(page.getByText('position(s) imported from CSV', { exact: false })).toBeVisible({ timeout: 5_000 });
     await expect(page.locator('.stock-row').filter({ hasText: 'AMZN' })).toBeVisible();
   });
+
+  test('shows portfolio loading state and legacy empty message when no holdings exist', async ({ page }) => {
+    const api = await registerMockApi(page, {
+      stocks: [],
+      portfolio: [],
+    });
+
+    await page.route('**/api/stocks', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (route.request().method().toUpperCase() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          body: JSON.stringify(api.state.stocks),
+          contentType: 'application/json',
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    await seedRememberedLogin(page);
+    await gotoLoggedInDashboard(page);
+
+    const portfolioBoard = page.getByLabel('Portfolio tickers');
+    await expect(portfolioBoard.getByText('Loading portfolio...')).toBeVisible();
+    await expect(portfolioBoard.getByText('Loading portfolio...')).toBeHidden({ timeout: 5000 });
+    await expect(portfolioBoard.getByText('Add a portfolio position above,')).toBeVisible();
+  });
 });

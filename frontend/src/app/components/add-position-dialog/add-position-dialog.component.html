@@ -53,7 +53,8 @@
             type="number"
             min="0"
             step="0.000001"
-            [(ngModel)]="state.holdingForm.quantity"
+            [ngModel]="state.holdingForm.quantity === 0 ? null : state.holdingForm.quantity"
+            (ngModelChange)="state.holdingForm.quantity = $event ?? 0"
             [disabled]="state.holdingForm.watchOnly"
           />
         </label>
@@ -64,7 +65,8 @@
             type="number"
             min="0"
             step="0.01"
-            [(ngModel)]="state.holdingForm.averageCost"
+            [ngModel]="state.holdingForm.averageCost === 0 ? null : state.holdingForm.averageCost"
+            (ngModelChange)="state.holdingForm.averageCost = $event ?? 0"
             [disabled]="state.holdingForm.watchOnly"
           />
         </label>
