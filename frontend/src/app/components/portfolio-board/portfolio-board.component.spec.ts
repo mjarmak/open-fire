@@ -221,7 +221,7 @@ describe('PortfolioBoardComponent', () => {
     expect(positionLineText).toContain('$80');
     expect(row.querySelector('.ticker-metrics')).not.toBeNull();
 
-    const titleTooltip = row.querySelector<HTMLElement>('.position-title-tooltip');
+    const titleTooltip = row.querySelector<HTMLElement>('.ticket-type-indicator');
     expect(titleTooltip?.getAttribute('data-tooltip')).toContain('TOTAL: 4 x $25 = $100 (25%)');
     expect(titleTooltip?.getAttribute('data-tooltip')).toContain('Original: 4 x $20 = $80');
   });

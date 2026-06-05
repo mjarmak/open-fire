@@ -39,4 +39,23 @@ test.describe('Indicators Section', () => {
       });
     })).toBe(true);
   });
+
+  test('keeps section title h2 sizes consistent while compact gauge titles stay smaller', async ({ page }) => {
+    const dcaTitle = page.getByLabel('DCA reminder settings').locator('h2');
+    const portfolioTitle = page.getByLabel('Portfolio tickers').locator('h2').filter({ hasText: 'Portfolio' });
+    const retirementTitle = page.getByLabel('Retirement planner').locator('h2');
+    const gaugeTitle = page.getByLabel('Macro market indicators').locator('.compact-indicator h2').first();
+
+    const sizes = await Promise.all([
+      dcaTitle.evaluate((element) => getComputedStyle(element).fontSize),
+      portfolioTitle.evaluate((element) => getComputedStyle(element).fontSize),
+      retirementTitle.evaluate((element) => getComputedStyle(element).fontSize),
+      gaugeTitle.evaluate((element) => getComputedStyle(element).fontSize),
+    ]);
+    const [dcaSize, portfolioSize, retirementSize, gaugeSize] = sizes.map((size) => Number.parseFloat(size));
+
+    expect(dcaSize).toBe(portfolioSize);
+    expect(portfolioSize).toBe(retirementSize);
+    expect(gaugeSize).toBeLessThan(portfolioSize);
+  });
 });

@@ -89,7 +89,10 @@
               tabindex="0"
             ></span>
             <strong
-              class="ticket-type-indicator"
+              class="ticket-type-indicator app-tooltip"
+              tabindex="0"
+              [attr.data-tooltip]="getPositionTitleTooltip(stock)"
+              [attr.aria-label]="getPositionTitleTooltip(stock)"
             >{{ stock.symbol }}</strong>
             @if (stock.dayGainLoss !== null || stock.dayGainLossPercent !== null) {
               <span
@@ -147,12 +150,6 @@
           @if (stock.watchOnly) {
             <span class="watch-only-badge">Watch only</span>
           }
-          <span
-            class="position-title-tooltip app-tooltip app-tooltip-below"
-            [attr.data-tooltip]="getPositionTitleTooltip(stock)"
-            [attr.aria-label]="getPositionTitleTooltip(stock)"
-            tabindex="0"
-          ><span>{{ stock.companyName }}</span></span>
 
           @if (!stock.watchOnly) {
           <div class="position-title-lines">

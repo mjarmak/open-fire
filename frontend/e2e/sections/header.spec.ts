@@ -38,14 +38,14 @@ test.describe('Header Section', () => {
     await seedRememberedLogin(page);
     await gotoLoggedInDashboard(page);
 
-    await page.getByRole('button', { name: 'Search stock risks' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Find Stock Risks' });
+    await page.getByRole('button', { name: 'Search' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Search' });
     await expect(dialog).toBeVisible();
 
     const box = await dialog.boundingBox();
     expect(box?.width).toBeLessThanOrEqual(1200);
 
-    const searchInput = dialog.getByRole('textbox', { name: 'Search stocks' });
+    const searchInput = dialog.getByRole('textbox', { name: 'Search symbols' });
     const searchRequest = page.waitForRequest((request) => {
       const url = new URL(request.url());
       return url.pathname.endsWith('/api/symbols/search')
@@ -60,6 +60,8 @@ test.describe('Header Section', () => {
     await expect(row).toHaveClass(/stock-row/);
     await expect(row.locator('.ticker-identity')).toContainText('Apple Inc.');
     await expect(row.locator('.ticker-identity')).toContainText('US - USD');
+    await expect(row.locator('.position-title-inline-metric')).toContainText('0.77%');
+    await expect(row.locator('.position-title-inline-metric')).toContainText('$18.20');
     await expect(row.locator('.ticker-metrics')).toContainText('Price');
     await expect(row.locator('.ticker-metrics')).toContainText('$198');
     await expect(row.locator('.ticker-metrics')).toContainText('Fear');
@@ -70,9 +72,72 @@ test.describe('Header Section', () => {
     await expect(row.locator('.ticker-metrics')).toContainText('$2.9T');
     await expect(row.locator('.ticker-metrics')).toContainText('30D');
     await expect(row).toContainText('No active alert.');
+    await expect(row.getByRole('button', { name: 'Add' })).toBeVisible();
+
+    const rowBox = await row.boundingBox();
+    const addBox = await row.getByRole('button', { name: 'Add' }).boundingBox();
+    expect(rowBox).not.toBeNull();
+    expect(addBox).not.toBeNull();
+    expect(addBox!.y).toBeLessThanOrEqual(rowBox!.y + 8);
+
+    await row.getByRole('button', { name: 'Add' }).click();
+    const addDialog = page.getByRole('dialog', { name: 'Add Position' });
+    await expect(addDialog).toBeVisible();
+    await expect(addDialog.locator('input[name="symbol"]')).toHaveValue('AAPL');
 
     expect(api.calls['GET /symbols/search']).toBe(1);
     expect(api.calls['GET /stocks/preview'] || 0).toBe(0);
+  });
+
+  test('stock search selects input on open but does not refocus after results render', async ({ page }) => {
+    await registerMockApi(page);
+    await seedRememberedLogin(page);
+    await gotoLoggedInDashboard(page);
+
+    await page.getByRole('button', { name: 'Search' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Search' });
+    const searchInput = dialog.getByRole('textbox', { name: 'Search symbols' });
+    await expect(searchInput).toBeFocused();
+
+    const selection = await searchInput.evaluate((input) => ({
+      start: (input as HTMLInputElement).selectionStart,
+      end: (input as HTMLInputElement).selectionEnd,
+      length: (input as HTMLInputElement).value.length,
+    }));
+    expect(selection.start).toBe(0);
+    expect(selection.end).toBe(selection.length);
+
+    const searchRequest = page.waitForRequest((request) => {
+      const url = new URL(request.url());
+      return url.pathname.endsWith('/api/symbols/search')
+        && url.searchParams.get('includeIndicators') === 'true';
+    });
+    await searchInput.fill('app');
+    const closeButton = dialog.locator('button[title="Close dialog"]');
+    await closeButton.focus();
+    await searchRequest;
+
+    await expect(dialog.locator('.stock-lookup-result-row').filter({ hasText: 'AAPL' })).toBeVisible();
+    await expect(closeButton).toBeFocused();
+  });
+
+  test('stock search clears stale results immediately when editing an existing query', async ({ page }) => {
+    await registerMockApi(page);
+    await seedRememberedLogin(page);
+    await gotoLoggedInDashboard(page);
+
+    await page.getByRole('button', { name: 'Search' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Search' });
+    const searchInput = dialog.getByRole('textbox', { name: 'Search symbols' });
+    const resultRows = dialog.locator('.stock-lookup-result-row');
+
+    await searchInput.fill('app');
+    await expect(resultRows.filter({ hasText: 'AAPL' })).toBeVisible();
+
+    await searchInput.press('l');
+
+    expect(await resultRows.count()).toBe(0);
+    await expect(dialog.locator('.stock-lookup-empty')).toContainText('Searching...');
   });
 
   test('logout returns user to welcome screen', async ({ page }) => {

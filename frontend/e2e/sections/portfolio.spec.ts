@@ -25,21 +25,52 @@ test.describe('Portfolio Section', () => {
     await expect(page.locator('.stock-row').filter({ hasText: 'NVDA' })).toBeVisible();
 
     const nvdaRow = page.locator('.stock-row').filter({ hasText: 'NVDA' });
-    await nvdaRow.getByRole('button', { name: 'Collapse position' }).click();
+    await nvdaRow.click({ position: { x: 12, y: 12 } });
     await expect(nvdaRow).toHaveClass(/collapsed-row/);
-    await nvdaRow.getByRole('button', { name: 'Expand position' }).click();
+    await expect(nvdaRow.locator('.position-expand-hint')).toBeVisible();
+    await nvdaRow.locator('.position-expand-hint').click();
+    await expect(nvdaRow).not.toHaveClass(/collapsed-row/);
+    await expect(nvdaRow.locator('.ticker-metrics')).toBeVisible();
 
-    await nvdaRow.getByRole('button', { name: 'Edit position' }).click();
-    const editDialog = page.getByRole('dialog', { name: 'NVDA' });
+    await nvdaRow.getByRole('button', { name: 'Position actions' }).click();
+    const actionDialog = page.getByRole('dialog', { name: 'Position actions' });
+    await expect(actionDialog).toBeVisible();
+    await actionDialog.getByRole('button', { name: 'Edit' }).click();
+
+    const editDialog = page.getByRole('dialog', { name: 'Edit position' });
     await expect(editDialog).toBeVisible();
     await editDialog.getByRole('spinbutton', { name: 'Quantity' }).fill('5');
     await editDialog.getByRole('button', { name: 'Save' }).click();
     await expect(editDialog).toBeHidden();
 
-    await nvdaRow.getByRole('button', { name: 'Remove holding' }).click();
+    await nvdaRow.getByRole('button', { name: 'Position actions' }).click();
+    await page.getByRole('dialog', { name: 'Position actions' }).getByRole('button', { name: 'Delete' }).click();
     const deleteDialog = page.getByRole('alertdialog', { name: /Remove NVDA/ });
     await deleteDialog.getByRole('button', { name: 'Delete' }).click();
     await expect(page.locator('.stock-row').filter({ hasText: 'NVDA' })).toHaveCount(0);
+  });
+
+  test('keeps edit and add dialogs open when clicking outside the dialog panel', async ({ page }) => {
+    const portfolio = page.getByLabel('Portfolio tickers');
+    await portfolio.getByRole('button', { name: 'Add' }).click();
+
+    const addDialog = page.getByRole('dialog', { name: 'Add Position' });
+    await expect(addDialog).toBeVisible();
+    await page.mouse.click(4, 4);
+    await expect(addDialog).toBeVisible();
+    await addDialog.getByRole('button', { name: 'Cancel' }).click();
+    await expect(addDialog).toBeHidden();
+
+    const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
+    await aaplRow.getByRole('button', { name: 'Position actions' }).click();
+    await page.getByRole('dialog', { name: 'Position actions' }).getByRole('button', { name: 'Edit' }).click();
+
+    const editDialog = page.getByRole('dialog', { name: 'Edit position' });
+    await expect(editDialog).toBeVisible();
+    await page.mouse.click(4, 4);
+    await expect(editDialog).toBeVisible();
+    await editDialog.getByRole('button', { name: 'Cancel' }).click();
+    await expect(editDialog).toBeHidden();
   });
 
   test('keeps add position dialog open when dragging from the dialog to the backdrop', async ({ page }) => {
@@ -72,6 +103,144 @@ test.describe('Portfolio Section', () => {
 
     await expect(aaplRow).toHaveClass(/collapsed-row/);
     await expect(aaplRow.locator('.position-expand-hint')).toBeHidden();
+  });
+
+  test('keeps the collapsed expand hint beside the actions menu on desktop', async ({ page }) => {
+    const portfolio = page.getByLabel('Portfolio tickers');
+    const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
+    await expect(aaplRow).toBeVisible();
+
+    await aaplRow.click({ position: { x: 12, y: 12 } });
+    await expect(aaplRow).toHaveClass(/collapsed-row/);
+
+    const expandHint = aaplRow.locator('.position-expand-hint');
+    const menuButton = aaplRow.getByRole('button', { name: 'Position actions' });
+    await expect(expandHint).toBeVisible();
+    await expect(menuButton).toBeVisible();
+
+    const hintBox = await expandHint.boundingBox();
+    const menuBox = await menuButton.boundingBox();
+    expect(hintBox).not.toBeNull();
+    expect(menuBox).not.toBeNull();
+    expect(hintBox!.x).toBeLessThan(menuBox!.x);
+    expect(Math.abs(hintBox!.y - menuBox!.y)).toBeLessThan(10);
+  });
+
+  test('keeps mobile title and profit lines above the expanded metrics grid', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 800 });
+
+    const portfolio = page.getByLabel('Portfolio tickers');
+    const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
+    const identity = aaplRow.locator('.ticker-identity');
+    const metrics = aaplRow.locator('.ticker-metrics');
+
+    await expect(aaplRow).toBeVisible();
+    await expect(identity.locator('.position-title-lines')).toContainText('TOTAL');
+    await expect(identity.locator('.position-title-inline-metric')).toContainText('0.77%');
+    await expect(metrics).toBeVisible();
+
+    const identityBox = await identity.boundingBox();
+    const metricsBox = await metrics.boundingBox();
+    expect(identityBox).not.toBeNull();
+    expect(metricsBox).not.toBeNull();
+    expect(metricsBox!.y).toBeGreaterThan(identityBox!.y + identityBox!.height - 1);
+  });
+
+  test('does not collapse a position when a risk indicator is clicked for its tooltip', async ({ page }) => {
+    const portfolio = page.getByLabel('Portfolio tickers');
+    const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
+    await expect(aaplRow).toBeVisible();
+    await expect(aaplRow).not.toHaveClass(/collapsed-row/);
+
+    await aaplRow.locator('.risk-fear').click();
+
+    await expect(aaplRow).not.toHaveClass(/collapsed-row/);
+    await expect(aaplRow.locator('.ticker-metrics')).toBeVisible();
+  });
+
+  test('shows title metrics, tooltip title, and left-side text without wrapping', async ({ page }) => {
+    const portfolio = page.getByLabel('Portfolio tickers');
+    const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
+    await expect(aaplRow).toBeVisible();
+
+    const symbol = aaplRow.locator('.ticket-type-indicator');
+    await expect(symbol).toHaveAttribute('data-tooltip', /Apple Inc./);
+    await expect(symbol).toHaveAttribute('aria-label', /Apple Inc./);
+
+    const todayMetric = aaplRow.locator('.position-title-inline-metric');
+    await expect(todayMetric).toHaveAttribute('data-tooltip', 'Today');
+    await expect(todayMetric).toContainText('0.77%');
+    await expect(todayMetric).toContainText('$1.52');
+    await expect(todayMetric).toContainText('× 12 =');
+    await expect(todayMetric).toContainText('$18.20');
+    await expect(todayMetric.locator('.position-title-arrow')).toHaveClass(/value-pos/);
+    await expect(todayMetric.locator('.position-title-percent')).toHaveClass(/value-pos/);
+    await expect(todayMetric.locator('.position-title-value')).toHaveClass(/value-pos/);
+
+    const titleLines = aaplRow.locator('.position-title-lines');
+    await expect(titleLines).toContainText('TOTAL');
+    await expect(titleLines).toContainText('12 × $198.20 =');
+    await expect(titleLines).toContainText('$2.38K');
+    await expect(titleLines).toContainText('16.59%');
+    await expect(titleLines).toContainText('Original');
+    await expect(titleLines).toContainText('12 × $170.00 =');
+    await expect(titleLines).toContainText('$2.04K');
+
+    const nowrapValues = await Promise.all([
+      todayMetric.evaluate((element) => getComputedStyle(element).whiteSpace),
+      titleLines.locator('.position-title-line').first().evaluate((element) => getComputedStyle(element).whiteSpace),
+    ]);
+    expect(nowrapValues).toEqual(['nowrap', 'nowrap']);
+  });
+
+  test('shows watch-only daily change without invested or position-total lines', async ({ page }) => {
+    const portfolio = page.getByLabel('Portfolio tickers');
+    const tslaRow = portfolio.locator('.stock-row').filter({ hasText: 'TSLA' });
+    await expect(tslaRow).toBeVisible();
+    await expect(tslaRow).toHaveClass(/watch-only-row/);
+
+    const todayMetric = tslaRow.locator('.position-title-inline-metric');
+    await expect(todayMetric).toContainText('0.75%');
+    await expect(todayMetric).toContainText('$1.50');
+    await expect(todayMetric).not.toContainText('×');
+    await expect(tslaRow.locator('.position-title-lines')).toHaveCount(0);
+  });
+
+  test('keeps portfolio metrics ordered with 30D and Market Cap first and no Price column', async ({ page }) => {
+    const portfolio = page.getByLabel('Portfolio tickers');
+    const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
+    await expect(aaplRow.locator('.ticker-metrics')).toBeVisible();
+
+    const metricLabels = await aaplRow.locator('.ticker-metrics small').allTextContents();
+    expect(metricLabels).toEqual(['30D', 'Market Cap', 'Fear', 'P/E', 'Beta', 'Vol', 'DD']);
+    expect(metricLabels).not.toContain('Price');
+    expect(metricLabels).not.toContain('Quantity');
+    expect(metricLabels).not.toContain('Avg');
+  });
+
+  test('leaves alerting portfolio rows without the search-result risk outline', async ({ page }) => {
+    const portfolio = page.getByLabel('Portfolio tickers');
+    const msftRow = portfolio.locator('.stock-row').filter({ hasText: 'MSFT' });
+    await expect(msftRow).toBeVisible();
+    await expect(msftRow).toHaveClass(/alerting/);
+
+    const borderColor = await msftRow.evaluate((element) => getComputedStyle(element).borderColor);
+    expect(borderColor).not.toBe('rgb(232, 93, 93)');
+    expect(borderColor).not.toBe('rgb(185, 68, 68)');
+  });
+
+  test('uses an opacity-only transition when position metrics are toggled', async ({ page }) => {
+    const portfolio = page.getByLabel('Portfolio tickers');
+    const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
+    await expect(aaplRow.locator('.ticker-metrics')).toBeVisible();
+
+    await aaplRow.click({ position: { x: 12, y: 12 } });
+    await expect(aaplRow).toHaveClass(/collapsed-row/);
+    await aaplRow.click({ position: { x: 12, y: 12 } });
+    await expect(aaplRow.locator('.ticker-metrics')).toBeVisible();
+
+    const transform = await aaplRow.locator('.ticker-metrics').evaluate((element) => getComputedStyle(element).transform);
+    expect(transform === 'none' || transform === 'matrix(1, 0, 0, 1, 0, 0)').toBeTruthy();
   });
 
   test('supports watch-only entry plus export and import CSV', async ({ page }) => {
@@ -130,5 +299,30 @@ test.describe('Portfolio Section', () => {
     await expect(portfolioBoard.getByText('Loading portfolio...')).toBeVisible();
     await expect(portfolioBoard.getByText('Loading portfolio...')).toBeHidden({ timeout: 5000 });
     await expect(portfolioBoard.getByText('Add a portfolio position above,')).toBeVisible();
+  });
+
+  test('shows loading spinners only inside the sections still waiting for data', async ({ page }) => {
+    await page.route('**/api/stocks', async (route) => {
+      if (route.request().method().toUpperCase() === 'GET') {
+        await new Promise((resolve) => setTimeout(resolve, 600));
+      }
+      await route.fallback();
+    });
+
+    await page.getByRole('button', { name: 'Refresh Dashboard' }).click();
+
+    const indicatorGrid = page.getByLabel('Macro market indicators');
+    const portfolioBoard = page.getByLabel('Portfolio tickers');
+    const retirementBoard = page.getByLabel('Retirement planner');
+    const dcaPanel = page.getByLabel('DCA reminder settings');
+
+    await expect(indicatorGrid.getByText('Loading market indicators and retirement progress...')).toBeHidden();
+    await expect(dcaPanel.getByText('Loading DCA reminder settings...')).toBeHidden();
+    await expect(portfolioBoard.getByText('Loading portfolio...')).toBeVisible();
+    await expect(retirementBoard.getByText('Loading retirement plan...')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Portfolio' })).toBeVisible();
+
+    await expect(portfolioBoard.getByText('Loading portfolio...')).toBeHidden({ timeout: 5_000 });
+    await expect(retirementBoard.getByText('Loading retirement plan...')).toBeHidden({ timeout: 5_000 });
   });
 });
