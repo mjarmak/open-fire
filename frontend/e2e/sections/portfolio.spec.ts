@@ -61,6 +61,19 @@ test.describe('Portfolio Section', () => {
     await expect(addDialog).toBeHidden();
   });
 
+  test('hides collapsed expand hint on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 800 });
+
+    const portfolio = page.getByLabel('Portfolio tickers');
+    const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
+    await expect(aaplRow).toBeVisible();
+
+    await aaplRow.click({ position: { x: 12, y: 12 } });
+
+    await expect(aaplRow).toHaveClass(/collapsed-row/);
+    await expect(aaplRow.locator('.position-expand-hint')).toBeHidden();
+  });
+
   test('supports watch-only entry plus export and import CSV', async ({ page }) => {
     const portfolio = page.getByLabel('Portfolio tickers');
     await portfolio.getByRole('button', { name: 'Add' }).click();

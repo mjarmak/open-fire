@@ -173,12 +173,32 @@ describe('PortfolioBoardComponent', () => {
     expect(element.querySelector('.position-action-dialog')).toBeNull();
   });
 
-  it('renders today change next to the title and moves position details into a tooltip', async () => {
+  it('keeps the row expanded when a risk indicator is clicked for its tooltip', async () => {
+    const { fixture, element } = await render(createState({ stocks: [stock()] }));
+    const row = positionRow(element, 'AAPL');
+    const fearIndicator = row.querySelector<HTMLElement>('.risk-fear');
+
+    expect(fearIndicator).not.toBeNull();
+    expect(row.getAttribute('aria-expanded')).toBe('true');
+
+    fearIndicator?.click();
+    fixture.detectChanges();
+
+    expect(row.getAttribute('aria-expanded')).toBe('true');
+    expect(row.classList.contains('collapsed-row')).toBeFalse();
+    expect(row.querySelector('.ticker-metrics')).not.toBeNull();
+  });
+
+  it('renders today change and position P&L details in the title area while expanded', async () => {
     const { element } = await render(createState({ stocks: [stock()] }));
     const row = positionRow(element, 'AAPL');
+    const identity = row.querySelector('.ticker-identity');
     const todayMetric = row.querySelector('.position-title-inline-metric');
     const todayText = textContent(todayMetric);
 
+    expect(row.getAttribute('aria-expanded')).toBe('true');
+    expect(identity).not.toBeNull();
+    expect(identity?.contains(todayMetric)).toBeTrue();
     expect(todayText).toContain('2.5%');
     expect(todayText).toContain('$2.50');
     expect(todayText).toContain('4');
@@ -187,12 +207,23 @@ describe('PortfolioBoardComponent', () => {
     expect(row.querySelector('.position-title-percent')?.classList.contains('value-pos')).toBeTrue();
     expect(row.querySelector('.position-title-value')?.classList.contains('value-pos')).toBeTrue();
 
-    expect(row.querySelector('.position-title-lines')).toBeNull();
+    const positionLines = row.querySelector('.position-title-lines');
+    const positionLineText = textContent(positionLines);
+    expect(positionLines).not.toBeNull();
+    expect(identity?.contains(positionLines)).toBeTrue();
+    expect(positionLineText).toContain('TOTAL');
+    expect(positionLineText).toContain('4');
+    expect(positionLineText).toContain('$25');
+    expect(positionLineText).toContain('$100');
+    expect(positionLineText).toContain('25%');
+    expect(positionLineText).toContain('Original');
+    expect(positionLineText).toContain('$20');
+    expect(positionLineText).toContain('$80');
+    expect(row.querySelector('.ticker-metrics')).not.toBeNull();
+
     const titleTooltip = row.querySelector<HTMLElement>('.position-title-tooltip');
     expect(titleTooltip?.getAttribute('data-tooltip')).toContain('TOTAL: 4 x $25 = $100 (25%)');
     expect(titleTooltip?.getAttribute('data-tooltip')).toContain('Original: 4 x $20 = $80');
-    expect(textContent(row)).not.toContain('TOTAL');
-    expect(textContent(row)).not.toContain('Original');
   });
 
   it('shows today change for watch-only rows without a position total', async () => {

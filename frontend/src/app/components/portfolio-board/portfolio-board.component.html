@@ -153,6 +153,34 @@
             [attr.aria-label]="getPositionTitleTooltip(stock)"
             tabindex="0"
           ><span>{{ stock.companyName }}</span></span>
+
+          @if (!stock.watchOnly) {
+          <div class="position-title-lines">
+            <div class="position-title-line position-title-line-primary">
+              <span class="position-title-line-item">
+                <span class="position-title-label">TOTAL</span>
+          {{ formatQuantity(stock.quantity) }} × {{ formatMoney(stock.latestPrice) }} =
+                  <strong
+                    class="position-title-value"
+                    [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0"
+                    [class.value-neg]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss < 0"
+                  >{{ formatMoney(calculatePositionMarketValue(stock)) }}</strong>
+                  <span
+                    class="position-title-percent"
+                    [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0"
+                    [class.value-neg]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss < 0"
+                  >
+                    ({{ stock.unrealizedGainLossPercent === null ? '-' : (stock.unrealizedGainLossPercent | number: '1.0-2') + '%' }})
+                  </span>
+                </span>
+              </div>
+              <div class="position-title-line position-title-line-secondary">
+                <span class="position-title-label">Original</span>
+          {{ formatQuantity(stock.quantity) }} × {{ formatMoney(stock.averageCost) }} =
+                <strong>{{ formatMoney(calculatePositionInvested(stock)) }}</strong>
+              </div>
+            </div>
+          }
         </div>
         @if (!isCollapsed(stock)) {
         <div class="ticker-metrics" @positionColumns>
@@ -164,6 +192,8 @@
             data-tooltip="Fear score: composite risk score from valuation, beta, 30-day volatility, 30-day drawdown, and 30-day price moves. Alert threshold: 65/100."
             aria-label="Fear score: composite risk score from valuation, beta, 30-day volatility, 30-day drawdown, and 30-day price moves. Alert threshold: 65 out of 100."
             [class.fear-high]="stock.fearScore !== null && stock.fearScore >= 65"
+            (click)="stopRowClick($event)"
+            (keydown)="stopRowClick($event)"
           ><small>Fear</small>{{ stock.fearScore === null ? '-' : (stock.fearScore | number: '1.0-0') + '/100' }}</span>
           <span
             class="metric-tooltip risk-metric risk-pe"
@@ -171,6 +201,8 @@
             data-tooltip="P/E: price-to-earnings ratio, a valuation measure comparing share price with earnings per share. Alert threshold: above 25."
             aria-label="P/E: price-to-earnings ratio, a valuation measure comparing share price with earnings per share. Alert threshold: above 25."
             [class.pe-high]="stock.peRatio !== null && stock.peRatio > 25"
+            (click)="stopRowClick($event)"
+            (keydown)="stopRowClick($event)"
           ><small>P/E</small>{{ stock.peRatio === null ? '-' : (stock.peRatio | number: '1.0-2') }}</span>
           <span
             class="metric-tooltip risk-metric risk-beta"
@@ -178,6 +210,8 @@
             data-tooltip="Beta: sensitivity to broad market moves. 1 tracks the market; above 1 tends to move more. Alert threshold: above 1.5."
             aria-label="Beta: sensitivity to broad market moves. 1 tracks the market; above 1 tends to move more. Alert threshold: above 1.5."
             [class.beta-high]="stock.beta !== null && stock.beta > 1.5"
+            (click)="stopRowClick($event)"
+            (keydown)="stopRowClick($event)"
           ><small>Beta</small>{{ stock.beta === null ? '-' : (stock.beta | number: '1.0-2') }}</span>
           <span
             class="metric-tooltip risk-metric risk-vol"
@@ -185,6 +219,8 @@
             data-tooltip="Vol: annualized realized volatility from the latest 30 daily returns, using 31 closes. Falls back to quote high/low if history is unavailable. Alert threshold: above 40%."
             aria-label="Vol: annualized realized volatility from the latest 30 daily returns, using 31 closes. Falls back to quote high and low if history is unavailable. Alert threshold: above 40 percent."
             [class.vol-high]="stock.realizedVolatilityPercent !== null && stock.realizedVolatilityPercent > 40"
+            (click)="stopRowClick($event)"
+            (keydown)="stopRowClick($event)"
           ><small>Vol</small>{{ stock.realizedVolatilityPercent === null ? '-' : (stock.realizedVolatilityPercent | number: '1.0-2') + '%' }}</span>
           <span
             class="metric-tooltip risk-metric risk-dd"
@@ -192,12 +228,14 @@
             data-tooltip="DD: drawdown from the highest close in the last 30 calendar days to the latest price. Falls back to 52-week high if history is unavailable. Alert threshold: above 20%."
             aria-label="DD: drawdown from the highest close in the last 30 calendar days to the latest price. Falls back to 52-week high if history is unavailable. Alert threshold: above 20 percent."
             [class.drawdown-high]="stock.drawdownPercent !== null && stock.drawdownPercent > 20"
+            (click)="stopRowClick($event)"
+            (keydown)="stopRowClick($event)"
           ><small>DD</small>{{ stock.drawdownPercent === null ? '-' : (stock.drawdownPercent | number: '1.0-2') + '%' }}</span>
         </div>
         }
         <div class="row-actions" (click)="stopRowClick($event)">
           @if (isCollapsed(stock)) {
-            <button type="button" class="position-expand-hint" (click)="toggleCollapsedFromRow(stock)">click to show</button>
+            <button type="button" class="position-expand-hint" (click)="toggleCollapsedFromRow(stock)">click to expand</button>
           }
           <button
             type="button"
