@@ -39,7 +39,7 @@ export class MarketDashboardService {
   symbolSuggestions: SymbolSearchResult[] = [];
   selectedSymbol?: SymbolSearchResult;
   showSymbolDropdown = false;
-  symbolMessage = 'Start typing and choose a stock from the dropdown.';
+  symbolMessage = 'Start typing and choose a stock, crypto, or currency from the dropdown.';
   editDialogOpen = false;
   editOriginalId: number | null = null;
   editOriginalSymbol = '';
@@ -47,7 +47,7 @@ export class MarketDashboardService {
   editSymbolSuggestions: SymbolSearchResult[] = [];
   selectedEditSymbol?: SymbolSearchResult;
   showEditSymbolDropdown = false;
-  editSymbolMessage = 'Keep this ticker or choose a new stock from the dropdown.';
+  editSymbolMessage = 'Keep this symbol or choose a new stock, crypto, or currency from the dropdown.';
   deleteDialogOpen = false;
   deleteTargetId: number | null = null;
   deleteTargetSymbol = '';

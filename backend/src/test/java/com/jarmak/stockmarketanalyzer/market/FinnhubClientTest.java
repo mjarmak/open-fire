@@ -66,6 +66,40 @@ class FinnhubClientTest {
   }
 
   @Test
+  void searchFindsCryptosByCommonNamesWhenExchangeDescriptionsOnlyContainPairs() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/search")))
+        .andRespond(withSuccess("{\"result\":[]}", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/crypto/symbol")))
+        .andRespond(withSuccess("""
+            [
+              {"symbol":"BINANCE:ETHUSDT","displaySymbol":"ETH/USDT","description":"ETH/USDT"},
+              {"symbol":"BINANCE:ADAUSDT","displaySymbol":"ADA/USDT","description":"ADA/USDT"}
+            ]
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/crypto/symbol")))
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/forex/symbol")))
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/forex/symbol")))
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/search")))
+        .andRespond(withSuccess("{\"result\":[]}", MediaType.APPLICATION_JSON));
+
+    List<SymbolSearchResult> ethereumResults = client.searchSymbols("ethereum");
+    List<SymbolSearchResult> cardanoResults = client.searchSymbols("cardano");
+
+    assertThat(ethereumResults).extracting(SymbolSearchResult::symbol).contains("BINANCE:ETHUSDT");
+    assertThat(ethereumResults).extracting(SymbolSearchResult::name).contains("Ethereum / USDT");
+    assertThat(cardanoResults).extracting(SymbolSearchResult::symbol).contains("BINANCE:ADAUSDT");
+    assertThat(cardanoResults).extracting(SymbolSearchResult::name).contains("Cardano / USDT");
+    server.verify();
+  }
+
+  @Test
   void cryptoAndCurrencyCandlesUseAssetSpecificEndpoints() {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();

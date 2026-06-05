@@ -1335,17 +1335,12 @@ button:disabled:not(.icon-btn)::after {
 }
 
 .stock-row:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px var(--shadow-soft);
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 20px var(--shadow-soft);
 }
 
 .stock-row:not(.watch-only-row) {
   cursor: pointer;
-}
-
-.stock-row:not(.watch-only-row):active {
-  transform: translateY(4px);
-  box-shadow: 0 1px 6px var(--shadow-soft);
 }
 
 .stock-row:focus-visible {
@@ -1674,6 +1669,24 @@ button:disabled:not(.icon-btn)::after {
   white-space: pre-line;
 }
 
+.row-actions > .position-expand-hint {
+  width: max-content;
+  max-width: 100%;
+  min-height: 26px;
+  padding: 0 2px;
+  color: var(--muted-strong);
+  background: transparent;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-transform: lowercase;
+  opacity: 0.86;
+}
+
+.row-actions > .position-expand-hint:hover:not(:disabled) {
+  transform: none;
+}
+
 .position-title-percent {
   font-size: 0.58rem;
   font-weight: 700;
@@ -1727,6 +1740,7 @@ button:disabled:not(.icon-btn)::after {
 
 .row-actions {
   display: inline-flex;
+  align-items: center;
   gap: 4px;
   position: relative;
   justify-self: end;

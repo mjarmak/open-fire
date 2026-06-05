@@ -10,7 +10,7 @@ describe('AddPositionDialogComponent', () => {
       symbolQuery: '',
       symbolSuggestions: [],
       showSymbolDropdown: false,
-      symbolMessage: 'Start typing and choose a stock from the dropdown.',
+      symbolMessage: 'Start typing and choose a stock, crypto, or currency from the dropdown.',
       holdingForm: {
         id: null,
         symbol: '',

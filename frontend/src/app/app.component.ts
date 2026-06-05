@@ -68,13 +68,14 @@ export class AppComponent implements OnDestroy, OnInit {
   private snackbarHandle?: ReturnType<typeof setTimeout>;
   private dashboardLoadToken = 0;
   private stockLookupInputElement?: ElementRef<HTMLInputElement>;
+  private stockLookupInputSelectionPending = false;
 
   constructor(public readonly marketDashboardService: MarketDashboardService) {}
 
   @ViewChild('stockLookupQueryInput')
   private set stockLookupQueryInput(input: ElementRef<HTMLInputElement> | undefined) {
     this.stockLookupInputElement = input;
-    if (input && this.marketDashboardService.stockLookupDialogOpen) {
+    if (input && this.marketDashboardService.stockLookupDialogOpen && this.stockLookupInputSelectionPending) {
       this.queueStockLookupInputSelection();
     }
   }
@@ -654,15 +655,15 @@ export class AppComponent implements OnDestroy, OnInit {
 
   searchHeaderStock(): void {
     if (!this.isLoggedIn) {
-      this.showSnackbar('Login before searching stock risks.', 'error');
+      this.showSnackbar('Login before searching position risks.', 'error');
       return;
     }
 
     this.marketDashboardService.stockLookupDialogOpen = true;
-    this.queueStockLookupInputSelection();
+    this.requestStockLookupInputSelection();
     this.marketDashboardService.stockLookupMessage = this.marketDashboardService.stockLookupQuery.trim().length >= 2
       ? this.marketDashboardService.stockLookupMessage
-      : 'Type at least 2 characters to search stocks.';
+      : 'Type at least 2 characters to search stocks, crypto, or currencies.';
     if (this.marketDashboardService.stockLookupQuery.trim().length >= 2) {
       this.scheduleStockLookupSearch();
     }
@@ -670,10 +671,14 @@ export class AppComponent implements OnDestroy, OnInit {
 
   onStockLookupQueryChange(event: Event): void {
     this.marketDashboardService.stockLookupQuery = (event.target as HTMLInputElement).value;
-    this.marketDashboardService.stockLookupResult = undefined;
-    this.marketDashboardService.selectedStockLookup = undefined;
-    this.marketDashboardService.stockLookupRisks = {};
+    this.clearStockLookupResultsForQueryEdit(this.marketDashboardService.stockLookupQuery);
     this.scheduleStockLookupSearch();
+  }
+
+  onStockLookupQueryKeydown(event: KeyboardEvent): void {
+    if (this.hasStockLookupResults() && this.isStockLookupQueryEditingKey(event)) {
+      this.clearStockLookupResultsForQueryEdit(this.marketDashboardService.stockLookupQuery);
+    }
   }
 
   runStockLookupSearch(): void {
@@ -686,7 +691,7 @@ export class AppComponent implements OnDestroy, OnInit {
     if (query.length < 2) {
       this.marketDashboardService.stockLookupSuggestions = [];
       this.marketDashboardService.stockLookupRisks = {};
-      this.marketDashboardService.stockLookupMessage = 'Type at least 2 characters to search stocks.';
+      this.marketDashboardService.stockLookupMessage = 'Type at least 2 characters to search stocks, crypto, or currencies.';
       return;
     }
 
@@ -707,7 +712,7 @@ export class AppComponent implements OnDestroy, OnInit {
           }, {});
           this.marketDashboardService.stockLookupMessage = results.length
             ? 'Indicators loaded.'
-            : 'No matching stocks found. Try a different ticker or company name.';
+            : 'No matching symbols found. Try a different ticker, name, or pair.';
         },
         error: () => {
           if (query !== this.marketDashboardService.stockLookupQuery.trim()) {
@@ -715,7 +720,7 @@ export class AppComponent implements OnDestroy, OnInit {
           }
 
           this.marketDashboardService.stockLookupSuggestions = [];
-          this.marketDashboardService.stockLookupMessage = 'Could not search stocks. Check backend auth and Finnhub configuration.';
+          this.marketDashboardService.stockLookupMessage = 'Could not search symbols. Check backend auth and Finnhub configuration.';
         },
       });
   }
@@ -731,22 +736,37 @@ export class AppComponent implements OnDestroy, OnInit {
       clearTimeout(this.stockLookupInputSelectHandle);
       this.stockLookupInputSelectHandle = undefined;
     }
+    this.stockLookupInputSelectionPending = false;
+  }
+
+  private requestStockLookupInputSelection(): void {
+    this.stockLookupInputSelectionPending = true;
+    this.queueStockLookupInputSelection();
   }
 
   private queueStockLookupInputSelection(): void {
+    if (!this.stockLookupInputSelectionPending) {
+      return;
+    }
+
     if (this.stockLookupInputSelectHandle) {
       clearTimeout(this.stockLookupInputSelectHandle);
     }
 
     this.stockLookupInputSelectHandle = setTimeout(() => {
       this.stockLookupInputSelectHandle = undefined;
-      if (!this.marketDashboardService.stockLookupDialogOpen) {
+      if (!this.marketDashboardService.stockLookupDialogOpen || !this.stockLookupInputSelectionPending) {
         return;
       }
 
       const input = this.stockLookupInputElement?.nativeElement;
-      input?.focus();
-      input?.select();
+      if (!input) {
+        return;
+      }
+
+      this.stockLookupInputSelectionPending = false;
+      input.focus();
+      input.select();
     }, 0);
   }
 
@@ -756,6 +776,40 @@ export class AppComponent implements OnDestroy, OnInit {
     }
 
     this.stockLookupSearchHandle = setTimeout(() => this.runStockLookupSearch(), 500);
+  }
+
+  private clearStockLookupResultsForQueryEdit(query: string): void {
+    this.marketDashboardService.stockLookupSuggestions = [];
+    this.marketDashboardService.stockLookupRisks = {};
+    this.marketDashboardService.stockLookupResult = undefined;
+    this.marketDashboardService.selectedStockLookup = undefined;
+    this.marketDashboardService.stockLookupMessage = query.trim().length >= 2
+      ? 'Searching...'
+      : 'Type at least 2 characters to search stocks, crypto, or currencies.';
+  }
+
+  private hasStockLookupResults(): boolean {
+    return this.marketDashboardService.stockLookupSuggestions.length > 0
+      || Object.keys(this.marketDashboardService.stockLookupRisks).length > 0
+      || this.marketDashboardService.stockLookupResult !== undefined
+      || this.marketDashboardService.selectedStockLookup !== undefined;
+  }
+
+  private isStockLookupQueryEditingKey(event: KeyboardEvent): boolean {
+    if (event.isComposing) {
+      return false;
+    }
+
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+      return true;
+    }
+
+    const key = event.key.toLowerCase();
+    if ((event.ctrlKey || event.metaKey) && (key === 'v' || key === 'x')) {
+      return true;
+    }
+
+    return event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
   }
 
   stockLookupRiskFor(symbol: string): StockAlert | null | undefined {
@@ -1068,7 +1122,7 @@ export class AppComponent implements OnDestroy, OnInit {
     if (query.length < 2) {
       this.symbolSuggestions = [];
       this.showSymbolDropdown = false;
-      this.symbolMessage = 'Type at least 2 characters, then choose a stock from the dropdown.';
+      this.symbolMessage = 'Type at least 2 characters, then choose a stock, crypto, or currency from the dropdown.';
       return;
     }
 
@@ -1089,7 +1143,7 @@ export class AppComponent implements OnDestroy, OnInit {
           }
           this.symbolMessage = results.length
             ? 'Choose one of the dropdown results to link this position.'
-            : 'No matching stocks found. Try a different ticker or company name.';
+            : 'No matching symbols found. Try a different ticker, name, or pair.';
         },
         error: () => {
           if (query !== this.symbolQuery.trim()) {
@@ -1097,7 +1151,7 @@ export class AppComponent implements OnDestroy, OnInit {
           }
 
           this.symbolSuggestions = [];
-          this.symbolMessage = 'Could not search stocks. Check backend auth and Finnhub configuration.';
+          this.symbolMessage = 'Could not search symbols. Check backend auth and Finnhub configuration.';
         },
       });
     }, 1000);
@@ -1133,7 +1187,7 @@ export class AppComponent implements OnDestroy, OnInit {
 
   saveHolding(): void {
     if (!this.canSaveHolding) {
-      this.showSnackbar('Choose an existing stock from the dropdown before adding it.', 'error');
+      this.showSnackbar('Choose an existing stock, crypto, or currency from the dropdown before adding it.', 'error');
       return;
     }
 
@@ -1158,7 +1212,7 @@ export class AppComponent implements OnDestroy, OnInit {
     this.symbolSuggestions = [];
     this.selectedSymbol = undefined;
     this.showSymbolDropdown = false;
-    this.symbolMessage = 'Start typing and choose a stock from the dropdown.';
+    this.symbolMessage = 'Start typing and choose a stock, crypto, or currency from the dropdown.';
     if (this.symbolSearchHandle) {
       clearTimeout(this.symbolSearchHandle);
     }
@@ -1208,7 +1262,7 @@ export class AppComponent implements OnDestroy, OnInit {
     this.editSymbolSuggestions = [];
     this.selectedEditSymbol = undefined;
     this.showEditSymbolDropdown = false;
-    this.editSymbolMessage = 'Keep this ticker or choose a new stock from the dropdown.';
+    this.editSymbolMessage = 'Keep this symbol or choose a new stock, crypto, or currency from the dropdown.';
     this.editForm = {
       id: stock.id,
       symbol: stock.symbol,
@@ -1227,7 +1281,7 @@ export class AppComponent implements OnDestroy, OnInit {
     this.editSymbolSuggestions = [];
     this.selectedEditSymbol = undefined;
     this.showEditSymbolDropdown = false;
-    this.editSymbolMessage = 'Keep this ticker or choose a new stock from the dropdown.';
+    this.editSymbolMessage = 'Keep this symbol or choose a new stock, crypto, or currency from the dropdown.';
     if (this.editSymbolSearchHandle) {
       clearTimeout(this.editSymbolSearchHandle);
     }
@@ -1246,14 +1300,14 @@ export class AppComponent implements OnDestroy, OnInit {
       this.editSymbolSuggestions = [];
       this.showEditSymbolDropdown = false;
       this.editForm.companyName = this.stocks.find((stock) => stock.symbol === this.editOriginalSymbol)?.companyName ?? this.editForm.companyName;
-      this.editSymbolMessage = 'Current ticker selected.';
+      this.editSymbolMessage = 'Current symbol selected.';
       return;
     }
 
     if (query.length < 2) {
       this.editSymbolSuggestions = [];
       this.showEditSymbolDropdown = false;
-      this.editSymbolMessage = 'Type at least 2 characters, then choose a stock from the dropdown.';
+      this.editSymbolMessage = 'Type at least 2 characters, then choose a stock, crypto, or currency from the dropdown.';
       return;
     }
 
@@ -1268,8 +1322,8 @@ export class AppComponent implements OnDestroy, OnInit {
 
           this.editSymbolSuggestions = results;
           this.editSymbolMessage = results.length
-            ? 'Choose one of the dropdown results to change the ticker.'
-            : 'No matching stocks found. Try a different ticker or company name.';
+            ? 'Choose one of the dropdown results to change the symbol.'
+            : 'No matching symbols found. Try a different ticker, name, or pair.';
         },
         error: () => {
           if (query !== this.editSymbolQuery.trim()) {
@@ -1277,7 +1331,7 @@ export class AppComponent implements OnDestroy, OnInit {
           }
 
           this.editSymbolSuggestions = [];
-          this.editSymbolMessage = 'Could not search stocks. Check backend auth and Finnhub configuration.';
+          this.editSymbolMessage = 'Could not search symbols. Check backend auth and Finnhub configuration.';
         },
       });
     }, 1000);
@@ -1303,7 +1357,7 @@ export class AppComponent implements OnDestroy, OnInit {
 
   saveEditedPosition(): void {
     if (!this.canSaveEdit) {
-      this.showSnackbar('Choose an existing ticker from the edit dropdown before saving.', 'error');
+      this.showSnackbar('Choose an existing symbol from the edit dropdown before saving.', 'error');
       return;
     }
 

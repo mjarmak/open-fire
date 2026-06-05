@@ -67,13 +67,13 @@
     <section class="edit-dialog stock-lookup-dialog" role="dialog" aria-modal="true" aria-labelledby="stock-lookup-title" @dialogPanel (mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()">
       <div class="dialog-heading">
         <div>
-          <h2 id="stock-lookup-title">Find Stock Risks</h2>
+          <h2 id="stock-lookup-title">Find Position Risks</h2>
         </div>
         <button type="button" class="icon-action" title="Close dialog" (click)="closeStockLookupDialog()">x</button>
       </div>
 
       <form class="stock-lookup-search" role="search" (ngSubmit)="runStockLookupSearch()">
-        <label class="field-label" for="stock-lookup-query">Ticker or company</label>
+        <label class="field-label" for="stock-lookup-query">Stock, crypto, or currency</label>
         <div>
           <input
             #stockLookupQueryInput
@@ -81,9 +81,10 @@
             name="stockLookupQuery"
             autocomplete="off"
             [value]="marketDashboardService.stockLookupQuery"
+            (keydown)="onStockLookupQueryKeydown($event)"
             (input)="onStockLookupQueryChange($event)"
-            placeholder="Search AAPL, Apple, MSFT..."
-            aria-label="Search stocks"
+            placeholder="Search AAPL, Bitcoin, or EUR/USD"
+            aria-label="Search symbols"
           />
           <button type="submit" [disabled]="marketDashboardService.isSearchingStockLookup || marketDashboardService.stockLookupQuery.trim().length < 2">
             @if (marketDashboardService.isSearchingStockLookup) {
@@ -96,7 +97,7 @@
       </form>
 
       <div class="stock-lookup-body">
-        <section class="stock-lookup-results" aria-label="Stock search results">
+        <section class="stock-lookup-results" aria-label="Symbol search results">
           <div class="stock-table stock-lookup-list">
             @for (result of marketDashboardService.stockLookupSuggestions; track result.symbol) {
               @if (stockLookupRiskFor(result.symbol); as stock) {
@@ -194,7 +195,7 @@
                     <span><small>Type</small>{{ stock.positionType || '-' }}</span>
                     <span><small>Alert</small>{{ stock.alert ? 'Alert' : 'OK' }}</span>
                   </div>
-                  <small>{{ stock.reason || 'No watched stock alerts fired under current thresholds.' }}</small>
+                  <small>{{ stock.reason || 'No watched position alerts fired under current thresholds.' }}</small>
                   <button type="button" class="stock-lookup-add-button" (click)="addStockLookupResult(result)">Add</button>
                 </div>
               } @else {
@@ -224,7 +225,7 @@
                 </div>
               }
             } @empty {
-              <div class="stock-lookup-empty">{{ marketDashboardService.stockLookupMessage || 'Search for stocks to see results.' }}</div>
+              <div class="stock-lookup-empty">{{ marketDashboardService.stockLookupMessage || 'Search for stocks, crypto, or currencies to see results.' }}</div>
             }
           </div>
         </section>

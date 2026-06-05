@@ -27,6 +27,34 @@ public class FinnhubClient {
   private static final long SYMBOL_LIST_CACHE_SECONDS = 3600;
   private static final List<String> CRYPTO_EXCHANGES = List.of("binance", "coinbase");
   private static final List<String> FOREX_EXCHANGES = List.of("oanda", "fxcm");
+  private static final Map<String, String> CRYPTO_NAMES = Map.ofEntries(
+      Map.entry("BTC", "Bitcoin"),
+      Map.entry("ETH", "Ethereum"),
+      Map.entry("ADA", "Cardano"),
+      Map.entry("SOL", "Solana"),
+      Map.entry("XRP", "XRP"),
+      Map.entry("DOGE", "Dogecoin"),
+      Map.entry("BNB", "BNB"),
+      Map.entry("LTC", "Litecoin"),
+      Map.entry("DOT", "Polkadot"),
+      Map.entry("AVAX", "Avalanche"),
+      Map.entry("MATIC", "Polygon"),
+      Map.entry("LINK", "Chainlink"),
+      Map.entry("UNI", "Uniswap"),
+      Map.entry("TRX", "TRON"),
+      Map.entry("SHIB", "Shiba Inu"),
+      Map.entry("TON", "Toncoin"),
+      Map.entry("BCH", "Bitcoin Cash"),
+      Map.entry("XLM", "Stellar"),
+      Map.entry("ATOM", "Cosmos"),
+      Map.entry("ETC", "Ethereum Classic"),
+      Map.entry("FIL", "Filecoin"),
+      Map.entry("NEAR", "NEAR Protocol"),
+      Map.entry("ICP", "Internet Computer"),
+      Map.entry("APT", "Aptos"),
+      Map.entry("ARB", "Arbitrum"),
+      Map.entry("OP", "Optimism")
+  );
 
   private final AppProperties properties;
   private final RestClient restClient;
@@ -248,9 +276,12 @@ public class FinnhubClient {
           String symbol = result.path("symbol").asText();
           String displaySymbol = result.path("displaySymbol").asText(symbol);
           String description = result.path("description").asText(displaySymbol);
+          String name = "crypto".equals(type)
+              ? cryptoDescription(symbol, displaySymbol, description)
+              : description;
           symbols.add(new SymbolSearchResult(
               symbol,
-              StringUtils.hasText(description) ? description : displaySymbol,
+              StringUtils.hasText(name) ? name : displaySymbol,
               "crypto".equals(type) ? "Crypto" : "Currency",
               currencyFromSymbol(displaySymbol, symbol)
           ));
@@ -306,6 +337,58 @@ public class FinnhubClient {
       return candidate.substring(candidate.length() - 3).toUpperCase();
     }
     return "";
+  }
+
+  private String cryptoDescription(String symbol, String displaySymbol, String description) {
+    String base = baseCryptoSymbol(displaySymbol, symbol);
+    String cryptoName = CRYPTO_NAMES.get(base);
+    if (!StringUtils.hasText(cryptoName)) {
+      return StringUtils.hasText(description) ? description : displaySymbol;
+    }
+
+    String currentDescription = StringUtils.hasText(description) ? description : displaySymbol;
+    String normalizedDescription = normalizeSearchText(currentDescription);
+    if (normalizedDescription.contains(normalizeSearchText(cryptoName))) {
+      return currentDescription;
+    }
+
+    String quote = currencyFromSymbol(displaySymbol, symbol);
+    if (StringUtils.hasText(quote)) {
+      return cryptoName + " / " + quote;
+    }
+    return cryptoName;
+  }
+
+  private String baseCryptoSymbol(String displaySymbol, String symbol) {
+    String candidate = StringUtils.hasText(displaySymbol) ? displaySymbol : symbol;
+    int exchangeSeparator = candidate.indexOf(':');
+    if (exchangeSeparator >= 0 && exchangeSeparator + 1 < candidate.length()) {
+      candidate = candidate.substring(exchangeSeparator + 1);
+    }
+
+    int pairSeparator = firstPairSeparator(candidate);
+    if (pairSeparator > 0) {
+      return candidate.substring(0, pairSeparator).toUpperCase();
+    }
+
+    String normalized = candidate.toUpperCase().replaceAll("[^A-Z0-9]", "");
+    for (String quote : List.of("USDT", "USDC", "BUSD", "USD", "BTC", "ETH", "EUR", "GBP")) {
+      if (normalized.endsWith(quote) && normalized.length() > quote.length()) {
+        return normalized.substring(0, normalized.length() - quote.length());
+      }
+    }
+    return normalized;
+  }
+
+  private int firstPairSeparator(String value) {
+    int separator = -1;
+    for (char candidate : List.of('/', '-', '_')) {
+      int index = value.indexOf(candidate);
+      if (index >= 0) {
+        separator = separator < 0 ? index : Math.min(separator, index);
+      }
+    }
+    return separator;
   }
 
   private BigDecimal latestClose(String symbol) {

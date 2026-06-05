@@ -1,3 +1,4 @@
+import { ElementRef } from '@angular/core';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
@@ -248,6 +249,101 @@ describe('AppComponent', () => {
     expect(document.activeElement).toBe(input);
     expect(input?.selectionStart).toBe(0);
     expect(input?.selectionEnd).toBe(input?.value.length);
+  }));
+
+  it('does not refocus the stock lookup input after results render', fakeAsync(() => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    const result: SymbolSearchResult = {
+      symbol: 'AAPL',
+      name: 'Apple Inc.',
+      region: 'US',
+      currency: 'USD',
+    };
+    app.isLoggedIn = true;
+    app.username = 'user';
+    app.password = 'password123';
+    app.marketDashboardService.stockLookupQuery = 'A';
+
+    app.searchHeaderStock();
+    fixture.detectChanges();
+    tick();
+
+    const input = fixture.nativeElement.querySelector('#stock-lookup-query') as HTMLInputElement | null;
+    const closeButton = fixture.nativeElement.querySelector('.stock-lookup-dialog .icon-action') as HTMLButtonElement | null;
+    expect(input).not.toBeNull();
+    expect(closeButton).not.toBeNull();
+
+    closeButton?.focus();
+    expect(document.activeElement).toBe(closeButton);
+
+    app.marketDashboardService.stockLookupSuggestions = [result];
+    app.marketDashboardService.stockLookupRisks = {};
+    fixture.detectChanges();
+    (app as unknown as { stockLookupQueryInput: ElementRef<HTMLInputElement> | undefined }).stockLookupQueryInput = new ElementRef(input!);
+    tick();
+
+    expect(document.activeElement).toBe(closeButton);
+  }));
+
+  it('clears stock lookup results immediately when the query is edited from the keyboard', fakeAsync(() => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    const result: SymbolSearchResult = {
+      symbol: 'AAPL',
+      name: 'Apple Inc.',
+      region: 'US',
+      currency: 'USD',
+    };
+    app.isLoggedIn = true;
+    app.marketDashboardService.stockLookupDialogOpen = true;
+    app.marketDashboardService.stockLookupQuery = 'AAPL';
+    app.marketDashboardService.stockLookupSuggestions = [result];
+    app.marketDashboardService.stockLookupRisks = { AAPL: stockLookupRisk() };
+    app.marketDashboardService.stockLookupResult = stockLookupRisk();
+    app.marketDashboardService.selectedStockLookup = result;
+    app.marketDashboardService.stockLookupMessage = 'Indicators loaded.';
+
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('#stock-lookup-query') as HTMLInputElement | null;
+    expect(input).not.toBeNull();
+
+    input?.dispatchEvent(new KeyboardEvent('keydown', { key: 'B', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(app.marketDashboardService.stockLookupSuggestions).toEqual([]);
+    expect(app.marketDashboardService.stockLookupRisks).toEqual({});
+    expect(app.marketDashboardService.stockLookupResult).toBeUndefined();
+    expect(app.marketDashboardService.selectedStockLookup).toBeUndefined();
+    expect(app.marketDashboardService.stockLookupMessage).toBe('Searching...');
+    expect(fixture.nativeElement.querySelector('.stock-lookup-result-row')).toBeNull();
+  }));
+
+  it('keeps stock lookup results when a non-editing key is pressed', fakeAsync(() => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    const result: SymbolSearchResult = {
+      symbol: 'AAPL',
+      name: 'Apple Inc.',
+      region: 'US',
+      currency: 'USD',
+    };
+    app.isLoggedIn = true;
+    app.marketDashboardService.stockLookupDialogOpen = true;
+    app.marketDashboardService.stockLookupQuery = 'AAPL';
+    app.marketDashboardService.stockLookupSuggestions = [result];
+    app.marketDashboardService.stockLookupRisks = { AAPL: stockLookupRisk() };
+
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('#stock-lookup-query') as HTMLInputElement | null;
+    input?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(app.marketDashboardService.stockLookupSuggestions).toEqual([result]);
+    expect(Object.keys(app.marketDashboardService.stockLookupRisks)).toEqual(['AAPL']);
+    expect(fixture.nativeElement.querySelector('.stock-lookup-result-row')).not.toBeNull();
   }));
 
   it('keeps the stock lookup dialog open when its backdrop is clicked', fakeAsync(() => {

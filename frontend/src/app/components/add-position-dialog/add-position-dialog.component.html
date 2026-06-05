@@ -10,7 +10,7 @@
 
       <form class="edit-form" (ngSubmit)="save.emit()">
         <div class="symbol-field">
-          <label class="field-label" for="symbol">Stock</label>
+          <label class="field-label" for="symbol">Stock or crypto</label>
           <input
             id="symbol"
             name="symbol"
@@ -19,10 +19,10 @@
             [(ngModel)]="state.symbolQuery"
             (focus)="openDropdown.emit()"
             (ngModelChange)="search.emit()"
-            placeholder="AAPL or Apple"
+            placeholder="AAPL, Bitcoin, or EUR/USD"
           />
           @if (state.showSymbolDropdown) {
-            <div class="symbol-dropdown" [class.refreshing]="state.symbolMessage === 'Searching...'" role="listbox" aria-label="Stock search results">
+            <div class="symbol-dropdown" [class.refreshing]="state.symbolMessage === 'Searching...'" role="listbox" aria-label="Symbol search results">
               @for (result of state.symbolSuggestions; track result.symbol) {
                 <button type="button" class="symbol-option" role="option" (click)="chooseSymbol.emit(result)">
                   <strong>{{ result.symbol }}</strong>
@@ -39,8 +39,8 @@
         <div class="watch-toggle">
           <label
             class="remember-login app-tooltip"
-            data-tooltip="Track this stock without position size, average cost, or P&L calculations."
-            aria-label="Track this stock without position size, average cost, or P&L calculations."
+            data-tooltip="Track this instrument without position size, average cost, or P&L calculations."
+            aria-label="Track this instrument without position size, average cost, or P&L calculations."
           >
             <input name="watchOnly" type="checkbox" [ngModel]="state.holdingForm.watchOnly" (ngModelChange)="state.setHoldingWatchOnly($event)" />
             <span>Watch only</span>

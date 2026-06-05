@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { animate, group, query, stagger, style, transition, trigger } from '@angular/animations';
 import { Component, EventEmitter, OnInit, inject, Output } from '@angular/core';
 import { StockAlert } from '../../market-dashboard.models';
 import { MarketDashboardService } from '../../market-dashboard.service';
@@ -18,6 +19,29 @@ type PositionFilter = 'all' | 'positions' | 'watchlist';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './portfolio-board.component.html',
+  animations: [
+    trigger('positionColumns', [
+      transition(':enter', [
+        style({ height: 0, opacity: 0, overflow: 'hidden', transform: 'translateY(-6px)' }),
+        group([
+          animate('190ms ease-out', style({ height: '*', opacity: 1, transform: 'translateY(0)' })),
+          query('span', [
+            style({ opacity: 0, transform: 'translateY(6px) scale(0.98)' }),
+            stagger(22, animate('150ms ease-out', style({ opacity: 1, transform: 'translateY(0) scale(1)' }))),
+          ], { optional: true }),
+        ]),
+      ]),
+      transition(':leave', [
+        style({ overflow: 'hidden' }),
+        group([
+          animate('150ms ease-in', style({ height: 0, opacity: 0, transform: 'translateY(-4px)' })),
+          query('span', [
+            stagger(-14, animate('95ms ease-in', style({ opacity: 0, transform: 'translateY(4px) scale(0.98)' }))),
+          ], { optional: true }),
+        ]),
+      ]),
+    ]),
+  ],
 })
 export class PortfolioBoardComponent implements OnInit {
   protected readonly state = inject(MarketDashboardService);

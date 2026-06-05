@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { StockAlert } from '../../market-dashboard.models';
 import { MarketDashboardService } from '../../market-dashboard.service';
 import { PortfolioBoardComponent } from './portfolio-board.component';
@@ -49,7 +50,10 @@ describe('PortfolioBoardComponent', () => {
   }> {
     await TestBed.configureTestingModule({
       imports: [PortfolioBoardComponent],
-      providers: [{ provide: MarketDashboardService, useValue: state }],
+      providers: [
+        { provide: MarketDashboardService, useValue: state },
+        provideNoopAnimations(),
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(PortfolioBoardComponent);
@@ -113,16 +117,19 @@ describe('PortfolioBoardComponent', () => {
     expect(row.getAttribute('aria-expanded')).toBe('false');
     expect(row.classList.contains('collapsed-row')).toBeTrue();
     expect(row.querySelector('.ticker-metrics')).toBeNull();
+    expect(textContent(row.querySelector('.row-actions .position-expand-hint'))).toBe('click to expand');
+    expect(row.querySelector('.ticker-identity .position-expand-hint')).toBeNull();
     expect(textContent(row)).not.toContain('Avg');
     expect(textContent(row)).not.toContain('Qty');
     expect(textContent(row)).not.toContain('Price');
 
-    row.click();
+    row.querySelector<HTMLButtonElement>('.position-expand-hint')?.click();
     fixture.detectChanges();
 
     expect(row.getAttribute('aria-expanded')).toBe('true');
     expect(row.classList.contains('collapsed-row')).toBeFalse();
     expect(row.querySelector('.ticker-metrics')).not.toBeNull();
+    expect(row.querySelector('.position-expand-hint')).toBeNull();
   });
 
   it('opens edit and delete actions in a dialog without collapsing the row', async () => {

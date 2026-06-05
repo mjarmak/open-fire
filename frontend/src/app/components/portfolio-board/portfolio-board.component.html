@@ -155,7 +155,7 @@
           ><span>{{ stock.companyName }}</span></span>
         </div>
         @if (!isCollapsed(stock)) {
-        <div class="ticker-metrics">
+        <div class="ticker-metrics" @positionColumns>
           <span [class.value-pos]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent > 0" [class.value-neg]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent < 0"><small>30D</small>{{ stock.thirtyDayChangePercent === null ? '-' : (stock.thirtyDayChangePercent | number: '1.0-2') + '%' }}</span>
           <span><small>Market Cap</small>{{ formatMoney(stock.marketCap) }}</span>
           <span
@@ -196,6 +196,9 @@
         </div>
         }
         <div class="row-actions" (click)="stopRowClick($event)">
+          @if (isCollapsed(stock)) {
+            <button type="button" class="position-expand-hint" (click)="toggleCollapsedFromRow(stock)">click to show</button>
+          }
           <button
             type="button"
             class="row-action menu-action"
@@ -227,7 +230,6 @@
           <div class="position-action-dialog-copy">
             <p class="eyebrow">{{ actionStock.symbol }}</p>
             <h2 id="position-actions-title">Position actions</h2>
-            <small>{{ actionStock.companyName }}</small>
           </div>
           <button type="button" class="icon-action" title="Close" aria-label="Close position actions" (click)="closeActionDialog()"></button>
         </div>
