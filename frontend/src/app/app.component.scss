@@ -395,6 +395,10 @@ app-root.light-theme {
   font-size: 1.15rem;
 }
 
+.top-menu-button {
+  margin-left: 2px;
+}
+
 .alerts-btn {
   overflow: visible !important;
 }
@@ -1849,6 +1853,41 @@ button:disabled:not(.icon-btn)::after {
 
 .edit-dialog.position-action-dialog {
   width: min(256px, 100%);
+}
+
+.edit-dialog.top-menu-dialog {
+  width: min(256px, 100%);
+}
+
+.top-menu-dialog-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.top-menu-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 12px;
+  text-align: left;
+}
+
+.top-menu-action svg {
+  flex: 0 0 auto;
+}
+
+.top-menu-action .spinner-svg {
+  animation: spin-kf 1s linear infinite;
+}
+
+.top-menu-action span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .position-action-dialog-copy {

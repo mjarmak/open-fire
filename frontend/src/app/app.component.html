@@ -143,8 +143,18 @@
                               class="position-title-value"
                               [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
                               [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
-                            >{{ formatStockLookupDayChange(stock.dayGainLoss) }}</span>
+                            >{{ formatStockLookupStockDayChange(stock) }}</span>
                           </span>
+                          @if (!stock.watchOnly) {
+                            <span class="position-title-change-side position-title-change-total">
+                              × {{ formatStockLookupQuantity(stock.quantity) }} =
+                              <span
+                                class="position-title-value"
+                                [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
+                                [class.value-neg]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent < 0"
+                              >{{ formatStockLookupPositionDayChange(stock) }}</span>
+                            </span>
+                          }
                         </span>
                       }
                     </div>

@@ -864,11 +864,44 @@ export class AppComponent implements OnDestroy, OnInit {
     }).format(value);
   }
 
+  formatStockLookupStockDayChange(stock: StockAlert): string {
+    const value = this.calculateStockLookupDayChange(stock);
+    return this.formatStockLookupDayChange(value);
+  }
+
+  formatStockLookupPositionDayChange(stock: StockAlert): string {
+    return stock.watchOnly ? '-' : this.formatStockLookupDayChange(stock.dayGainLoss);
+  }
+
+  formatStockLookupQuantity(value: number | null | undefined): string {
+    if (value === null || value === undefined || Number.isNaN(value)) {
+      return '-';
+    }
+
+    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
+  }
+
   formatStockLookupReason(reason: string | null | undefined): string {
     const normalizedReason = reason?.trim() || '';
     return /^No watched (stock|position) alerts fired(?: under current thresholds)?\.?$/i.test(normalizedReason)
       ? ''
       : normalizedReason;
+  }
+
+  private calculateStockLookupDayChange(stock: StockAlert): number | null {
+    if (stock.dayGainLoss === null || stock.dayGainLoss === undefined) {
+      return null;
+    }
+
+    if (stock.watchOnly) {
+      return stock.dayGainLoss;
+    }
+
+    if (stock.quantity === 0) {
+      return null;
+    }
+
+    return stock.dayGainLoss / stock.quantity;
   }
 
   closeAlertsDialog(): void {

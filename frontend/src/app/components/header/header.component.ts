@@ -10,6 +10,7 @@ import { MarketDashboardService } from '../../market-dashboard.service';
 })
 export class HeaderComponent {
   protected readonly state = inject(MarketDashboardService);
+  protected menuOpen = false;
 
   @Output() toggleTheme = new EventEmitter<void>();
   @Output() openAlerts = new EventEmitter<void>();
@@ -18,4 +19,27 @@ export class HeaderComponent {
   @Output() logout = new EventEmitter<void>();
   @Output() openLogin = new EventEmitter<void>();
   @Output() openCreateUser = new EventEmitter<void>();
+
+  protected openMenu(): void {
+    this.menuOpen = true;
+  }
+
+  protected closeMenu(): void {
+    this.menuOpen = false;
+  }
+
+  protected selectTheme(): void {
+    this.toggleTheme.emit();
+    this.closeMenu();
+  }
+
+  protected selectRefresh(): void {
+    this.refresh.emit();
+    this.closeMenu();
+  }
+
+  protected selectLogout(): void {
+    this.logout.emit();
+    this.closeMenu();
+  }
 }

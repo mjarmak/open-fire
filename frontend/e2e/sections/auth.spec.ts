@@ -47,6 +47,7 @@ test.describe('Auth Section', () => {
     await dialog.getByRole('button', { name: 'Login' }).click();
     await expect(page.getByRole('heading', { name: 'Portfolio' })).toBeVisible();
 
+    await page.getByRole('button', { name: 'Open menu' }).click();
     await page.getByRole('button', { name: 'Logout' }).click();
     await expect(page.getByRole('heading', { name: 'Welcome to OpenFIRE' })).toBeVisible();
 

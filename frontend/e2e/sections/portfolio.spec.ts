@@ -88,7 +88,11 @@ test.describe('Portfolio Section', () => {
 
     const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
     await aaplRow.getByRole('button', { name: 'Position actions' }).click();
-    await page.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: 'Edit' }).click();
+    const actionDialog = page.getByRole('dialog', { name: 'Menu' });
+    await expect(actionDialog).toBeVisible();
+    await page.mouse.click(4, 4);
+    await expect(actionDialog).toBeVisible();
+    await actionDialog.getByRole('button', { name: 'Edit' }).click();
 
     const editDialog = page.getByRole('dialog', { name: 'Edit position' });
     await expect(editDialog).toBeVisible();
@@ -378,6 +382,7 @@ test.describe('Portfolio Section', () => {
       await route.fallback();
     });
 
+    await page.getByRole('button', { name: 'Open menu' }).click();
     await page.getByRole('button', { name: 'Refresh Dashboard' }).click();
 
     const indicatorGrid = page.getByLabel('Macro market indicators');
