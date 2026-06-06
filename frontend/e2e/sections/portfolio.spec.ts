@@ -225,6 +225,7 @@ test.describe('Portfolio Section', () => {
     await expect(titleLines).toContainText('Original');
     await expect(titleLines).toContainText('12 × $170 =');
     await expect(titleLines).toContainText('$2K');
+    await expect(titleLines.locator('.position-title-label').first()).toHaveCSS('margin-right', '4px');
     await expect(titleLines.locator('.position-title-factor')).toHaveCount(4);
     await expect(titleLines.locator('.position-title-quantity-factor')).toHaveCount(2);
     await expect(titleLines.locator('.position-title-current-price-factor')).toHaveCount(1);
@@ -283,7 +284,7 @@ test.describe('Portfolio Section', () => {
     expect(tooltipBox!.y + tooltipBox!.height).toBeLessThanOrEqual(viewport!.height);
   });
 
-  test('shows watch-only daily change without invested or position-total lines', async ({ page }) => {
+  test('shows watch-only daily change and current price without invested or position-total math', async ({ page }) => {
     const portfolio = page.getByLabel('Portfolio tickers');
     await portfolio.getByRole('button', { name: 'Add' }).click();
 
@@ -303,7 +304,12 @@ test.describe('Portfolio Section', () => {
     await expect(todayMetric).toContainText('0.75%');
     await expect(todayMetric).toContainText('$1.50');
     await expect(todayMetric).not.toContainText('×');
-    await expect(watchRow.locator('.position-title-lines')).toHaveCount(0);
+    const titleLines = watchRow.locator('.position-title-lines');
+    await expect(titleLines).toContainText('Current');
+    await expect(titleLines).toContainText('$200');
+    await expect(titleLines).not.toContainText('Original');
+    await expect(titleLines).not.toContainText('×');
+    await expect(titleLines.locator('.position-title-current-price-factor')).toHaveCount(1);
   });
 
   test('keeps portfolio metrics ordered with 30D and Market Cap first and no Price column', async ({ page }) => {
@@ -317,6 +323,7 @@ test.describe('Portfolio Section', () => {
     expect(metricLabels).not.toContain('Quantity');
     expect(metricLabels).not.toContain('Avg');
     await expect(aaplRow.locator('.metric-30d')).toHaveAttribute('data-tooltip', /percentage price change over the last 30 calendar days/);
+    await expect(aaplRow.locator('.risk-pe')).toHaveAttribute('data-tooltip', /trailing price-to-earnings ratio/);
   });
 
   test('leaves alerting portfolio rows without the search-result risk outline', async ({ page }) => {

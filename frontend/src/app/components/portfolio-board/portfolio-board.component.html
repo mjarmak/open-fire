@@ -153,17 +153,19 @@
             <span class="watch-only-badge">Watch only</span>
           }
 
-          @if (!stock.watchOnly) {
           <div
             class="position-title-lines app-tooltip"
-            [attr.data-tooltip]="getPositionLinesTooltip()"
-            [attr.aria-label]="getPositionLinesTooltip()"
+            [attr.data-tooltip]="getPositionLinesTooltip(stock)"
+            [attr.aria-label]="getPositionLinesTooltip(stock)"
             tabindex="0"
           >
             <div class="position-title-line position-title-line-primary">
               <span class="position-title-line-item">
                 <span class="position-title-label">Current</span>
-                <span class="position-title-factor position-title-quantity-factor">{{ formatQuantity(stock.quantity) }}</span> × <span class="position-title-factor position-title-current-price-factor">{{ formatMoney(stock.latestPrice) }}</span> =
+                @if (stock.watchOnly) {
+                  <span class="position-title-factor position-title-current-price-factor">{{ formatMoney(stock.latestPrice) }}</span>
+                } @else {
+                  <span class="position-title-factor position-title-quantity-factor">{{ formatQuantity(stock.quantity) }}</span> × <span class="position-title-factor position-title-current-price-factor">{{ formatMoney(stock.latestPrice) }}</span> =
                   <strong
                     class="position-title-value"
                     [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0"
@@ -176,15 +178,17 @@
                   >
                     ({{ stock.unrealizedGainLossPercent === null ? '-' : (stock.unrealizedGainLossPercent | number: '1.0-2') + '%' }})
                   </span>
+                }
                 </span>
               </div>
+              @if (!stock.watchOnly) {
               <div class="position-title-line position-title-line-secondary">
                 <span class="position-title-label">Original</span>
                 <span class="position-title-factor position-title-quantity-factor">{{ formatQuantity(stock.quantity) }}</span> × <span class="position-title-factor position-title-average-factor">{{ formatMoney(stock.averageCost) }}</span> =
                 <strong>{{ formatMoney(calculatePositionInvested(stock)) }}</strong>
               </div>
+              }
             </div>
-          }
         </div>
         @if (!isCollapsed(stock)) {
         <div class="ticker-metrics" @positionColumns>
@@ -211,8 +215,8 @@
           <span
             class="metric-tooltip risk-metric risk-pe"
             tabindex="0"
-            data-tooltip="P/E: price-to-earnings ratio, a valuation measure comparing share price with earnings per share. Alert threshold: above 25."
-            aria-label="P/E: price-to-earnings ratio, a valuation measure comparing share price with earnings per share. Alert threshold: above 25."
+            data-tooltip="P/E: trailing price-to-earnings ratio, a valuation measure comparing share price with trailing earnings per share. Alert threshold: above 25."
+            aria-label="P/E: trailing price-to-earnings ratio, a valuation measure comparing share price with trailing earnings per share. Alert threshold: above 25."
             [class.pe-high]="stock.peRatio !== null && stock.peRatio > 25"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"

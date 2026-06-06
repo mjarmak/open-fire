@@ -13,7 +13,13 @@
     <span [class.risk-high]="stock.fearScore !== null && stock.fearScore >= 65">
       <small>Fear</small>{{ stock.fearScore === null ? '-' : (stock.fearScore | number: '1.0-0') + '/100' }}
     </span>
-    <span [class.risk-high]="stock.peRatio !== null && stock.peRatio > 25">
+    <span
+      class="metric-tooltip"
+      tabindex="0"
+      data-tooltip="P/E: trailing price-to-earnings ratio, a valuation measure comparing share price with trailing earnings per share. Alert threshold: above 25."
+      aria-label="P/E: trailing price-to-earnings ratio, a valuation measure comparing share price with trailing earnings per share. Alert threshold: above 25."
+      [class.risk-high]="stock.peRatio !== null && stock.peRatio > 25"
+    >
       <small>P/E</small>{{ stock.peRatio === null ? '-' : (stock.peRatio | number: '1.0-2') }}
     </span>
     <span [class.risk-high]="stock.beta !== null && stock.beta > 1.5">

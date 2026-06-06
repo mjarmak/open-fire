@@ -98,6 +98,7 @@ test.describe('Header Section', () => {
     await expect(row.locator('.ticker-metrics')).toContainText('63/100');
     await expect(row.locator('.ticker-metrics')).toContainText('P/E');
     await expect(row.locator('.ticker-metrics')).toContainText('29.1');
+    await expect(row.locator('.risk-pe')).toHaveAttribute('data-tooltip', /trailing price-to-earnings ratio/);
     await expect(row.locator('.ticker-metrics')).toContainText('Market Cap');
     await expect(row.locator('.ticker-metrics')).toContainText('$2.9T');
     await expect(row.locator('.ticker-metrics')).toContainText('30D');

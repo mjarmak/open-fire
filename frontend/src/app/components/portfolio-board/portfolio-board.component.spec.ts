@@ -104,6 +104,25 @@ describe('PortfolioBoardComponent', () => {
     expect(element.textContent).toContain('Add a portfolio position above');
   });
 
+  it('shows P/E in the position type category tooltip only when available', async () => {
+    const { element } = await render(createState({
+      stocks: [
+        stock({ symbol: 'AAPL', companyName: 'Apple Inc.', positionType: 'Tech', peRatio: 29.12 }),
+        stock({ id: 2, symbol: 'MSFT', companyName: 'Microsoft Corp.', positionType: 'Tech', peRatio: null }),
+      ],
+    }));
+
+    const category = element.querySelector<HTMLElement>('.category-tooltip');
+    const tooltip = category?.getAttribute('data-tooltip') || '';
+
+    expect(category).not.toBeNull();
+    expect(tooltip).toContain('AAPL - Apple Inc.');
+    expect(tooltip).toContain('P/E: 29.12');
+    expect(tooltip).toContain('MSFT - Microsoft Corp.');
+    expect(tooltip).not.toContain('MSFT - Microsoft Corp.\nx4 | Current: $100.00 | P/E');
+    expect(tooltip).not.toContain('P/E: -');
+  });
+
   it('collapses and expands a position when its row is clicked', async () => {
     const { fixture, element } = await render(createState({ stocks: [stock()] }));
     const row = positionRow(element, 'AAPL');
@@ -252,7 +271,7 @@ describe('PortfolioBoardComponent', () => {
     expect(positionLines?.getAttribute('data-tooltip')).not.toContain('25%');
   });
 
-  it('shows today change for watch-only rows without a position total', async () => {
+  it('shows today change and current price for watch-only rows without a position total', async () => {
     const watchOnly = stock({
       id: 2,
       symbol: 'MSFT',
@@ -285,6 +304,13 @@ describe('PortfolioBoardComponent', () => {
     expect(row.querySelector('.position-title-arrow')?.classList.contains('value-neg')).toBeTrue();
     expect(row.querySelector('.position-title-percent')?.classList.contains('value-neg')).toBeTrue();
     expect(row.querySelector('.position-title-value')?.classList.contains('value-neg')).toBeTrue();
+
+    const positionLines = row.querySelector('.position-title-lines');
+    expect(textContent(positionLines)).toContain('Current');
+    expect(textContent(positionLines)).toContain('$25');
+    expect(textContent(positionLines)).not.toContain('Original');
+    expect(textContent(positionLines)).not.toContain('=');
+    expect(positionLines?.getAttribute('data-tooltip')).toContain('latest available price');
   });
 
   it('keeps 30D and Market Cap as the first expanded metric columns', async () => {

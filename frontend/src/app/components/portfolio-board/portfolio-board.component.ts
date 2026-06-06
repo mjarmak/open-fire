@@ -164,7 +164,12 @@ export class PortfolioBoardComponent implements OnInit {
       const companyName = stock.companyName?.trim() || 'Unknown company';
       const position = this.formatQuantity(stock.quantity);
       const totalValue = this.formatTooltipMoney(this.resolveTotalValue(stock));
-      return `${stock.symbol} - ${companyName}\nx${position} | Current: ${totalValue}`;
+      const metrics = [`x${position}`, `Current: ${totalValue}`];
+      const peRatio = this.formatTooltipRatio(stock.peRatio);
+      if (peRatio) {
+        metrics.push(`P/E: ${peRatio}`);
+      }
+      return `${stock.symbol} - ${companyName}\n${metrics.join(' | ')}`;
     });
 
     return lines.join('\n\n');
@@ -295,7 +300,11 @@ export class PortfolioBoardComponent implements OnInit {
     return stock.companyName?.trim() || stock.symbol;
   }
 
-  protected getPositionLinesTooltip(): string {
+  protected getPositionLinesTooltip(stock?: StockAlert): string {
+    if (stock?.watchOnly) {
+      return 'Current shows the latest available price.';
+    }
+
     return 'Current shows the current market value and unrealized return.\nOriginal shows the invested cost based on the average price.';
   }
 
@@ -452,6 +461,16 @@ export class PortfolioBoardComponent implements OnInit {
       hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
     }
     return hash;
+  }
+
+  private formatTooltipRatio(value: number | null | undefined): string {
+    if (value === null || value === undefined || Number.isNaN(value)) {
+      return '';
+    }
+
+    return new Intl.NumberFormat('en-US', {
+      maximumFractionDigits: 2,
+    }).format(value);
   }
 
   private loadCollapsedState(): void {

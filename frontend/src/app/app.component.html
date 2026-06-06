@@ -173,8 +173,8 @@
                     <span
                       class="metric-tooltip risk-metric risk-pe"
                       tabindex="0"
-                      data-tooltip="P/E: price-to-earnings ratio, a valuation measure comparing share price with earnings per share. Alert threshold: above 25."
-                      aria-label="P/E: price-to-earnings ratio, a valuation measure comparing share price with earnings per share. Alert threshold: above 25."
+                      data-tooltip="P/E: trailing price-to-earnings ratio, a valuation measure comparing share price with trailing earnings per share. Alert threshold: above 25."
+                      aria-label="P/E: trailing price-to-earnings ratio, a valuation measure comparing share price with trailing earnings per share. Alert threshold: above 25."
                       [class.pe-high]="stock.peRatio !== null && stock.peRatio > 25"
                     ><small>P/E</small>{{ stock.peRatio === null ? '-' : (stock.peRatio | number: '1.0-2') }}</span>
                     <span
