@@ -1,0 +1,12 @@
+@if (visible) {
+  <div
+    #tooltipBody
+    class="viewport-tooltip"
+    [class.below]="placement === 'below'"
+    [style.left.px]="left"
+    [style.top.px]="top"
+    role="tooltip"
+  >
+    {{ text }}
+  </div>
+}

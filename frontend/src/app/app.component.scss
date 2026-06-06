@@ -1639,6 +1639,14 @@ button:disabled:not(.icon-btn)::after {
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
+.app-tooltip::before,
+.app-tooltip::after,
+.metric-tooltip::before,
+.metric-tooltip::after {
+  content: none;
+  display: none;
+}
+
 .ticker-metrics small {
   color: var(--muted-strong);
   font-size: 0.58rem;

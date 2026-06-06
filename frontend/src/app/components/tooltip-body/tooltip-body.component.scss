@@ -1,0 +1,33 @@
+.viewport-tooltip {
+  position: fixed;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 16px));
+  padding: 7px 10px;
+  border-radius: 4px;
+  color: var(--tooltip-text);
+  background: var(--tooltip-bg);
+  box-shadow: 0 8px 18px var(--shadow-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: left;
+  white-space: pre-line;
+  pointer-events: none;
+}
+
+.viewport-tooltip::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 8px;
+  height: 8px;
+  background: var(--tooltip-bg);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.viewport-tooltip.below::before {
+  top: -4px;
+  bottom: auto;
+}

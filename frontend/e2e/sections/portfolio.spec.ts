@@ -234,17 +234,21 @@ test.describe('Portfolio Section', () => {
     ]);
     expect(nowrapValues).toEqual(['nowrap', 'nowrap']);
 
+    const tooltip = page.getByRole('tooltip');
     await todayMetric.hover();
-    await expect.poll(() => todayMetric.evaluate((element) => ({
-      content: getComputedStyle(element, '::after').content,
-      opacity: getComputedStyle(element, '::after').opacity,
-    }))).toEqual({ content: '"Today"', opacity: '1' });
+    await expect(tooltip).toHaveText('Today');
+    await expect(tooltip).toBeVisible();
 
     await titleLines.focus();
-    await expect.poll(() => titleLines.evaluate((element) => ({
-      content: getComputedStyle(element, '::after').content,
-      opacity: getComputedStyle(element, '::after').opacity,
-    }))).toEqual({ content: expect.stringContaining('TOTAL shows the current market value'), opacity: '1' });
+    await expect(tooltip).toContainText('TOTAL shows the current market value');
+    const tooltipBox = await tooltip.boundingBox();
+    const viewport = page.viewportSize();
+    expect(tooltipBox).not.toBeNull();
+    expect(viewport).not.toBeNull();
+    expect(tooltipBox!.x).toBeGreaterThanOrEqual(0);
+    expect(tooltipBox!.y).toBeGreaterThanOrEqual(0);
+    expect(tooltipBox!.x + tooltipBox!.width).toBeLessThanOrEqual(viewport!.width);
+    expect(tooltipBox!.y + tooltipBox!.height).toBeLessThanOrEqual(viewport!.height);
   });
 
   test('shows watch-only daily change without invested or position-total lines', async ({ page }) => {

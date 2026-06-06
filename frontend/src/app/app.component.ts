@@ -20,6 +20,7 @@ import { RetirementPlannerComponent } from './components/retirement-planner/reti
 import { RetirementSettingsDialogComponent } from './components/retirement-settings-dialog/retirement-settings-dialog.component';
 import { StockRiskPanelComponent } from './components/stock-risk-panel/stock-risk-panel.component';
 import { TelegramDialogComponent } from './components/telegram-dialog/telegram-dialog.component';
+import { TooltipBodyComponent } from './components/tooltip-body/tooltip-body.component';
 import { dialogBackdropAnimation, dialogPanelAnimation } from './components/dialog.animations';
 
 @Component({
@@ -43,6 +44,7 @@ import { dialogBackdropAnimation, dialogPanelAnimation } from './components/dial
     RetirementSettingsDialogComponent,
     StockRiskPanelComponent,
     TelegramDialogComponent,
+    TooltipBodyComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
