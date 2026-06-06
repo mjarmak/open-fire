@@ -222,6 +222,11 @@ test.describe('Portfolio Section', () => {
     await expect(titleLines).toContainText('12 × $198.2 =');
     await expect(titleLines).toContainText('$2.4K');
     await expect(titleLines).toContainText('16.59%');
+    await expect(titleLines.locator('.position-title-value')).not.toHaveClass(/value-pos|value-neg/);
+    const currentArrow = titleLines.locator('.position-title-line-primary .position-title-arrow');
+    await expect(currentArrow).toHaveText('↑');
+    await expect(currentArrow).toHaveClass(/value-pos/);
+    await expect(titleLines.locator('.position-title-line-primary .position-title-percent')).toHaveClass(/value-pos/);
     await expect(titleLines).toContainText('Original');
     await expect(titleLines).toContainText('12 × $170 =');
     await expect(titleLines).toContainText('$2K');

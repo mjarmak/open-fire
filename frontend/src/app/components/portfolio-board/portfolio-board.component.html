@@ -166,18 +166,31 @@
                   <span class="position-title-factor position-title-current-price-factor">{{ formatMoney(stock.latestPrice) }}</span>
                 } @else {
                   <span class="position-title-factor position-title-quantity-factor">{{ formatQuantity(stock.quantity) }}</span> × <span class="position-title-factor position-title-current-price-factor">{{ formatMoney(stock.latestPrice) }}</span> =
-                  <strong
-                    class="position-title-value"
-                    [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0"
-                    [class.value-neg]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss < 0"
-                  >{{ formatMoney(calculatePositionMarketValue(stock)) }}</strong>
+                  <strong class="position-title-value">{{ formatMoney(calculatePositionMarketValue(stock)) }}</strong>
+
+                  @if (stock.unrealizedGainLossPercent !== null && stock.unrealizedGainLossPercent !== undefined) {
                   <span
                     class="position-title-percent"
                     [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0"
                     [class.value-neg]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss < 0"
                   >
-                    ({{ stock.unrealizedGainLossPercent === null ? '-' : (stock.unrealizedGainLossPercent | number: '1.0-2') + '%' }})
+                    (<span
+                    class="position-title-arrow"
+                    [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0"
+                    [class.value-neg]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss < 0"
+                  >
+                    @if (stock.unrealizedGainLoss === null || stock.unrealizedGainLoss === undefined) {
+                      -
+                    } @else if (stock.unrealizedGainLoss > 0) {
+                      <span>&#8593;</span>
+                    } @else if (stock.unrealizedGainLoss < 0) {
+                      <span>&#8595;</span>
+                    } @else {
+                      <span class="position-title-arrow-flat">&#8594;</span>
+                    }
+                  </span>{{ (stock.unrealizedGainLossPercent | number: '1.0-2') + '%' }})
                   </span>
+                  }
                 }
                 </span>
               </div>
@@ -185,7 +198,7 @@
               <div class="position-title-line position-title-line-secondary">
                 <span class="position-title-label">Original</span>
                 <span class="position-title-factor position-title-quantity-factor">{{ formatQuantity(stock.quantity) }}</span> × <span class="position-title-factor position-title-average-factor">{{ formatMoney(stock.averageCost) }}</span> =
-                <strong>{{ formatMoney(calculatePositionInvested(stock)) }}</strong>
+                <strong class="position-title-value">{{ formatMoney(calculatePositionInvested(stock)) }}</strong>
               </div>
               }
             </div>

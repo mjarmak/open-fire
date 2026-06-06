@@ -1738,21 +1738,24 @@ button:disabled:not(.icon-btn)::after {
   margin-right: 4px;
 }
 
-.position-title-quantity-factor {
-  color: #000 !important;
+.position-title-inline-metric .position-title-quantity-factor,
+.position-title-lines .position-title-factor,
+.position-title-lines .position-title-quantity-factor {
+  font-weight: 500 !important;
 }
-
-.position-title-lines .position-title-current-price-factor {
-
-}
-.position-title-lines .position-title-current-price-factor {
-  font-weight: 800;
-  color: var(--primary);
-}
-
+.position-title-lines .position-title-current-price-factor,
 .position-title-lines .position-title-average-factor {
-  font-weight: 500;
+  font-weight: 600 !important;
+}
+
+.position-title-lines .position-title-quantity-factor {
   color: #000;
+}
+
+.position-title-lines .position-title-current-price-factor,
+.position-title-lines .position-title-average-factor {
+  color: var(--primary);
+  font-weight: 600;
 }
 
 .row-actions > .position-expand-hint {
@@ -1808,7 +1811,7 @@ button:disabled:not(.icon-btn)::after {
 }
 
 .position-title-value {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .position-title-arrow {

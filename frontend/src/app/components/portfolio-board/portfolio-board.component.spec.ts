@@ -313,6 +313,21 @@ describe('PortfolioBoardComponent', () => {
     expect(positionLines?.getAttribute('data-tooltip')).toContain('latest available price');
   });
 
+  it('hides current total percent when unrealized percent is unavailable', async () => {
+    const position = stock({
+      unrealizedGainLoss: null,
+      unrealizedGainLossPercent: null,
+    });
+    const { element } = await render(createState({ stocks: [position] }));
+    const row = positionRow(element, 'AAPL');
+    const positionLines = row.querySelector('.position-title-lines');
+
+    expect(textContent(positionLines)).toContain('Current');
+    expect(textContent(positionLines)).toContain('$100');
+    expect(positionLines?.querySelector('.position-title-percent')).toBeNull();
+    expect(positionLines?.querySelector('.position-title-line-primary .position-title-arrow')).toBeNull();
+  });
+
   it('keeps 30D and Market Cap as the first expanded metric columns', async () => {
     const { element } = await render(createState({ stocks: [stock()] }));
     const row = positionRow(element, 'AAPL');
