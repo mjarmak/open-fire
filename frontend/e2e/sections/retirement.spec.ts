@@ -99,7 +99,7 @@ test.describe('Retirement Section', () => {
     await expect(summary).toContainText('Total Invested:');
     await expect(summary).toContainText('Total P&L: $0');
     await expect(summary).toContainText('Total P&L %: 0.0%');
-    await expect(summary).toContainText('Annualized Return%: 0.0%');
+    await expect(summary).toContainText('Annualized Return %: 0.0%');
     await expect(summary).toContainText('Return Since:');
     await expect(summary).toContainText('2024-01-01');
     await expect(summary.locator('.subtext-item.app-tooltip')).toHaveCount(7);
@@ -107,7 +107,7 @@ test.describe('Retirement Section', () => {
       .toHaveAttribute('data-tooltip', /retirement configuration/);
     await expect(summary.locator('.subtext-item.app-tooltip').filter({ hasText: 'Total Invested:' }))
       .toHaveAttribute('data-tooltip', /cost basis/);
-    await expect(summary.locator('.subtext-item.app-tooltip').filter({ hasText: 'Annualized Return%:' }))
+    await expect(summary.locator('.subtext-item.app-tooltip').filter({ hasText: 'Annualized Return %:' }))
       .toHaveAttribute('data-tooltip', /total invested/);
 
     const targetFund = retirementBoard.locator('.target-fund-card');

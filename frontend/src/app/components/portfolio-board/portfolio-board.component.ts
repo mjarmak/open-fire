@@ -193,7 +193,11 @@ export class PortfolioBoardComponent implements OnInit {
     this.persistCollapsedState();
   }
 
-  protected toggleCollapsedFromRow(stock: StockAlert): void {
+  protected toggleCollapsedFromRow(stock: StockAlert, event?: Event): void {
+    if (event && this.isTooltipInteraction(event)) {
+      return;
+    }
+
     this.actionDialogRowKey = null;
     if (stock.watchOnly) {
       return;
@@ -233,6 +237,13 @@ export class PortfolioBoardComponent implements OnInit {
 
   protected stopRowClick(event: Event): void {
     event.stopPropagation();
+  }
+
+  private isTooltipInteraction(event: Event): boolean {
+    const target = event.target instanceof Element ? event.target : null;
+    const currentTarget = event.currentTarget instanceof Element ? event.currentTarget : null;
+    const tooltipTarget = target?.closest('.app-tooltip, .metric-tooltip, [data-tooltip]');
+    return Boolean(tooltipTarget && currentTarget?.contains(tooltipTarget));
   }
 
   protected selectEditPosition(stock: StockAlert, event: Event): void {

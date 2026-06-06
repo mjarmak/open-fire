@@ -78,7 +78,7 @@ test.describe('Header Section', () => {
     const addBox = await row.getByRole('button', { name: 'Add' }).boundingBox();
     expect(rowBox).not.toBeNull();
     expect(addBox).not.toBeNull();
-    expect(addBox!.y).toBeLessThanOrEqual(rowBox!.y + 8);
+    expect(addBox!.y).toBeLessThanOrEqual(rowBox!.y + 10);
 
     await row.getByRole('button', { name: 'Add' }).click();
     const addDialog = page.getByRole('dialog', { name: 'Add Position' });

@@ -46,30 +46,33 @@
             <span>Watch only</span>
           </label>
         </div>
-        <label [class.watch-mode-dim]="state.holdingForm.watchOnly">
-          <span>Quantity</span>
-          <input
-            name="quantity"
-            type="number"
-            min="0"
-            step="0.000001"
-            [ngModel]="state.holdingForm.quantity === 0 ? null : state.holdingForm.quantity"
-            (ngModelChange)="state.holdingForm.quantity = $event ?? 0"
-            [disabled]="state.holdingForm.watchOnly"
-          />
-        </label>
-        <label [class.watch-mode-dim]="state.holdingForm.watchOnly">
-          <span>Avg Cost</span>
-          <input
-            name="averageCost"
-            type="number"
-            min="0"
-            step="0.01"
-            [ngModel]="state.holdingForm.averageCost === 0 ? null : state.holdingForm.averageCost"
-            (ngModelChange)="state.holdingForm.averageCost = $event ?? 0"
-            [disabled]="state.holdingForm.watchOnly"
-          />
-        </label>
+        <div class="position-cost-row" [class.watch-mode-dim]="state.holdingForm.watchOnly">
+          <label>
+            <span>Quantity</span>
+            <input
+              name="quantity"
+              type="number"
+              min="0"
+              step="0.000001"
+              [ngModel]="state.holdingForm.quantity === 0 ? null : state.holdingForm.quantity"
+              (ngModelChange)="state.holdingForm.quantity = $event ?? 0"
+              [disabled]="state.holdingForm.watchOnly"
+            />
+          </label>
+          <span class="position-cost-times" aria-hidden="true">&times;</span>
+          <label>
+            <span>Avg Cost</span>
+            <input
+              name="averageCost"
+              type="number"
+              min="0"
+              step="0.01"
+              [ngModel]="state.holdingForm.averageCost === 0 ? null : state.holdingForm.averageCost"
+              (ngModelChange)="state.holdingForm.averageCost = $event ?? 0"
+              [disabled]="state.holdingForm.watchOnly"
+            />
+          </label>
+        </div>
 
         <div class="dialog-actions">
           <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>

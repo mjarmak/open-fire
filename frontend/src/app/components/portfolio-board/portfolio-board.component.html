@@ -76,7 +76,7 @@
         [class.menu-open]="isActionDialogOpen(stock)"
         [attr.aria-expanded]="stock.watchOnly ? null : !isCollapsed(stock)"
         [attr.tabindex]="stock.watchOnly ? null : 0"
-        (click)="toggleCollapsedFromRow(stock)"
+        (click)="toggleCollapsedFromRow(stock, $event)"
         (keydown)="handleRowKeydown(stock, $event)"
       >
         <div class="ticker-identity">
@@ -232,7 +232,7 @@
         }
         <div class="row-actions" (click)="stopRowClick($event)">
           @if (isCollapsed(stock)) {
-            <button type="button" class="position-expand-hint" (click)="toggleCollapsedFromRow(stock)">click to expand</button>
+            <button type="button" class="position-expand-hint" (click)="toggleCollapsedFromRow(stock, $event)">click to expand</button>
           }
           <button
             type="button"
@@ -264,7 +264,7 @@
         <div class="dialog-heading">
           <div class="position-action-dialog-copy">
             <p class="eyebrow">{{ actionStock.symbol }}</p>
-            <h2 id="position-actions-title">Position actions</h2>
+            <h2 id="position-actions-title">Menu</h2>
           </div>
           <button type="button" class="icon-action" title="Close" aria-label="Close position actions" (click)="closeActionDialog()"></button>
         </div>

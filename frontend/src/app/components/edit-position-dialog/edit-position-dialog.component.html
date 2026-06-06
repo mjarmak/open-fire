@@ -48,28 +48,31 @@
             <span>Watch only</span>
           </label>
         </div>
-        <label>
-          <span>Quantity</span>
-          <input
-            name="editQuantity"
-            type="number"
-            min="0"
-            step="0.000001"
-            [(ngModel)]="state.editForm.quantity"
-            [disabled]="state.editForm.watchOnly"
-          />
-        </label>
-        <label>
-          <span>Avg Cost</span>
-          <input
-            name="editAverageCost"
-            type="number"
-            min="0"
-            step="0.01"
-            [(ngModel)]="state.editForm.averageCost"
-            [disabled]="state.editForm.watchOnly"
-          />
-        </label>
+        <div class="position-cost-row" [class.watch-mode-dim]="state.editForm.watchOnly">
+          <label>
+            <span>Quantity</span>
+            <input
+              name="editQuantity"
+              type="number"
+              min="0"
+              step="0.000001"
+              [(ngModel)]="state.editForm.quantity"
+              [disabled]="state.editForm.watchOnly"
+            />
+          </label>
+          <span class="position-cost-times" aria-hidden="true">&times;</span>
+          <label>
+            <span>Avg Cost</span>
+            <input
+              name="editAverageCost"
+              type="number"
+              min="0"
+              step="0.01"
+              [(ngModel)]="state.editForm.averageCost"
+              [disabled]="state.editForm.watchOnly"
+            />
+          </label>
+        </div>
 
         <div class="dialog-actions">
           <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>

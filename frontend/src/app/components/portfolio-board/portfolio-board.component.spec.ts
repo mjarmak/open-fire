@@ -173,20 +173,27 @@ describe('PortfolioBoardComponent', () => {
     expect(element.querySelector('.position-action-dialog')).toBeNull();
   });
 
-  it('keeps the row expanded when a risk indicator is clicked for its tooltip', async () => {
+  it('keeps the row expanded when tooltip targets are clicked', async () => {
     const { fixture, element } = await render(createState({ stocks: [stock()] }));
     const row = positionRow(element, 'AAPL');
-    const fearIndicator = row.querySelector<HTMLElement>('.risk-fear');
+    const tooltipTargets = [
+      row.querySelector<HTMLElement>('.position-type-dot'),
+      row.querySelector<HTMLElement>('.ticket-type-indicator'),
+      row.querySelector<HTMLElement>('.position-title-inline-metric'),
+      row.querySelector<HTMLElement>('.risk-fear'),
+    ];
 
-    expect(fearIndicator).not.toBeNull();
+    expect(tooltipTargets.every(Boolean)).toBeTrue();
     expect(row.getAttribute('aria-expanded')).toBe('true');
 
-    fearIndicator?.click();
-    fixture.detectChanges();
+    for (const target of tooltipTargets) {
+      target?.click();
+      fixture.detectChanges();
 
-    expect(row.getAttribute('aria-expanded')).toBe('true');
-    expect(row.classList.contains('collapsed-row')).toBeFalse();
-    expect(row.querySelector('.ticker-metrics')).not.toBeNull();
+      expect(row.getAttribute('aria-expanded')).toBe('true');
+      expect(row.classList.contains('collapsed-row')).toBeFalse();
+      expect(row.querySelector('.ticker-metrics')).not.toBeNull();
+    }
   });
 
   it('renders today change and position P&L details in the title area while expanded', async () => {

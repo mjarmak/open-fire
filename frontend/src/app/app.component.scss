@@ -1824,8 +1824,8 @@ button:disabled:not(.icon-btn)::after {
     0 6px 0 currentColor;
 }
 
-.position-action-dialog {
-  width: min(360px, 100%);
+.edit-dialog.position-action-dialog {
+  width: min(256px, 100%);
 }
 
 .position-action-dialog-copy {
@@ -1900,7 +1900,7 @@ button:disabled:not(.icon-btn)::after {
 .edit-dialog {
   display: grid;
   gap: 12px;
-  width: min(560px, 100%);
+  width: min(300px, 100%);
   max-height: calc(100dvh - 40px);
   overflow: auto;
   padding: 14px;
@@ -1963,6 +1963,28 @@ button:disabled:not(.icon-btn)::after {
 .edit-form {
   display: grid;
   gap: 8px;
+}
+
+.edit-dialog .position-cost-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: end;
+  width: 100%;
+}
+
+.edit-dialog .position-cost-row label {
+  min-width: 0;
+}
+
+.edit-dialog .position-cost-times {
+  display: inline-grid;
+  place-items: center;
+  min-height: 30px;
+  color: var(--muted-strong);
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .dialog-actions {

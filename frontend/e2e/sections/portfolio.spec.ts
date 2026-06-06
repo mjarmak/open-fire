@@ -14,6 +14,17 @@ test.describe('Portfolio Section', () => {
 
     const addDialog = page.getByRole('dialog', { name: 'Add Position' });
     await expect(addDialog).toBeVisible();
+    const addPositionCostRow = addDialog.locator('.position-cost-row');
+    await expect(addPositionCostRow).toBeVisible();
+    await expect(addPositionCostRow.locator('.position-cost-times')).toHaveText('×');
+    const addQuantityBox = await addPositionCostRow.locator('input[name="quantity"]').boundingBox();
+    const addTimesBox = await addPositionCostRow.locator('.position-cost-times').boundingBox();
+    const addAvgCostBox = await addPositionCostRow.locator('input[name="averageCost"]').boundingBox();
+    expect(addQuantityBox).not.toBeNull();
+    expect(addTimesBox).not.toBeNull();
+    expect(addAvgCostBox).not.toBeNull();
+    expect(addQuantityBox!.x).toBeLessThan(addTimesBox!.x);
+    expect(addTimesBox!.x).toBeLessThan(addAvgCostBox!.x);
     const symbolInput = addDialog.locator('input[name="symbol"]');
     await symbolInput.fill('NVDA');
     await expect(addDialog.locator('.symbol-option').first()).toBeVisible({ timeout: 4_000 });
@@ -33,18 +44,32 @@ test.describe('Portfolio Section', () => {
     await expect(nvdaRow.locator('.ticker-metrics')).toBeVisible();
 
     await nvdaRow.getByRole('button', { name: 'Position actions' }).click();
-    const actionDialog = page.getByRole('dialog', { name: 'Position actions' });
+    const actionDialog = page.getByRole('dialog', { name: 'Menu' });
     await expect(actionDialog).toBeVisible();
+    const actionDialogBox = await actionDialog.boundingBox();
+    expect(actionDialogBox).not.toBeNull();
+    expect(actionDialogBox!.width).toBeLessThanOrEqual(256);
     await actionDialog.getByRole('button', { name: 'Edit' }).click();
 
     const editDialog = page.getByRole('dialog', { name: 'Edit position' });
     await expect(editDialog).toBeVisible();
+    const positionCostRow = editDialog.locator('.position-cost-row');
+    await expect(positionCostRow).toBeVisible();
+    await expect(positionCostRow.locator('.position-cost-times')).toHaveText('×');
+    const quantityBox = await positionCostRow.locator('input[name="editQuantity"]').boundingBox();
+    const timesBox = await positionCostRow.locator('.position-cost-times').boundingBox();
+    const avgCostBox = await positionCostRow.locator('input[name="editAverageCost"]').boundingBox();
+    expect(quantityBox).not.toBeNull();
+    expect(timesBox).not.toBeNull();
+    expect(avgCostBox).not.toBeNull();
+    expect(quantityBox!.x).toBeLessThan(timesBox!.x);
+    expect(timesBox!.x).toBeLessThan(avgCostBox!.x);
     await editDialog.getByRole('spinbutton', { name: 'Quantity' }).fill('5');
     await editDialog.getByRole('button', { name: 'Save' }).click();
     await expect(editDialog).toBeHidden();
 
     await nvdaRow.getByRole('button', { name: 'Position actions' }).click();
-    await page.getByRole('dialog', { name: 'Position actions' }).getByRole('button', { name: 'Delete' }).click();
+    await page.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: 'Delete' }).click();
     const deleteDialog = page.getByRole('alertdialog', { name: /Remove NVDA/ });
     await deleteDialog.getByRole('button', { name: 'Delete' }).click();
     await expect(page.locator('.stock-row').filter({ hasText: 'NVDA' })).toHaveCount(0);
@@ -63,7 +88,7 @@ test.describe('Portfolio Section', () => {
 
     const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
     await aaplRow.getByRole('button', { name: 'Position actions' }).click();
-    await page.getByRole('dialog', { name: 'Position actions' }).getByRole('button', { name: 'Edit' }).click();
+    await page.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: 'Edit' }).click();
 
     const editDialog = page.getByRole('dialog', { name: 'Edit position' });
     await expect(editDialog).toBeVisible();
@@ -146,16 +171,17 @@ test.describe('Portfolio Section', () => {
     expect(metricsBox!.y).toBeGreaterThan(identityBox!.y + identityBox!.height - 1);
   });
 
-  test('does not collapse a position when a risk indicator is clicked for its tooltip', async ({ page }) => {
+  test('does not collapse a position when tooltip targets are clicked', async ({ page }) => {
     const portfolio = page.getByLabel('Portfolio tickers');
     const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
     await expect(aaplRow).toBeVisible();
     await expect(aaplRow).not.toHaveClass(/collapsed-row/);
 
-    await aaplRow.locator('.risk-fear').click();
-
-    await expect(aaplRow).not.toHaveClass(/collapsed-row/);
-    await expect(aaplRow.locator('.ticker-metrics')).toBeVisible();
+    for (const selector of ['.position-type-dot', '.ticket-type-indicator', '.position-title-inline-metric', '.risk-fear']) {
+      await aaplRow.locator(selector).click();
+      await expect(aaplRow).not.toHaveClass(/collapsed-row/);
+      await expect(aaplRow.locator('.ticker-metrics')).toBeVisible();
+    }
   });
 
   test('shows title metrics, tooltip title, and left-side text without wrapping', async ({ page }) => {
@@ -175,16 +201,20 @@ test.describe('Portfolio Section', () => {
     await expect(todayMetric).toContainText('$18.20');
     await expect(todayMetric.locator('.position-title-arrow')).toHaveClass(/value-pos/);
     await expect(todayMetric.locator('.position-title-percent')).toHaveClass(/value-pos/);
-    await expect(todayMetric.locator('.position-title-value')).toHaveClass(/value-pos/);
+    await expect(todayMetric.locator('.position-title-value')).toHaveCount(2);
+    const todayValueClasses = await todayMetric.locator('.position-title-value').evaluateAll((elements) =>
+      elements.map((element) => element.className),
+    );
+    expect(todayValueClasses.every((className) => className.includes('value-pos'))).toBe(true);
 
     const titleLines = aaplRow.locator('.position-title-lines');
     await expect(titleLines).toContainText('TOTAL');
-    await expect(titleLines).toContainText('12 × $198.20 =');
-    await expect(titleLines).toContainText('$2.38K');
+    await expect(titleLines).toContainText('12 × $198.2 =');
+    await expect(titleLines).toContainText('$2.4K');
     await expect(titleLines).toContainText('16.59%');
     await expect(titleLines).toContainText('Original');
-    await expect(titleLines).toContainText('12 × $170.00 =');
-    await expect(titleLines).toContainText('$2.04K');
+    await expect(titleLines).toContainText('12 × $170 =');
+    await expect(titleLines).toContainText('$2K');
 
     const nowrapValues = await Promise.all([
       todayMetric.evaluate((element) => getComputedStyle(element).whiteSpace),
@@ -195,15 +225,25 @@ test.describe('Portfolio Section', () => {
 
   test('shows watch-only daily change without invested or position-total lines', async ({ page }) => {
     const portfolio = page.getByLabel('Portfolio tickers');
-    const tslaRow = portfolio.locator('.stock-row').filter({ hasText: 'TSLA' });
-    await expect(tslaRow).toBeVisible();
-    await expect(tslaRow).toHaveClass(/watch-only-row/);
+    await portfolio.getByRole('button', { name: 'Add' }).click();
 
-    const todayMetric = tslaRow.locator('.position-title-inline-metric');
+    const addDialog = page.getByRole('dialog', { name: 'Add Position' });
+    await addDialog.locator('input[name="symbol"]').fill('GOOGL');
+    await expect(addDialog.locator('.symbol-option').first()).toBeVisible({ timeout: 4_000 });
+    await addDialog.locator('.symbol-option').first().click();
+    await addDialog.locator('input[name="watchOnly"]').check();
+    await addDialog.getByRole('button', { name: 'Add' }).click();
+    await expect(addDialog).toBeHidden();
+
+    const watchRow = portfolio.locator('.stock-row').filter({ hasText: 'GOOGL' });
+    await expect(watchRow).toBeVisible();
+    await expect(watchRow).toHaveClass(/watch-only-row/);
+
+    const todayMetric = watchRow.locator('.position-title-inline-metric');
     await expect(todayMetric).toContainText('0.75%');
     await expect(todayMetric).toContainText('$1.50');
     await expect(todayMetric).not.toContainText('×');
-    await expect(tslaRow.locator('.position-title-lines')).toHaveCount(0);
+    await expect(watchRow.locator('.position-title-lines')).toHaveCount(0);
   });
 
   test('keeps portfolio metrics ordered with 30D and Market Cap first and no Price column', async ({ page }) => {
