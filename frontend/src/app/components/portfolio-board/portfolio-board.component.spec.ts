@@ -180,6 +180,8 @@ describe('PortfolioBoardComponent', () => {
       row.querySelector<HTMLElement>('.position-type-dot'),
       row.querySelector<HTMLElement>('.ticket-type-indicator'),
       row.querySelector<HTMLElement>('.position-title-inline-metric'),
+      row.querySelector<HTMLElement>('.position-title-lines'),
+      row.querySelector<HTMLElement>('.metric-30d'),
       row.querySelector<HTMLElement>('.risk-fear'),
     ];
 
@@ -194,6 +196,18 @@ describe('PortfolioBoardComponent', () => {
       expect(row.classList.contains('collapsed-row')).toBeFalse();
       expect(row.querySelector('.ticker-metrics')).not.toBeNull();
     }
+  });
+
+  it('hides default no-alert reason text while keeping real reasons visible', async () => {
+    const { element } = await render(createState({
+      stocks: [
+        stock({ symbol: 'AAPL', reason: 'No watched stock alerts fired under current thresholds.' }),
+        stock({ id: 2, symbol: 'MSFT', reason: 'P/E and fear thresholds are elevated.' }),
+      ],
+    }));
+
+    expect(element.textContent).not.toContain('No watched stock alerts fired under current thresholds.');
+    expect(element.textContent).toContain('P/E and fear thresholds are elevated.');
   });
 
   it('renders today change and position P&L details in the title area while expanded', async () => {
@@ -218,7 +232,7 @@ describe('PortfolioBoardComponent', () => {
     const positionLineText = textContent(positionLines);
     expect(positionLines).not.toBeNull();
     expect(identity?.contains(positionLines)).toBeTrue();
-    expect(positionLineText).toContain('TOTAL');
+    expect(positionLineText).toContain('Total');
     expect(positionLineText).toContain('4');
     expect(positionLineText).toContain('$25');
     expect(positionLineText).toContain('$100');
@@ -229,8 +243,13 @@ describe('PortfolioBoardComponent', () => {
     expect(row.querySelector('.ticker-metrics')).not.toBeNull();
 
     const titleTooltip = row.querySelector<HTMLElement>('.ticket-type-indicator');
-    expect(titleTooltip?.getAttribute('data-tooltip')).toContain('TOTAL: 4 x $25 = $100 (25%)');
-    expect(titleTooltip?.getAttribute('data-tooltip')).toContain('Original: 4 x $20 = $80');
+    expect(titleTooltip?.getAttribute('data-tooltip')).toBe('Apple Inc.');
+    expect(titleTooltip?.getAttribute('data-tooltip')).not.toContain('TOTAL:');
+    expect(titleTooltip?.getAttribute('data-tooltip')).not.toContain('Original:');
+    expect(positionLines?.getAttribute('data-tooltip')).toContain('TOTAL shows the current market value');
+    expect(positionLines?.getAttribute('data-tooltip')).toContain('Original shows the invested cost');
+    expect(positionLines?.getAttribute('data-tooltip')).not.toContain('$100');
+    expect(positionLines?.getAttribute('data-tooltip')).not.toContain('25%');
   });
 
   it('shows today change for watch-only rows without a position total', async () => {
@@ -274,6 +293,7 @@ describe('PortfolioBoardComponent', () => {
     const metricLabels = Array.from(row.querySelectorAll('.ticker-metrics small')).map(textContent);
 
     expect(metricLabels.slice(0, 2)).toEqual(['30D', 'Market Cap']);
+    expect(row.querySelector<HTMLElement>('.metric-30d')?.getAttribute('data-tooltip')).toContain('percentage price change');
     expect(metricLabels).not.toContain('Price');
     expect(metricLabels).not.toContain('Avg');
     expect(metricLabels).not.toContain('Qty');

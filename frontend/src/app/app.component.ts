@@ -862,6 +862,13 @@ export class AppComponent implements OnDestroy, OnInit {
     }).format(value);
   }
 
+  formatStockLookupReason(reason: string | null | undefined): string {
+    const normalizedReason = reason?.trim() || '';
+    return /^No watched (stock|position) alerts fired(?: under current thresholds)?\.?$/i.test(normalizedReason)
+      ? ''
+      : normalizedReason;
+  }
+
   closeAlertsDialog(): void {
     this.alertsDialogOpen = false;
   }

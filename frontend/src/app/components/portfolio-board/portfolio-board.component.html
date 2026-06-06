@@ -91,8 +91,8 @@
             <strong
               class="ticket-type-indicator app-tooltip"
               tabindex="0"
-              [attr.data-tooltip]="getPositionTitleTooltip(stock)"
-              [attr.aria-label]="getPositionTitleTooltip(stock)"
+              [attr.data-tooltip]="getCompanyTitleTooltip(stock)"
+              [attr.aria-label]="getCompanyTitleTooltip(stock)"
             >{{ stock.symbol }}</strong>
             @if (stock.dayGainLoss !== null || stock.dayGainLossPercent !== null) {
               <span
@@ -152,10 +152,15 @@
           }
 
           @if (!stock.watchOnly) {
-          <div class="position-title-lines">
+          <div
+            class="position-title-lines app-tooltip"
+            [attr.data-tooltip]="getPositionLinesTooltip()"
+            [attr.aria-label]="getPositionLinesTooltip()"
+            tabindex="0"
+          >
             <div class="position-title-line position-title-line-primary">
               <span class="position-title-line-item">
-                <span class="position-title-label">TOTAL</span>
+                <span class="position-title-label">Total</span>
           {{ formatQuantity(stock.quantity) }} × {{ formatMoney(stock.latestPrice) }} =
                   <strong
                     class="position-title-value"
@@ -181,7 +186,16 @@
         </div>
         @if (!isCollapsed(stock)) {
         <div class="ticker-metrics" @positionColumns>
-          <span [class.value-pos]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent > 0" [class.value-neg]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent < 0"><small>30D</small>{{ stock.thirtyDayChangePercent === null ? '-' : (stock.thirtyDayChangePercent | number: '1.0-2') + '%' }}</span>
+          <span
+            class="metric-tooltip metric-30d"
+            tabindex="0"
+            data-tooltip="30D: percentage price change over the last 30 calendar days."
+            aria-label="30D: percentage price change over the last 30 calendar days."
+            [class.value-pos]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent > 0"
+            [class.value-neg]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent < 0"
+            (click)="stopRowClick($event)"
+            (keydown)="stopRowClick($event)"
+          ><small>30D</small>{{ stock.thirtyDayChangePercent === null ? '-' : (stock.thirtyDayChangePercent | number: '1.0-2') + '%' }}</span>
           <span><small>Market Cap</small>{{ formatMoney(stock.marketCap) }}</span>
           <span
             class="metric-tooltip risk-metric risk-fear"
@@ -244,7 +258,9 @@
             (click)="openActionDialog(stock, $event)"
           ></button>
         </div>
-        <small>{{ stock.reason }}</small>
+        @if (visibleStockReason(stock)) {
+          <small>{{ visibleStockReason(stock) }}</small>
+        }
       </div>
     } @empty {
       <div class="empty-state">

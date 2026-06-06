@@ -26,12 +26,19 @@
       <small>DD</small>{{ stock.drawdownPercent === null ? '-' : (stock.drawdownPercent | number: '1.0-2') + '%' }}
     </span>
     <span><small>Market Cap</small>{{ formatMoney(stock.marketCap) }}</span>
-    <span [class.value-pos]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent > 0" [class.value-neg]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent < 0">
+    <span
+      class="metric-tooltip metric-30d"
+      tabindex="0"
+      data-tooltip="30D: percentage price change over the last 30 calendar days."
+      aria-label="30D: percentage price change over the last 30 calendar days."
+      [class.value-pos]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent > 0"
+      [class.value-neg]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent < 0"
+    >
       <small>30D</small>{{ stock.thirtyDayChangePercent === null ? '-' : (stock.thirtyDayChangePercent | number: '1.0-2') + '%' }}
     </span>
     <span><small>Type</small>{{ stock.positionType || '-' }}</span>
   </div>
-  @if (stock.reason) {
-    <p class="add-stock-risk-reason">{{ stock.reason }}</p>
+  @if (visibleReason) {
+    <p class="add-stock-risk-reason">{{ visibleReason }}</p>
   }
 </section>

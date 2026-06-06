@@ -11,6 +11,13 @@ import { StockAlert } from '../../market-dashboard.models';
 export class StockRiskPanelComponent {
   @Input({ required: true }) stock!: StockAlert;
 
+  get visibleReason(): string {
+    const reason = this.stock.reason?.trim() || '';
+    return /^No watched (stock|position) alerts fired(?: under current thresholds)?\.?$/i.test(reason)
+      ? ''
+      : reason;
+  }
+
   formatMoney(value: number | null | undefined): string {
     if (value === null || value === undefined) {
       return '-';

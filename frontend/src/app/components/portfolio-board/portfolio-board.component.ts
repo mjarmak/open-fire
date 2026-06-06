@@ -291,16 +291,12 @@ export class PortfolioBoardComponent implements OnInit {
     return stock.quantity * stock.averageCost;
   }
 
-  protected getPositionTitleTooltip(stock: StockAlert): string {
-    const lines = [stock.companyName?.trim() || stock.symbol];
-    if (stock.watchOnly) {
-      lines.push('Watch only');
-      return lines.join('\n');
-    }
+  protected getCompanyTitleTooltip(stock: StockAlert): string {
+    return stock.companyName?.trim() || stock.symbol;
+  }
 
-    lines.push(`TOTAL: ${this.formatQuantity(stock.quantity)} x ${this.formatMoney(stock.latestPrice)} = ${this.formatMoney(this.calculatePositionMarketValue(stock))} (${this.formatPercent(stock.unrealizedGainLossPercent)})`);
-    lines.push(`Original: ${this.formatQuantity(stock.quantity)} x ${this.formatMoney(stock.averageCost)} = ${this.formatMoney(this.calculatePositionInvested(stock))}`);
-    return lines.join('\n');
+  protected getPositionLinesTooltip(): string {
+    return 'TOTAL shows the current market value and unrealized return.\nOriginal shows the invested cost based on the average price.';
   }
 
   formatStockDayChange(stock: StockAlert): string {
@@ -314,6 +310,11 @@ export class PortfolioBoardComponent implements OnInit {
       currency: 'USD',
       maximumFractionDigits: 2,
     }).format(value);
+  }
+
+  protected visibleStockReason(stock: StockAlert): string {
+    const reason = stock.reason?.trim() || '';
+    return this.isNoAlertReason(reason) ? '' : reason;
   }
 
   formatPositionDayChange(stock: StockAlert): string {
@@ -344,6 +345,10 @@ export class PortfolioBoardComponent implements OnInit {
     return stock.dayGainLoss / stock.quantity;
   }
 
+  private isNoAlertReason(reason: string): boolean {
+    return /^No watched (stock|position) alerts fired(?: under current thresholds)?\.?$/i.test(reason);
+  }
+
   private formatTooltipMoney(value: number | null): string {
     if (value === null || Number.isNaN(value)) {
       return '-';
@@ -361,14 +366,6 @@ export class PortfolioBoardComponent implements OnInit {
       return '-';
     }
     return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
-  }
-
-  private formatPercent(value: number | null | undefined): string {
-    if (value === null || value === undefined || Number.isNaN(value)) {
-      return '-';
-    }
-
-    return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value)}%`;
   }
 
   private matchesPositionFilter(stock: StockAlert): boolean {

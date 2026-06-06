@@ -160,7 +160,7 @@ test.describe('Portfolio Section', () => {
     const metrics = aaplRow.locator('.ticker-metrics');
 
     await expect(aaplRow).toBeVisible();
-    await expect(identity.locator('.position-title-lines')).toContainText('TOTAL');
+    await expect(identity.locator('.position-title-lines')).toContainText('Total');
     await expect(identity.locator('.position-title-inline-metric')).toContainText('0.77%');
     await expect(metrics).toBeVisible();
 
@@ -177,7 +177,7 @@ test.describe('Portfolio Section', () => {
     await expect(aaplRow).toBeVisible();
     await expect(aaplRow).not.toHaveClass(/collapsed-row/);
 
-    for (const selector of ['.position-type-dot', '.ticket-type-indicator', '.position-title-inline-metric', '.risk-fear']) {
+    for (const selector of ['.position-type-dot', '.ticket-type-indicator', '.position-title-inline-metric', '.position-title-lines', '.metric-30d', '.risk-fear']) {
       await aaplRow.locator(selector).click();
       await expect(aaplRow).not.toHaveClass(/collapsed-row/);
       await expect(aaplRow.locator('.ticker-metrics')).toBeVisible();
@@ -190,8 +190,10 @@ test.describe('Portfolio Section', () => {
     await expect(aaplRow).toBeVisible();
 
     const symbol = aaplRow.locator('.ticket-type-indicator');
-    await expect(symbol).toHaveAttribute('data-tooltip', /Apple Inc./);
-    await expect(symbol).toHaveAttribute('aria-label', /Apple Inc./);
+    await expect(symbol).toHaveAttribute('data-tooltip', 'Apple Inc.');
+    await expect(symbol).toHaveAttribute('aria-label', 'Apple Inc.');
+    await expect(symbol).not.toHaveAttribute('data-tooltip', /TOTAL:/);
+    await expect(symbol).not.toHaveAttribute('data-tooltip', /Original:/);
 
     const todayMetric = aaplRow.locator('.position-title-inline-metric');
     await expect(todayMetric).toHaveAttribute('data-tooltip', 'Today');
@@ -208,7 +210,11 @@ test.describe('Portfolio Section', () => {
     expect(todayValueClasses.every((className) => className.includes('value-pos'))).toBe(true);
 
     const titleLines = aaplRow.locator('.position-title-lines');
-    await expect(titleLines).toContainText('TOTAL');
+    await expect(titleLines).toHaveAttribute('data-tooltip', /TOTAL shows the current market value/);
+    await expect(titleLines).toHaveAttribute('data-tooltip', /Original shows the invested cost/);
+    await expect(titleLines).not.toHaveAttribute('data-tooltip', /\$2\.4K/);
+    await expect(titleLines).not.toHaveAttribute('data-tooltip', /16\.59%/);
+    await expect(titleLines).toContainText('Total');
     await expect(titleLines).toContainText('12 × $198.2 =');
     await expect(titleLines).toContainText('$2.4K');
     await expect(titleLines).toContainText('16.59%');
@@ -216,11 +222,29 @@ test.describe('Portfolio Section', () => {
     await expect(titleLines).toContainText('12 × $170 =');
     await expect(titleLines).toContainText('$2K');
 
+    const rowBox = await aaplRow.boundingBox();
+    const titleLinesBox = await titleLines.boundingBox();
+    expect(rowBox).not.toBeNull();
+    expect(titleLinesBox).not.toBeNull();
+    expect(titleLinesBox!.width).toBeLessThan(rowBox!.width / 2);
+
     const nowrapValues = await Promise.all([
       todayMetric.evaluate((element) => getComputedStyle(element).whiteSpace),
       titleLines.locator('.position-title-line').first().evaluate((element) => getComputedStyle(element).whiteSpace),
     ]);
     expect(nowrapValues).toEqual(['nowrap', 'nowrap']);
+
+    await todayMetric.hover();
+    await expect.poll(() => todayMetric.evaluate((element) => ({
+      content: getComputedStyle(element, '::after').content,
+      opacity: getComputedStyle(element, '::after').opacity,
+    }))).toEqual({ content: '"Today"', opacity: '1' });
+
+    await titleLines.focus();
+    await expect.poll(() => titleLines.evaluate((element) => ({
+      content: getComputedStyle(element, '::after').content,
+      opacity: getComputedStyle(element, '::after').opacity,
+    }))).toEqual({ content: expect.stringContaining('TOTAL shows the current market value'), opacity: '1' });
   });
 
   test('shows watch-only daily change without invested or position-total lines', async ({ page }) => {
@@ -256,6 +280,7 @@ test.describe('Portfolio Section', () => {
     expect(metricLabels).not.toContain('Price');
     expect(metricLabels).not.toContain('Quantity');
     expect(metricLabels).not.toContain('Avg');
+    await expect(aaplRow.locator('.metric-30d')).toHaveAttribute('data-tooltip', /percentage price change over the last 30 calendar days/);
   });
 
   test('leaves alerting portfolio rows without the search-result risk outline', async ({ page }) => {

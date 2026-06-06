@@ -1399,7 +1399,7 @@ button:disabled:not(.icon-btn)::after {
   width: auto;
   max-width: 100%;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .position-type-dot {
@@ -1579,14 +1579,14 @@ button:disabled:not(.icon-btn)::after {
   --risk-bg: var(--risk-dd-bg);
 }
 
-.ticker-metrics .metric-tooltip {
+.metric-tooltip {
   position: relative;
   cursor: help;
   outline: none;
 }
 
-.ticker-metrics .metric-tooltip::before,
-.ticker-metrics .metric-tooltip::after {
+.metric-tooltip::before,
+.metric-tooltip::after {
   position: absolute;
   left: 50%;
   z-index: 20;
@@ -1596,7 +1596,7 @@ button:disabled:not(.icon-btn)::after {
   transition: opacity 120ms ease, transform 120ms ease;
 }
 
-.ticker-metrics .metric-tooltip::before {
+.metric-tooltip::before {
   content: "";
   bottom: calc(100% + 5px);
   width: 10px;
@@ -1605,7 +1605,7 @@ button:disabled:not(.icon-btn)::after {
   transform: translate(-50%, 4px) rotate(45deg);
 }
 
-.ticker-metrics .metric-tooltip::after {
+.metric-tooltip::after {
   content: attr(data-tooltip);
   bottom: calc(100% + 10px);
   width: max-content;
@@ -1622,20 +1622,20 @@ button:disabled:not(.icon-btn)::after {
   white-space: normal;
 }
 
-.ticker-metrics .metric-tooltip:hover::before,
-.ticker-metrics .metric-tooltip:hover::after,
-.ticker-metrics .metric-tooltip:focus-visible::before,
-.ticker-metrics .metric-tooltip:focus-visible::after {
+.metric-tooltip:hover::before,
+.metric-tooltip:hover::after,
+.metric-tooltip:focus-visible::before,
+.metric-tooltip:focus-visible::after {
   opacity: 1;
   transform: translate(-50%, 0);
 }
 
-.ticker-metrics .metric-tooltip:hover::before,
-.ticker-metrics .metric-tooltip:focus-visible::before {
+.metric-tooltip:hover::before,
+.metric-tooltip:focus-visible::before {
   transform: translate(-50%, 0) rotate(45deg);
 }
 
-.ticker-metrics .metric-tooltip:focus-visible {
+.metric-tooltip:focus-visible {
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
@@ -1665,11 +1665,26 @@ button:disabled:not(.icon-btn)::after {
   flex-wrap: nowrap;
   gap: 4px;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   color: var(--muted-strong);
   font-size: 0.64rem;
   line-height: 1.25;
   white-space: nowrap;
+}
+
+.position-title-inline-metric::after,
+.position-title-lines::after {
+  max-width: min(360px, calc(100vw - 32px));
+  text-align: left;
+  white-space: pre-line;
+}
+
+.position-title-lines.app-tooltip {
+  width: fit-content;
+  max-width: 100%;
+  justify-self: start;
+  cursor: help;
+  outline: none;
 }
 
 .ticker-identity > .position-title-tooltip {
@@ -2006,6 +2021,7 @@ button:disabled:not(.icon-btn)::after {
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 700;
+  text-align: end;
 }
 
 .dca-suggestions-dialog {
