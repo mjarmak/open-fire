@@ -1734,6 +1734,23 @@ button:disabled:not(.icon-btn)::after {
   white-space: nowrap;
 }
 
+.position-title-quantity-factor {
+  color: #000 !important;
+}
+
+.position-title-lines .position-title-current-price-factor {
+
+}
+.position-title-lines .position-title-current-price-factor {
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.position-title-lines .position-title-average-factor {
+  font-weight: 500;
+  color: #000;
+}
+
 .row-actions > .position-expand-hint {
   width: max-content;
   max-width: 100%;

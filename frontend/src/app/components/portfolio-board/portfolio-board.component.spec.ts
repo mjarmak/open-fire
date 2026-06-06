@@ -232,7 +232,7 @@ describe('PortfolioBoardComponent', () => {
     const positionLineText = textContent(positionLines);
     expect(positionLines).not.toBeNull();
     expect(identity?.contains(positionLines)).toBeTrue();
-    expect(positionLineText).toContain('Total');
+    expect(positionLineText).toContain('Current');
     expect(positionLineText).toContain('4');
     expect(positionLineText).toContain('$25');
     expect(positionLineText).toContain('$100');
@@ -246,7 +246,7 @@ describe('PortfolioBoardComponent', () => {
     expect(titleTooltip?.getAttribute('data-tooltip')).toBe('Apple Inc.');
     expect(titleTooltip?.getAttribute('data-tooltip')).not.toContain('TOTAL:');
     expect(titleTooltip?.getAttribute('data-tooltip')).not.toContain('Original:');
-    expect(positionLines?.getAttribute('data-tooltip')).toContain('TOTAL shows the current market value');
+    expect(positionLines?.getAttribute('data-tooltip')).toContain('Current shows the current market value');
     expect(positionLines?.getAttribute('data-tooltip')).toContain('Original shows the invested cost');
     expect(positionLines?.getAttribute('data-tooltip')).not.toContain('$100');
     expect(positionLines?.getAttribute('data-tooltip')).not.toContain('25%');

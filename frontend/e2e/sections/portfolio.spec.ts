@@ -164,7 +164,7 @@ test.describe('Portfolio Section', () => {
     const metrics = aaplRow.locator('.ticker-metrics');
 
     await expect(aaplRow).toBeVisible();
-    await expect(identity.locator('.position-title-lines')).toContainText('Total');
+    await expect(identity.locator('.position-title-lines')).toContainText('Current');
     await expect(identity.locator('.position-title-inline-metric')).toContainText('0.77%');
     await expect(metrics).toBeVisible();
 
@@ -214,17 +214,45 @@ test.describe('Portfolio Section', () => {
     expect(todayValueClasses.every((className) => className.includes('value-pos'))).toBe(true);
 
     const titleLines = aaplRow.locator('.position-title-lines');
-    await expect(titleLines).toHaveAttribute('data-tooltip', /TOTAL shows the current market value/);
+    await expect(titleLines).toHaveAttribute('data-tooltip', /Current shows the current market value/);
     await expect(titleLines).toHaveAttribute('data-tooltip', /Original shows the invested cost/);
     await expect(titleLines).not.toHaveAttribute('data-tooltip', /\$2\.4K/);
     await expect(titleLines).not.toHaveAttribute('data-tooltip', /16\.59%/);
-    await expect(titleLines).toContainText('Total');
+    await expect(titleLines).toContainText('Current');
     await expect(titleLines).toContainText('12 × $198.2 =');
     await expect(titleLines).toContainText('$2.4K');
     await expect(titleLines).toContainText('16.59%');
     await expect(titleLines).toContainText('Original');
     await expect(titleLines).toContainText('12 × $170 =');
     await expect(titleLines).toContainText('$2K');
+    await expect(titleLines.locator('.position-title-factor')).toHaveCount(4);
+    await expect(titleLines.locator('.position-title-quantity-factor')).toHaveCount(2);
+    await expect(titleLines.locator('.position-title-current-price-factor')).toHaveCount(1);
+    await expect(titleLines.locator('.position-title-average-factor')).toHaveCount(1);
+
+    const primaryColor = await page.locator('app-root').evaluate((root) => {
+      const probe = document.createElement('span');
+      probe.style.color = getComputedStyle(root).getPropertyValue('--primary');
+      document.body.append(probe);
+      const color = getComputedStyle(probe).color;
+      probe.remove();
+      return color;
+    });
+    const factorStyles = await titleLines.locator('.position-title-factor').evaluateAll((elements) =>
+      elements.map((element) => ({
+        color: getComputedStyle(element).color,
+        fontWeight: Number(getComputedStyle(element).fontWeight),
+      })),
+    );
+    expect(factorStyles.every((style) => style.fontWeight >= 700)).toBe(true);
+    const quantityStyles = await titleLines.locator('.position-title-quantity-factor').evaluateAll((elements) =>
+      elements.map((element) => getComputedStyle(element).color),
+    );
+    const currentPriceColor = await titleLines.locator('.position-title-current-price-factor').evaluate((element) => getComputedStyle(element).color);
+    const averageColor = await titleLines.locator('.position-title-average-factor').evaluate((element) => getComputedStyle(element).color);
+    expect(quantityStyles.every((color) => color === 'rgb(0, 0, 0)')).toBe(true);
+    expect(currentPriceColor).toBe(primaryColor);
+    expect(averageColor).toBe(primaryColor);
 
     const rowBox = await aaplRow.boundingBox();
     const titleLinesBox = await titleLines.boundingBox();
@@ -244,7 +272,7 @@ test.describe('Portfolio Section', () => {
     await expect(tooltip).toBeVisible();
 
     await titleLines.focus();
-    await expect(tooltip).toContainText('TOTAL shows the current market value');
+    await expect(tooltip).toContainText('Current shows the current market value');
     const tooltipBox = await tooltip.boundingBox();
     const viewport = page.viewportSize();
     expect(tooltipBox).not.toBeNull();

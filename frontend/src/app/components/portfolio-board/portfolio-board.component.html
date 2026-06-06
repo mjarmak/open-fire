@@ -134,9 +134,11 @@
                 </span>
                 @if (!stock.watchOnly) {
                   <span
-                    class="position-title-change-side position-title-change-total"
+                    class="position-title-change-side position-title-change-total "
                   >
+                    <span class="position-title-quantity-factor">
                     × {{ formatQuantity(stock.quantity) }} =
+                    </span>
                     <span
                       class="position-title-value"
                       [class.value-pos]="stock.dayGainLossPercent !== null && stock.dayGainLossPercent > 0"
@@ -160,8 +162,8 @@
           >
             <div class="position-title-line position-title-line-primary">
               <span class="position-title-line-item">
-                <span class="position-title-label">Total</span>
-          {{ formatQuantity(stock.quantity) }} × {{ formatMoney(stock.latestPrice) }} =
+                <span class="position-title-label">Current</span>
+                <span class="position-title-factor position-title-quantity-factor">{{ formatQuantity(stock.quantity) }}</span> × <span class="position-title-factor position-title-current-price-factor">{{ formatMoney(stock.latestPrice) }}</span> =
                   <strong
                     class="position-title-value"
                     [class.value-pos]="stock.unrealizedGainLoss !== null && stock.unrealizedGainLoss > 0"
@@ -178,7 +180,7 @@
               </div>
               <div class="position-title-line position-title-line-secondary">
                 <span class="position-title-label">Original</span>
-          {{ formatQuantity(stock.quantity) }} × {{ formatMoney(stock.averageCost) }} =
+                <span class="position-title-factor position-title-quantity-factor">{{ formatQuantity(stock.quantity) }}</span> × <span class="position-title-factor position-title-average-factor">{{ formatMoney(stock.averageCost) }}</span> =
                 <strong>{{ formatMoney(calculatePositionInvested(stock)) }}</strong>
               </div>
             </div>

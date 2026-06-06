@@ -164,7 +164,7 @@ export class PortfolioBoardComponent implements OnInit {
       const companyName = stock.companyName?.trim() || 'Unknown company';
       const position = this.formatQuantity(stock.quantity);
       const totalValue = this.formatTooltipMoney(this.resolveTotalValue(stock));
-      return `${stock.symbol} - ${companyName}\nx${position} | Total: ${totalValue}`;
+      return `${stock.symbol} - ${companyName}\nx${position} | Current: ${totalValue}`;
     });
 
     return lines.join('\n\n');
@@ -296,7 +296,7 @@ export class PortfolioBoardComponent implements OnInit {
   }
 
   protected getPositionLinesTooltip(): string {
-    return 'TOTAL shows the current market value and unrealized return.\nOriginal shows the invested cost based on the average price.';
+    return 'Current shows the current market value and unrealized return.\nOriginal shows the invested cost based on the average price.';
   }
 
   formatStockDayChange(stock: StockAlert): string {
