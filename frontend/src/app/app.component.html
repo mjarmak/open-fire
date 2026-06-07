@@ -210,7 +210,6 @@
                       <small>30D</small>{{ stock.thirtyDayChangePercent === null ? '-' : (stock.thirtyDayChangePercent | number: '1.0-1') + '%' }}
                     </span>
                     <span><small>Type</small>{{ stock.positionType || '-' }}</span>
-                    <span><small>Alert</small>{{ stock.alert ? 'Alert' : 'OK' }}</span>
                   </div>
                   @if (formatStockLookupReason(stock.reason)) {
                     <small>{{ formatStockLookupReason(stock.reason) }}</small>
@@ -242,7 +241,6 @@
                       aria-label="30D: percentage price change over the last 30 calendar days."
                     ><small>30D</small>-</span>
                     <span><small>Type</small>-</span>
-                    <span><small>Alert</small>Unavailable</span>
                   </div>
                   <small>Could not load indicators.</small>
                   <button type="button" class="stock-lookup-add-button" (click)="addStockLookupResult(result)">Add</button>
