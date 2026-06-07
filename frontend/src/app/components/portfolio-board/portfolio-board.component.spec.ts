@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { StockAlert } from '../../market-dashboard.models';
+import { of } from 'rxjs';
+import { IndicatorSnapshot, StockAlert } from '../../market-dashboard.models';
 import { MarketDashboardService } from '../../market-dashboard.service';
 import { PortfolioBoardComponent } from './portfolio-board.component';
 
@@ -34,12 +35,55 @@ describe('PortfolioBoardComponent', () => {
     };
   }
 
+  function indicator(overrides: Partial<IndicatorSnapshot> = {}): IndicatorSnapshot {
+    return {
+      id: 'credit',
+      name: 'Credit Market',
+      category: 'Credit',
+      value: 0.74,
+      unit: 'spread %',
+      change: -0.15,
+      status: 'watch',
+      source: 'Mock',
+      lastUpdated: new Date().toISOString(),
+      description: 'Credit stress proxy.',
+      ...overrides,
+    };
+  }
+
   function createState(overrides: Partial<MarketDashboardService> = {}): MarketDashboardService {
     return {
       isLoading: false,
       isLoadingStocks: false,
       isImportingPortfolio: false,
+      username: 'demo',
+      password: 'password123',
       stocks: [],
+      indicators: [],
+      ensureGlobalIndicatorChart: jasmine.createSpy('ensureGlobalIndicatorChart'),
+      getGlobalIndicatorChartRange: jasmine.createSpy('getGlobalIndicatorChartRange').and.returnValue('1m'),
+      globalIndicatorChartPoints: jasmine.createSpy('globalIndicatorChartPoints').and.callFake((indicatorId: string) => {
+        if (indicatorId === 'vix') {
+          return [
+            { timestamp: '2026-05-01T00:00:00Z', value: 16.1 },
+            { timestamp: '2026-06-01T00:00:00Z', value: 15.32 },
+          ];
+        }
+        return [
+          { timestamp: '2026-05-01T00:00:00Z', value: 0.82 },
+          { timestamp: '2026-06-01T00:00:00Z', value: 0.74 },
+        ];
+      }),
+      isGlobalIndicatorChartLoading: jasmine.createSpy('isGlobalIndicatorChartLoading').and.returnValue(false),
+      setGlobalIndicatorChartRange: jasmine.createSpy('setGlobalIndicatorChartRange'),
+      fetchStockHistory: jasmine.createSpy('fetchStockHistory').and.returnValue(of({
+        id: 'AAPL',
+        range: '1m',
+        points: [
+          { timestamp: '2026-05-01T00:00:00Z', value: 22 },
+          { timestamp: '2026-06-01T00:00:00Z', value: 25 },
+        ],
+      })),
       ...overrides,
     } as MarketDashboardService;
   }
@@ -123,20 +167,63 @@ describe('PortfolioBoardComponent', () => {
     expect(tooltip).not.toContain('P/E: -');
   });
 
-  it('collapses and expands a position when its row is clicked', async () => {
-    const { fixture, element } = await render(createState({ stocks: [stock()] }));
+  it('renders both global risk charts below the pie chart and above positions', async () => {
+    const state = createState({
+      stocks: [stock()],
+      indicators: [
+        indicator({ id: 'vix', name: 'Fear Index / VIX', category: 'Volatility', value: 15.32, unit: 'index points' }),
+        indicator(),
+      ],
+    });
+    const { element } = await render(state);
+    const piePanel = element.querySelector<HTMLElement>('.position-type-panel');
+    const globalCharts = Array.from(element.querySelectorAll<HTMLElement>('.global-risk-chart-panel'));
+    const vixChart = globalCharts.find((chart) => textContent(chart).includes('Fear Index / VIX'));
+    const creditChart = globalCharts.find((chart) => textContent(chart).includes('Credit Market'));
+    const stockTable = element.querySelector<HTMLElement>('.stock-table');
+
+    expect(piePanel).not.toBeNull();
+    expect(globalCharts.length).toBe(2);
+    expect(vixChart).not.toBeNull();
+    expect(creditChart).not.toBeNull();
+    expect(stockTable).not.toBeNull();
+    expect(Boolean(piePanel!.compareDocumentPosition(globalCharts[0]) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTrue();
+    expect(Boolean(globalCharts[1].compareDocumentPosition(stockTable!) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTrue();
+    expect(textContent(vixChart!)).toContain('15.32 index points');
+    expect(textContent(creditChart!)).toContain('0.74 spread %');
+    expect(textContent(creditChart!.querySelector('.chart-range-options button.active'))).toBe('1m');
+    expect(creditChart!.querySelector('.range-trend-svg .trend-line')?.getAttribute('d')).toContain('L');
+    expect(state.ensureGlobalIndicatorChart).toHaveBeenCalledWith('vix');
+    expect(state.ensureGlobalIndicatorChart).toHaveBeenCalledWith('credit');
+    expect(state.globalIndicatorChartPoints).toHaveBeenCalledWith('vix');
+    expect(state.globalIndicatorChartPoints).toHaveBeenCalledWith('credit');
+
+    Array.from(creditChart!.querySelectorAll<HTMLButtonElement>('.chart-range-options button'))
+      .find((button) => textContent(button) === '5y')
+      ?.click();
+
+    expect(state.setGlobalIndicatorChartRange).toHaveBeenCalledOnceWith('credit', '5y');
+  });
+
+  it('uses row clicks for columns and the graph button for chart rows', async () => {
+    const state = createState({ stocks: [stock()] });
+    const { fixture, element } = await render(state);
     const row = positionRow(element, 'AAPL');
+    const fetchSpy = state.fetchStockHistory as jasmine.Spy;
 
     expect(row.getAttribute('aria-expanded')).toBe('true');
     expect(row.querySelector('.ticker-metrics')).not.toBeNull();
+    expect(row.querySelector('.position-chart-row')).toBeNull();
 
     row.click();
     fixture.detectChanges();
 
     expect(row.getAttribute('aria-expanded')).toBe('false');
     expect(row.classList.contains('collapsed-row')).toBeTrue();
-    expect(row.querySelector('.ticker-metrics')).toBeNull();
-    expect(textContent(row.querySelector('.row-actions .position-expand-hint'))).toBe('click to expand');
+    expect(fixture.componentInstance.isCollapsed(stock())).toBeTrue();
+    expect(row.querySelector('.position-chart-row')).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(textContent(row.querySelector('.row-actions .position-expand-hint'))).toBe('click to show indicators');
     expect(row.querySelector('.ticker-identity .position-expand-hint')).toBeNull();
     expect(textContent(row)).not.toContain('Avg');
     expect(textContent(row)).not.toContain('Qty');
@@ -149,6 +236,88 @@ describe('PortfolioBoardComponent', () => {
     expect(row.classList.contains('collapsed-row')).toBeFalse();
     expect(row.querySelector('.ticker-metrics')).not.toBeNull();
     expect(row.querySelector('.position-expand-hint')).toBeNull();
+
+    row.querySelector<HTMLButtonElement>('.graph-action')?.click();
+    fixture.detectChanges();
+
+    expect(row.getAttribute('aria-expanded')).toBe('true');
+    expect(row.querySelector('.ticker-metrics')).not.toBeNull();
+    expect(row.querySelector('.position-chart-row')).not.toBeNull();
+    expect(row.querySelectorAll('.chart-range-options button').length).toBe(7);
+    expect(textContent(row.querySelector('.chart-range-options button.active'))).toBe('1m');
+    expect(row.querySelector('.range-trend-svg .trend-line')?.getAttribute('d')).toContain('L');
+    expect(row.querySelectorAll('.trend-x-axis-label').length).toBeGreaterThan(1);
+    expect(row.querySelectorAll('.trend-y-axis-label').length).toBeGreaterThan(1);
+    expect(fetchSpy).toHaveBeenCalledWith('demo', 'password123', 'AAPL', '1m');
+
+    row.click();
+    fixture.detectChanges();
+
+    expect(row.getAttribute('aria-expanded')).toBe('false');
+    expect(row.classList.contains('collapsed-row')).toBeTrue();
+    expect(row.querySelector('.position-chart-row')).not.toBeNull();
+  });
+
+  it('reuses cached position history when returning to an already loaded range', async () => {
+    const state = createState({ stocks: [stock()] });
+    const { fixture, element } = await render(state);
+    const fetchSpy = state.fetchStockHistory as jasmine.Spy;
+    const row = positionRow(element, 'AAPL');
+
+    row.querySelector<HTMLButtonElement>('.graph-action')?.click();
+    fixture.detectChanges();
+
+    expect(fetchSpy.calls.count()).toBe(1);
+    expect(fetchSpy.calls.mostRecent().args).toEqual(['demo', 'password123', 'AAPL', '1m']);
+
+    Array.from(row.querySelectorAll<HTMLButtonElement>('.chart-range-options button'))
+      .find((button) => textContent(button) === '1y')
+      ?.click();
+    fixture.detectChanges();
+
+    expect(fetchSpy.calls.count()).toBe(2);
+    expect(fetchSpy.calls.mostRecent().args).toEqual(['demo', 'password123', 'AAPL', '1y']);
+
+    Array.from(row.querySelectorAll<HTMLButtonElement>('.chart-range-options button'))
+      .find((button) => textContent(button) === '1m')
+      ?.click();
+    fixture.detectChanges();
+
+    expect(fetchSpy.calls.count()).toBe(2);
+  });
+
+  it('does not cache an empty position history response', async () => {
+    const fetchSpy = jasmine.createSpy('fetchStockHistory').and.returnValues(
+      of({ id: 'AAPL', range: '1m', points: [] }),
+      of({
+        id: 'AAPL',
+        range: '1m',
+        points: [
+          { timestamp: '2026-05-01T00:00:00Z', value: 22 },
+          { timestamp: '2026-06-01T00:00:00Z', value: 25 },
+        ],
+      }),
+    );
+    const { fixture, element } = await render(createState({
+      stocks: [stock()],
+      fetchStockHistory: fetchSpy,
+    }));
+    const row = positionRow(element, 'AAPL');
+    const graphButton = row.querySelector<HTMLButtonElement>('.graph-action');
+
+    graphButton?.click();
+    fixture.detectChanges();
+
+    expect(fetchSpy.calls.count()).toBe(1);
+    expect(textContent(row.querySelector('.trend-empty-label'))).toContain('No historical data');
+
+    graphButton?.click();
+    fixture.detectChanges();
+    graphButton?.click();
+    fixture.detectChanges();
+
+    expect(fetchSpy.calls.count()).toBe(2);
+    expect(row.querySelector('.range-trend-svg .trend-line')?.getAttribute('d')).toContain('L');
   });
 
   it('opens edit and delete actions in a dialog without collapsing the row', async () => {
@@ -288,12 +457,18 @@ describe('PortfolioBoardComponent', () => {
     const row = positionRow(element, 'MSFT');
 
     expect(row.getAttribute('aria-expanded')).toBeNull();
-    expect(row.getAttribute('tabindex')).toBeNull();
+    expect(row.getAttribute('tabindex')).toBe('0');
 
     row.click();
     fixture.detectChanges();
 
     expect(row.classList.contains('collapsed-row')).toBeFalse();
+    expect(row.querySelector('.position-chart-row')).toBeNull();
+
+    row.querySelector<HTMLButtonElement>('.graph-action')?.click();
+    fixture.detectChanges();
+
+    expect(row.querySelector('.position-chart-row')).not.toBeNull();
     expect(textContent(row.querySelector('.watch-only-badge'))).toBe('Watch only');
 
     const todayMetric = row.querySelector('.position-title-inline-metric');

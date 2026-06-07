@@ -46,6 +46,8 @@ describe('AppComponent', () => {
       'fetchDashboard',
       'fetchIndicators',
       'fetchStocks',
+      'fetchStockHistory',
+      'fetchIndicatorHistory',
       'fetchPortfolio',
       'notificationStatus',
       'sendTelegram',
@@ -61,10 +63,31 @@ describe('AppComponent', () => {
       'dcaSettings',
       'saveDcaSettings',
       'searchSymbols',
+      'ensureGlobalIndicatorChart',
+      'getGlobalIndicatorChartRange',
+      'setGlobalIndicatorChartRange',
+      'globalIndicatorChartPoints',
+      'isGlobalIndicatorChartLoading',
     ]);
     Object.assign(marketDashboardService, new MarketDashboardService({} as never));
+    Object.defineProperties(marketDashboardService, {
+      indicators: {
+        get: () => marketDashboardService.dashboard.indicators,
+      },
+      stocks: {
+        get: () => marketDashboardService.dashboard.stocks,
+      },
+      portfolio: {
+        get: () => marketDashboardService.dashboard.portfolio,
+      },
+      alertCount: {
+        get: () => marketDashboardService.dashboard.stocks.filter((stock) => stock.alert).length,
+      },
+    });
     marketDashboardService.fetchIndicators.and.returnValue(of([]));
     marketDashboardService.fetchStocks.and.returnValue(of([]));
+    marketDashboardService.fetchStockHistory.and.returnValue(of({ id: 'AAPL', range: '1m', points: [] }));
+    marketDashboardService.fetchIndicatorHistory.and.returnValue(of({ id: 'vix', range: '1m', points: [] }));
     marketDashboardService.fetchPortfolio.and.returnValue(of([]));
     marketDashboardService.notificationStatus.and.returnValue(of({
       enabled: false,
@@ -85,6 +108,9 @@ describe('AppComponent', () => {
       reminderNote: '',
     }));
     marketDashboardService.searchSymbols.and.returnValue(of([]));
+    marketDashboardService.getGlobalIndicatorChartRange.and.returnValue('1m');
+    marketDashboardService.globalIndicatorChartPoints.and.returnValue([]);
+    marketDashboardService.isGlobalIndicatorChartLoading.and.returnValue(false);
 
     await TestBed.configureTestingModule({
       imports: [AppComponent],

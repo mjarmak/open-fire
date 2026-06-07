@@ -3,6 +3,9 @@ package com.jarmak.stockmarketanalyzer.web;
 import com.jarmak.stockmarketanalyzer.alerts.StockAlertService;
 import com.jarmak.stockmarketanalyzer.market.DashboardService;
 import com.jarmak.stockmarketanalyzer.market.FinnhubClient;
+import com.jarmak.stockmarketanalyzer.market.HistoryRange;
+import com.jarmak.stockmarketanalyzer.market.MarketIndicatorService;
+import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartSeries;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.DashboardResponse;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.IndicatorSnapshot;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.NotificationStatus;
@@ -48,6 +51,7 @@ public class DashboardController {
   private final TelegramNotificationService telegramNotificationService;
   private final PortfolioService portfolioService;
   private final FinnhubClient finnhubClient;
+  private final MarketIndicatorService marketIndicatorService;
   private final UserAccountService userAccountService;
   private final StockAlertService stockAlertService;
 
@@ -56,6 +60,7 @@ public class DashboardController {
       TelegramNotificationService telegramNotificationService,
       PortfolioService portfolioService,
       FinnhubClient finnhubClient,
+      MarketIndicatorService marketIndicatorService,
       UserAccountService userAccountService,
       StockAlertService stockAlertService
   ) {
@@ -63,6 +68,7 @@ public class DashboardController {
     this.telegramNotificationService = telegramNotificationService;
     this.portfolioService = portfolioService;
     this.finnhubClient = finnhubClient;
+    this.marketIndicatorService = marketIndicatorService;
     this.userAccountService = userAccountService;
     this.stockAlertService = stockAlertService;
   }
@@ -102,6 +108,28 @@ public class DashboardController {
             "Choose an existing stock from autocomplete before previewing it."
         ));
     return stockAlertService.preview(match.symbol(), match.name());
+  }
+
+  @GetMapping("/stocks/{symbol}/history")
+  ChartSeries stockHistory(
+      @PathVariable String symbol,
+      @RequestParam(defaultValue = "1m") String range
+  ) {
+    HistoryRange historyRange = parseHistoryRange(range);
+    String normalizedSymbol = symbol == null ? "" : symbol.trim().toUpperCase();
+    return new ChartSeries(normalizedSymbol, historyRange.label(), finnhubClient.historicalCandles(normalizedSymbol, historyRange));
+  }
+
+  @GetMapping("/indicators/{indicatorId}/history")
+  ChartSeries indicatorHistory(
+      @PathVariable String indicatorId,
+      @RequestParam(defaultValue = "1m") String range
+  ) {
+    try {
+      return marketIndicatorService.indicatorHistory(indicatorId, parseHistoryRange(range));
+    } catch (IllegalArgumentException exception) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage(), exception);
+    }
   }
 
   @GetMapping("/notifications/status")
@@ -312,6 +340,14 @@ public class DashboardController {
       return stockAlertService.preview(result.symbol(), result.name());
     } catch (RuntimeException exception) {
       return null;
+    }
+  }
+
+  private HistoryRange parseHistoryRange(String range) {
+    try {
+      return HistoryRange.fromLabel(range);
+    } catch (IllegalArgumentException exception) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, exception.getMessage(), exception);
     }
   }
 

@@ -51,4 +51,25 @@ class MarketRiskMetricsTest {
 
     assertThat(drawdown).isEqualByComparingTo("20.0");
   }
+
+  @Test
+  void usesCloseOnOrBeforeChangeCutoffInsteadOfNearestFutureClose() {
+    BigDecimal baseline = MarketRiskMetrics.baselineCloseForChange(List.of(
+        new TimeSeriesPoint(LocalDate.of(2026, 5, 7), 100),
+        new TimeSeriesPoint(LocalDate.of(2026, 5, 11), 130),
+        new TimeSeriesPoint(LocalDate.of(2026, 6, 6), 110)
+    ), LocalDate.of(2026, 5, 9));
+
+    assertThat(baseline).isEqualByComparingTo("100.0");
+  }
+
+  @Test
+  void fallsBackToEarliestPositiveCloseWhenNoCloseExistsBeforeChangeCutoff() {
+    BigDecimal baseline = MarketRiskMetrics.baselineCloseForChange(List.of(
+        new TimeSeriesPoint(LocalDate.of(2026, 5, 11), 130),
+        new TimeSeriesPoint(LocalDate.of(2026, 6, 6), 140)
+    ), LocalDate.of(2026, 5, 9));
+
+    assertThat(baseline).isEqualByComparingTo("130.0");
+  }
 }

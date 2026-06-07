@@ -2,8 +2,10 @@ import { expect, test } from '@playwright/test';
 import { gotoLoggedInDashboard, registerMockApi, seedRememberedLogin } from '../fixtures/mock-api';
 
 test.describe('Indicators Section', () => {
+  let api: Awaited<ReturnType<typeof registerMockApi>>;
+
   test.beforeEach(async ({ page }) => {
-    await registerMockApi(page);
+    api = await registerMockApi(page);
     await seedRememberedLogin(page);
     await gotoLoggedInDashboard(page);
   });
@@ -24,7 +26,117 @@ test.describe('Indicators Section', () => {
     await expect(compactCards.locator('.mini-speedometer')).toHaveCount(3);
     await expect(indicatorGrid.locator('.retirement-progress-indicator')).toContainText('Progress');
     await expect(indicatorGrid.locator('.retirement-progress-indicator')).toContainText('of target');
-    await expect(indicatorGrid.locator('.indicator-help')).toHaveCount(3);
+    await expect(indicatorGrid.locator('.indicator-help')).toHaveCount(0);
+
+    const vixCard = compactCards.filter({ hasText: 'Fear Index / VIX' });
+    await expect(vixCard).toHaveAttribute('data-tooltip', 'Volatility benchmark for broad market stress.');
+    await vixCard.hover();
+    await expect(page.getByRole('tooltip')).toHaveText('Volatility benchmark for broad market stress.');
+
+    const retirementCard = indicatorGrid.locator('.retirement-progress-indicator');
+    await expect(retirementCard).toHaveAttribute('data-tooltip', /Current non-watch-only portfolio value/);
+    await retirementCard.hover();
+    await expect(page.getByRole('tooltip')).toContainText('Current non-watch-only portfolio value');
+  });
+
+  test('shows both global risk charts below the pie chart with range controls', async ({ page }) => {
+    await page.evaluate(() => localStorage.setItem('sma_theme', 'light'));
+    await page.reload();
+    await expect(page.locator('app-root')).toHaveClass(/light-theme/);
+
+    const indicatorGrid = page.getByLabel('Macro market indicators');
+    const vixCard = indicatorGrid.locator('.compact-indicator').filter({ hasText: 'Fear Index / VIX' });
+    await expect(vixCard).toBeVisible();
+
+    await expect.poll(() => api.calls['GET /indicators/vix/history'] || 0).toBeGreaterThan(0);
+    await expect.poll(() => api.calls['GET /indicators/credit/history'] || 0).toBeGreaterThan(0);
+    const initialVixHistoryCalls = api.calls['GET /indicators/vix/history'] || 0;
+    const initialCreditHistoryCalls = api.calls['GET /indicators/credit/history'] || 0;
+    await expect(vixCard.locator('.indicator-chart-panel')).toHaveCount(0);
+
+    const portfolioBoard = page.getByLabel('Portfolio tickers');
+    const globalCharts = portfolioBoard.locator('.global-risk-chart-panel');
+    const vixChart = globalCharts.filter({ hasText: 'Fear Index / VIX' });
+    const creditChart = globalCharts.filter({ hasText: 'Credit Market' });
+    await expect(globalCharts).toHaveCount(2);
+    await expect(vixChart).toBeVisible();
+    await expect(creditChart).toBeVisible();
+    await expect(vixChart.locator('.chart-range-options button')).toHaveCount(7);
+    await expect(vixChart.locator('.chart-range-options button.active')).toHaveText('1m');
+
+    await vixChart.locator('.chart-range-options button', { hasText: '5y' }).click();
+    await expect(vixChart.locator('.chart-range-options button.active')).toHaveText('5y');
+    await expect.poll(() => api.calls['GET /indicators/vix/history'] || 0).toBe(initialVixHistoryCalls + 1);
+    expect(api.calls['GET /indicators/credit/history'] || 0).toBe(initialCreditHistoryCalls);
+
+    await vixChart.locator('.chart-range-options button', { hasText: '1m' }).click();
+    await expect(vixChart.locator('.chart-range-options button.active')).toHaveText('1m');
+    await page.waitForTimeout(100);
+    expect(api.calls['GET /indicators/vix/history'] || 0).toBe(initialVixHistoryCalls + 1);
+
+    const gridBox = await indicatorGrid.boundingBox();
+    const portfolioBox = await portfolioBoard.boundingBox();
+    const chartPanelBox = await vixChart.boundingBox();
+    const chartSvgBox = await vixChart.locator('.range-trend-svg').boundingBox();
+    const trendLineBox = await vixChart.locator('.range-trend-svg .trend-line').boundingBox();
+    expect(gridBox).not.toBeNull();
+    expect(portfolioBox).not.toBeNull();
+    expect(chartPanelBox).not.toBeNull();
+    expect(chartSvgBox).not.toBeNull();
+    expect(trendLineBox).not.toBeNull();
+    expect(chartPanelBox!.width).toBeGreaterThan(portfolioBox!.width - 24);
+    expect(await vixChart.evaluate((element) => getComputedStyle(element).borderStyle)).toBe('solid');
+    expect(await vixChart.evaluate((element) => getComputedStyle(element).borderRadius)).not.toBe('0px');
+    expect(chartSvgBox!.width).toBeGreaterThan(chartPanelBox!.width * 0.55);
+    expect(trendLineBox!.width).toBeGreaterThan(chartSvgBox!.width * 0.75);
+    await expect.poll(() => portfolioBoard.evaluate((element) => {
+      const piePanel = element.querySelector('.position-type-panel');
+      const chartPanels = element.querySelectorAll('.global-risk-chart-panel');
+      const stockTable = element.querySelector('.stock-table');
+      return Boolean(
+        piePanel
+          && chartPanels.length === 2
+          && stockTable
+          && (piePanel.compareDocumentPosition(chartPanels[0]) & Node.DOCUMENT_POSITION_FOLLOWING)
+          && (chartPanels[1].compareDocumentPosition(stockTable) & Node.DOCUMENT_POSITION_FOLLOWING),
+      );
+    })).toBe(true);
+    await expect(vixChart.locator('.range-trend-svg .trend-line')).toHaveAttribute('d', /L/);
+    await expect(vixChart.locator('.trend-x-axis-label')).toHaveCount(3);
+    await expect(vixChart.locator('.trend-y-axis-label')).toHaveCount(5);
+    await expect(vixChart.locator('.trend-y-axis-unit')).toHaveText('index points');
+    const yAxisLabelText = await vixChart.locator('.trend-y-axis-label').allTextContents();
+    expect(yAxisLabelText.every((label) => !label.includes('index points'))).toBe(true);
+    await vixChart.locator('.range-trend-container').hover({ position: { x: 320, y: 52 } });
+    const tooltip = vixChart.locator('.range-trend-tooltip');
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toContainText('Value');
+    const tooltipTextBrightness = await tooltip.evaluate((element) => {
+      const brightness = (selector: string) => {
+        const target = element.querySelector(selector);
+        if (!target) return 0;
+        const match = getComputedStyle(target).color.match(/\d+/g)?.map(Number) || [];
+        return match.length >= 3 ? (match[0] + match[1] + match[2]) / 3 : 0;
+      };
+      const fontSize = (selector: string) => {
+        const target = element.querySelector(selector);
+        return target ? Number.parseFloat(getComputedStyle(target).fontSize) : 0;
+      };
+      return {
+        title: brightness('.tooltip-title'),
+        label: brightness('.label'),
+        value: brightness('.val'),
+        titleSize: fontSize('.tooltip-title'),
+        labelSize: fontSize('.label'),
+        valueSize: fontSize('.val'),
+      };
+    });
+    expect(tooltipTextBrightness.title).toBeGreaterThan(180);
+    expect(tooltipTextBrightness.label).toBeGreaterThan(180);
+    expect(tooltipTextBrightness.value).toBeGreaterThan(180);
+    expect(tooltipTextBrightness.titleSize).toBeLessThanOrEqual(10);
+    expect(tooltipTextBrightness.labelSize).toBeLessThanOrEqual(11);
+    expect(tooltipTextBrightness.valueSize).toBeLessThanOrEqual(11);
   });
 
   test('keeps the compact indicator grid inside a mobile viewport', async ({ page }) => {
@@ -38,6 +150,26 @@ test.describe('Indicators Section', () => {
         return cardBounds.left >= gridBounds.left - 1 && cardBounds.right <= gridBounds.right + 1;
       });
     })).toBe(true);
+  });
+
+  test('keeps always visible indicator graphs readable in a mobile viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const indicatorGrid = page.getByLabel('Macro market indicators');
+    const creditCard = indicatorGrid.locator('.compact-indicator').filter({ hasText: 'Credit Market' });
+    await expect(creditCard).toBeVisible();
+
+    const globalChart = page.getByLabel('Portfolio tickers').locator('.global-risk-chart-panel').filter({ hasText: 'Credit Market' });
+    await expect(globalChart).toBeVisible();
+    const svgBox = await globalChart.locator('.range-trend-svg').boundingBox();
+    const trendLineBox = await globalChart.locator('.range-trend-svg .trend-line').boundingBox();
+    expect(svgBox).not.toBeNull();
+    expect(trendLineBox).not.toBeNull();
+    expect(svgBox!.height).toBeGreaterThan(78);
+    expect(svgBox!.width).toBeGreaterThan(300);
+    expect(trendLineBox!.width).toBeGreaterThan(svgBox!.width * 0.7);
+    await expect(globalChart.locator('.trend-y-axis-unit')).toHaveText('spread %');
+    const yAxisLabelText = await globalChart.locator('.trend-y-axis-label').allTextContents();
+    expect(yAxisLabelText.every((label) => !label.includes('spread'))).toBe(true);
   });
 
   test('keeps section title h2 sizes consistent while compact gauge titles stay smaller', async ({ page }) => {

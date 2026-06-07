@@ -309,6 +309,48 @@ function syncStockFromHolding(state: MockApiState, holding: PortfolioHolding): S
   return mergedStock;
 }
 
+function buildHistorySeries(id: string, range: string, latestValue: number): { id: string; range: string; points: { timestamp: string; value: number }[] } {
+  const pointCount = range === '1h' ? 12 : range === '1d' || range === '5d' ? 16 : range === '1m' ? 22 : 28;
+  const durationMs = rangeDurationMs(range);
+  const now = new Date('2026-06-06T12:00:00Z').getTime();
+  const start = now - durationMs;
+  const safeLatest = latestValue > 0 ? latestValue : 1;
+  const startValue = safeLatest * 0.94;
+  const step = pointCount <= 1 ? 0 : durationMs / (pointCount - 1);
+  return {
+    id,
+    range,
+    points: Array.from({ length: pointCount }, (_, index) => {
+      const progress = pointCount <= 1 ? 1 : index / (pointCount - 1);
+      return {
+        timestamp: new Date(start + step * index).toISOString(),
+        value: Number((startValue + (safeLatest - startValue) * progress).toFixed(2)),
+      };
+    }),
+  };
+}
+
+function rangeDurationMs(range: string): number {
+  const day = 24 * 60 * 60 * 1000;
+  switch (range) {
+    case '1h':
+      return 60 * 60 * 1000;
+    case '1d':
+      return day;
+    case '5d':
+      return 5 * day;
+    case '1y':
+      return 365 * day;
+    case '5y':
+      return 5 * 365 * day;
+    case 'all':
+      return 10 * 365 * day;
+    case '1m':
+    default:
+      return 30 * day;
+  }
+}
+
 export async function registerMockApi(page: Page, initial?: Partial<MockApiState>): Promise<MockApiController> {
   const state: MockApiState = {
     ...defaultState(),
@@ -357,6 +399,24 @@ export async function registerMockApi(page: Page, initial?: Partial<MockApiState
     }
     if (method === 'GET' && path === '/stocks') {
       await route.fulfill({ status: 200, json: state.stocks });
+      return;
+    }
+    if (method === 'GET' && path.startsWith('/stocks/') && path.endsWith('/history')) {
+      const symbol = decodeURIComponent(path.replace('/stocks/', '').replace('/history', '')).toUpperCase();
+      const stock = state.stocks.find((item) => item.symbol === symbol);
+      await route.fulfill({
+        status: 200,
+        json: buildHistorySeries(symbol, url.searchParams.get('range') || '1m', stock?.latestPrice ?? 100),
+      });
+      return;
+    }
+    if (method === 'GET' && path.startsWith('/indicators/') && path.endsWith('/history')) {
+      const indicatorId = decodeURIComponent(path.replace('/indicators/', '').replace('/history', ''));
+      const indicator = state.indicators.find((item) => item.id === indicatorId);
+      await route.fulfill({
+        status: 200,
+        json: buildHistorySeries(indicatorId, url.searchParams.get('range') || '1m', indicator?.value ?? 1),
+      });
       return;
     }
     if (method === 'GET' && path === '/portfolio') {

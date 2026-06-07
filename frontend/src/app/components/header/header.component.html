@@ -1,7 +1,5 @@
 <header class="top-bar">
   <div class="top-left-panel">
-    <img class="brand-mark" src="openfire-logo.svg" alt="" width="36" height="36" />
-    <strong class="top-left-title">OpenFIRE</strong>
     <button
       type="button"
       class="secondary icon-btn top-menu-button menu-action"
@@ -11,6 +9,11 @@
       [attr.aria-expanded]="menuOpen"
       (click)="openMenu()"
     ></button>
+  </div>
+
+  <div class="top-middle-panel" aria-label="OpenFIRE">
+    <img class="brand-mark" src="openfire-logo.svg" alt="" width="36" height="36" />
+    <strong class="top-bar-title">OpenFIRE</strong>
   </div>
 
   <div class="connection-panel" [class.login-only]="!state.isLoggedIn">

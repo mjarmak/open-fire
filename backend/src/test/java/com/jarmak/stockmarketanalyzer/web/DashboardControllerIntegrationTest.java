@@ -19,6 +19,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jarmak.stockmarketanalyzer.alerts.StockAlertService;
 import com.jarmak.stockmarketanalyzer.market.DashboardService;
 import com.jarmak.stockmarketanalyzer.market.FinnhubClient;
+import com.jarmak.stockmarketanalyzer.market.HistoryRange;
+import com.jarmak.stockmarketanalyzer.market.MarketIndicatorService;
+import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
+import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartSeries;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.DashboardResponse;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.IndicatorSnapshot;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.NotificationStatus;
@@ -68,6 +72,9 @@ class DashboardControllerIntegrationTest {
 
   @MockBean
   private FinnhubClient finnhubClient;
+
+  @MockBean
+  private MarketIndicatorService marketIndicatorService;
 
   @MockBean
   private UserAccountService userAccountService;
@@ -146,6 +153,36 @@ class DashboardControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].symbol").value("AAPL"))
         .andExpect(jsonPath("$[0].marketValue").value(200));
+  }
+
+  @Test
+  void getsStockHistory() throws Exception {
+    when(finnhubClient.historicalCandles("AAPL", HistoryRange.ONE_MONTH))
+        .thenReturn(List.of(new ChartPoint(Instant.parse("2026-06-03T10:00:00Z"), BigDecimal.valueOf(110.25))));
+
+    mockMvc.perform(get("/api/stocks/AAPL/history").param("range", "1m"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value("AAPL"))
+        .andExpect(jsonPath("$.range").value("1m"))
+        .andExpect(jsonPath("$.points[0].timestamp").value("2026-06-03T10:00:00Z"))
+        .andExpect(jsonPath("$.points[0].value").value(110.25));
+  }
+
+  @Test
+  void getsIndicatorHistory() throws Exception {
+    when(marketIndicatorService.indicatorHistory("vix", HistoryRange.ONE_YEAR))
+        .thenReturn(new ChartSeries(
+            "vix",
+            "1y",
+            List.of(new ChartPoint(Instant.parse("2026-06-03T00:00:00Z"), BigDecimal.valueOf(18.5)))
+        ));
+
+    mockMvc.perform(get("/api/indicators/vix/history").param("range", "1y"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value("vix"))
+        .andExpect(jsonPath("$.range").value("1y"))
+        .andExpect(jsonPath("$.points[0].timestamp").value("2026-06-03T00:00:00Z"))
+        .andExpect(jsonPath("$.points[0].value").value(18.5));
   }
 
   @Test

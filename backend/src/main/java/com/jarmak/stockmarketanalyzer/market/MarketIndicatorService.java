@@ -2,6 +2,7 @@ package com.jarmak.stockmarketanalyzer.market;
 
 import com.jarmak.stockmarketanalyzer.config.CacheConfig;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
+import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartSeries;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.IndicatorSnapshot;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -45,6 +46,17 @@ public class MarketIndicatorService {
     credit.ifPresent(indicators::add);
     correlation.ifPresent(indicators::add);
     return List.copyOf(indicators);
+  }
+
+  public ChartSeries indicatorHistory(String indicatorId, HistoryRange range) {
+    String normalizedId = indicatorId == null ? "" : indicatorId.trim().toLowerCase();
+    String seriesId = switch (normalizedId) {
+      case "vix" -> "VIXCLS";
+      case "credit" -> "BAMLC0A0CM";
+      default -> throw new IllegalArgumentException("Unsupported indicator history: " + indicatorId);
+    };
+
+    return new ChartSeries(normalizedId, range.label(), fredClient.observations(seriesId, range));
   }
 
   private CompletableFuture<Optional<IndicatorSnapshot>> indicatorFuture(java.util.function.Supplier<Optional<IndicatorSnapshot>> supplier) {

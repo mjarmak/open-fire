@@ -1,8 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { animate, style, transition, trigger } from '@angular/animations';
-import { Component, EventEmitter, OnInit, inject, Output } from '@angular/core';
-import { StockAlert } from '../../market-dashboard.models';
+import { Component, DestroyRef, EventEmitter, OnInit, inject, Output } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { finalize } from 'rxjs';
+import { ChartPoint, IndicatorSnapshot, StockAlert } from '../../market-dashboard.models';
 import { MarketDashboardService } from '../../market-dashboard.service';
+import { RangeTrendChartComponent, TrendChartPoint, TrendChartRange } from '../range-trend-chart/range-trend-chart.component';
 
 type PositionTypeSlice = {
   label: string;
@@ -17,7 +20,7 @@ type PositionFilter = 'all' | 'positions' | 'watchlist';
 @Component({
   selector: 'app-portfolio-board',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RangeTrendChartComponent],
   templateUrl: './portfolio-board.component.html',
   animations: [
     trigger('positionColumns', [
@@ -33,6 +36,7 @@ type PositionFilter = 'all' | 'positions' | 'watchlist';
 })
 export class PortfolioBoardComponent implements OnInit {
   protected readonly state = inject(MarketDashboardService);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly positionFilters: { value: PositionFilter; label: string }[] = [
     { value: 'all', label: 'All' },
     { value: 'positions', label: 'Positions' },
@@ -58,6 +62,11 @@ export class PortfolioBoardComponent implements OnInit {
   collapsedSymbols = new Set<string>();
   protected positionFilter: PositionFilter = 'all';
   protected actionDialogRowKey: string | null = null;
+  protected chartRowKey: string | null = null;
+  protected selectedChartRange: TrendChartRange = '1m';
+  protected readonly chartRanges: TrendChartRange[] = ['1h', '1d', '5d', '1m', '1y', '5y', 'all'];
+  private readonly chartCache = new Map<string, TrendChartPoint[]>();
+  private readonly loadingChartKeys = new Set<string>();
 
   ngOnInit(): void {
     this.loadCollapsedState();
@@ -204,10 +213,9 @@ export class PortfolioBoardComponent implements OnInit {
     }
 
     this.actionDialogRowKey = null;
-    if (stock.watchOnly) {
-      return;
+    if (!stock.watchOnly) {
+      this.toggleCollapsed(stock);
     }
-    this.toggleCollapsed(stock);
   }
 
   protected handleRowKeydown(stock: StockAlert, event: KeyboardEvent): void {
@@ -242,6 +250,98 @@ export class PortfolioBoardComponent implements OnInit {
 
   protected stopRowClick(event: Event): void {
     event.stopPropagation();
+  }
+
+  protected isPositionChartOpen(stock: StockAlert): boolean {
+    return this.chartRowKey === this.positionRowKey(stock);
+  }
+
+  protected togglePositionChart(stock: StockAlert, event: Event): void {
+    event.stopPropagation();
+    this.actionDialogRowKey = null;
+    const rowKey = this.positionRowKey(stock);
+    this.chartRowKey = this.chartRowKey === rowKey ? null : rowKey;
+    if (this.chartRowKey === rowKey) {
+      this.loadPositionChart(stock);
+    }
+  }
+
+  protected setChartRange(range: TrendChartRange): void {
+    if (this.selectedChartRange === range) {
+      return;
+    }
+
+    this.selectedChartRange = range;
+    const openStock = this.displayedStocks.find((stock) => this.positionRowKey(stock) === this.chartRowKey);
+    if (openStock) {
+      this.loadPositionChart(openStock);
+    }
+  }
+
+  protected get globalRiskIndicators(): IndicatorSnapshot[] {
+    const indicators = this.state.indicators
+      .filter((indicator) => this.isGlobalRiskIndicator(indicator))
+      .sort((left, right) => this.globalRiskSortOrder(left.id) - this.globalRiskSortOrder(right.id));
+    for (const indicator of indicators) {
+      this.state.ensureGlobalIndicatorChart(indicator.id);
+    }
+    return indicators;
+  }
+
+  protected selectedGlobalRiskChartRange(indicator: IndicatorSnapshot): TrendChartRange {
+    return this.asTrendChartRange(this.state.getGlobalIndicatorChartRange(indicator.id));
+  }
+
+  protected setGlobalRiskChartRange(indicator: IndicatorSnapshot, range: TrendChartRange): void {
+    this.state.setGlobalIndicatorChartRange(indicator.id, range);
+  }
+
+  protected globalRiskChartData(indicator: IndicatorSnapshot): TrendChartPoint[] {
+    return this.toTrendChartPoints(this.state.globalIndicatorChartPoints(indicator.id));
+  }
+
+  protected isGlobalRiskChartLoading(indicator: IndicatorSnapshot): boolean {
+    return this.state.isGlobalIndicatorChartLoading(indicator.id);
+  }
+
+  protected globalRiskChartTone(indicator: IndicatorSnapshot): 'up' | 'down' | 'flat' {
+    const change = Number(indicator.change) || 0;
+    if (change > 0) return 'up';
+    if (change < 0) return 'down';
+    return 'flat';
+  }
+
+  protected globalRiskChartSummary(indicator: IndicatorSnapshot): string {
+    const change = new Intl.NumberFormat('en-US', {
+      maximumFractionDigits: 2,
+      signDisplay: 'exceptZero',
+    }).format(Number(indicator.change) || 0);
+    return `${indicator.name} ${this.selectedGlobalRiskChartRange(indicator)} ${indicator.value} ${indicator.unit} ${change}`;
+  }
+
+  protected positionChartData(stock: StockAlert): TrendChartPoint[] {
+    return this.chartCache.get(this.positionChartCacheKey(stock)) ?? [];
+  }
+
+  protected isPositionChartLoading(stock: StockAlert): boolean {
+    return this.loadingChartKeys.has(this.positionChartCacheKey(stock));
+  }
+
+  protected positionChartTone(stock: StockAlert): 'up' | 'down' | 'flat' {
+    const change = stock.dayGainLossPercent ?? stock.thirtyDayChangePercent ?? stock.unrealizedGainLossPercent ?? 0;
+    if (change > 0) return 'up';
+    if (change < 0) return 'down';
+    return 'flat';
+  }
+
+  protected positionChartSummary(stock: StockAlert): string {
+    const latest = stock.latestPrice ?? this.calculatePositionMarketValue(stock) ?? 0;
+    const change = stock.dayGainLossPercent ?? stock.thirtyDayChangePercent ?? 0;
+    const formattedChange = new Intl.NumberFormat('en-US', {
+      maximumFractionDigits: 2,
+      signDisplay: 'exceptZero',
+    }).format(change);
+    return `${stock.symbol} ${this.selectedChartRange} ${this.formatMoney(latest)} ${formattedChange}%`;
   }
 
   private isTooltipInteraction(event: Event): boolean {
@@ -492,5 +592,64 @@ export class PortfolioBoardComponent implements OnInit {
   private persistCollapsedState(): void {
     const collapsed = Array.from(this.collapsedSymbols.values());
     localStorage.setItem(this.collapsedStateStorageKey, JSON.stringify(collapsed));
+  }
+
+  private positionChartCacheKey(stock: StockAlert): string {
+    return `${stock.symbol.toUpperCase()}|${this.selectedChartRange}`;
+  }
+
+  private isGlobalRiskIndicator(indicator: IndicatorSnapshot): boolean {
+    return indicator.id === 'vix' || indicator.id === 'credit';
+  }
+
+  private globalRiskSortOrder(indicatorId: string): number {
+    if (indicatorId === 'vix') return 0;
+    if (indicatorId === 'credit') return 1;
+    return 2;
+  }
+
+  private asTrendChartRange(range: string): TrendChartRange {
+    return this.chartRanges.includes(range as TrendChartRange) ? range as TrendChartRange : '1m';
+  }
+
+  private toTrendChartPoints(points: ChartPoint[]): TrendChartPoint[] {
+    return points
+      .map((point) => ({
+        date: new Date(point.timestamp),
+        value: Number(point.value),
+      }))
+      .filter((point) => !Number.isNaN(point.date.getTime()) && Number.isFinite(point.value));
+  }
+
+  private loadPositionChart(stock: StockAlert): void {
+    const cacheKey = this.positionChartCacheKey(stock);
+    if (this.chartCache.has(cacheKey) || this.loadingChartKeys.has(cacheKey)) {
+      return;
+    }
+
+    this.loadingChartKeys.add(cacheKey);
+    this.state.fetchStockHistory(this.state.username, this.state.password, stock.symbol, this.selectedChartRange)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loadingChartKeys.delete(cacheKey)),
+      )
+      .subscribe({
+        next: (series) => {
+          const points = (series.points || [])
+            .map((point) => ({
+              date: new Date(point.timestamp),
+              value: Number(point.value),
+            }))
+            .filter((point) => !Number.isNaN(point.date.getTime()) && Number.isFinite(point.value));
+          if (points.length) {
+            this.chartCache.set(cacheKey, points);
+          } else {
+            this.chartCache.delete(cacheKey);
+          }
+        },
+        error: () => {
+          this.chartCache.delete(cacheKey);
+        },
+      });
   }
 }

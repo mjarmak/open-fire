@@ -2,8 +2,10 @@ package com.jarmak.stockmarketanalyzer.market;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
+import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.SymbolSearchResult;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -12,7 +14,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -61,6 +62,8 @@ public class FinnhubClient {
   private final Map<String, CacheEntry<List<SymbolSearchResult>>> searchCache = new ConcurrentHashMap<>();
   private final Map<String, CacheEntry<Optional<CompanySnapshot>>> snapshotCache = new ConcurrentHashMap<>();
   private final Map<String, CacheEntry<List<TimeSeriesPoint>>> closesCache = new ConcurrentHashMap<>();
+  private final Map<String, CacheEntry<List<ChartPoint>>> historyCache = new ConcurrentHashMap<>();
+  private final Map<String, List<ChartPoint>> lastGoodHistory = new ConcurrentHashMap<>();
   private final Map<String, CacheEntry<List<SymbolSearchResult>>> symbolListCache = new ConcurrentHashMap<>();
 
   public FinnhubClient(AppProperties properties, RestClient restClient) {
@@ -84,6 +87,32 @@ public class FinnhubClient {
 
     String normalizedSymbol = symbol.trim().toUpperCase();
     return cached(closesCache, normalizedSymbol, CLOSES_CACHE_SECONDS, () -> fetchDailyCloses(normalizedSymbol));
+  }
+
+  public List<ChartPoint> historicalCandles(String symbol, HistoryRange range) {
+    if (!configured() || !StringUtils.hasText(symbol)) {
+      return List.of();
+    }
+
+    String normalizedSymbol = symbol.trim().toUpperCase();
+    String cacheKey = normalizedSymbol + "|" + range.label();
+    CacheEntry<List<ChartPoint>> existing = historyCache.get(cacheKey);
+    if (existing != null && !existing.expired()) {
+      return existing.value();
+    }
+
+    List<ChartPoint> points = fetchHistoricalCandles(normalizedSymbol, range);
+    if (points.isEmpty()) {
+      points = fallbackHistoricalCandles(normalizedSymbol, range);
+    }
+
+    if (!points.isEmpty()) {
+      historyCache.put(cacheKey, new CacheEntry<>(points, Instant.now().plusSeconds(CLOSES_CACHE_SECONDS)));
+      lastGoodHistory.put(cacheKey, points);
+      return points;
+    }
+
+    return lastGoodHistory.getOrDefault(cacheKey, List.of());
   }
 
   public List<SymbolSearchResult> searchSymbols(String keywords) {
@@ -152,11 +181,13 @@ public class FinnhubClient {
       if (drawdownPercent == null) {
         drawdownPercent = MarketRiskMetrics.drawdownFromHigh(latestPrice, dailyHigh);
       }
-      BigDecimal priceThirtyDaysAgo = closes.stream()
-          .filter(point -> point.value() > 0)
-          .min(Comparator.comparingLong(point -> Math.abs(ChronoUnit.DAYS.between(point.date(), LocalDate.now(ZoneOffset.UTC).minusDays(30)))))
-          .map(point -> BigDecimal.valueOf(point.value()))
-          .orElse(previousClose);
+      BigDecimal priceThirtyDaysAgo = MarketRiskMetrics.baselineCloseForChange(
+          closes,
+          LocalDate.now(ZoneOffset.UTC).minusDays(30)
+      );
+      if (priceThirtyDaysAgo == null) {
+        priceThirtyDaysAgo = previousClose;
+      }
 
       return Optional.of(new CompanySnapshot(
           symbol,
@@ -252,6 +283,107 @@ public class FinnhubClient {
               .thenComparing(SymbolSearchResult::symbol))
           .limit(12)
           .toList();
+    } catch (RuntimeException exception) {
+      return List.of();
+    }
+  }
+
+  private List<ChartPoint> fetchHistoricalCandles(String symbol, HistoryRange range) {
+    try {
+      long to = Instant.now().getEpochSecond();
+      long from = range.allTime() ? 0 : Instant.now().minus(range.lookback()).getEpochSecond();
+      JsonNode candles = query(candlePath(symbol), Map.of(
+          "symbol", symbol,
+          "resolution", range.finnhubResolution(),
+          "from", Long.toString(from),
+          "to", Long.toString(to)
+      ));
+
+      if (!"ok".equalsIgnoreCase(candles.path("s").asText()) || !candles.path("c").isArray() || !candles.path("t").isArray()) {
+        return List.of();
+      }
+
+      List<ChartPoint> points = new ArrayList<>();
+      JsonNode closes = candles.path("c");
+      JsonNode timestamps = candles.path("t");
+      int size = Math.min(closes.size(), timestamps.size());
+      for (int i = 0; i < size; i++) {
+        double close = closes.get(i).asDouble(0);
+        if (close > 0) {
+          points.add(new ChartPoint(
+              Instant.ofEpochSecond(timestamps.get(i).asLong()),
+              BigDecimal.valueOf(close)
+          ));
+        }
+      }
+
+      return sample(points.stream().sorted(Comparator.comparing(ChartPoint::timestamp)).toList(), 260);
+    } catch (RuntimeException exception) {
+      return List.of();
+    }
+  }
+
+  private List<ChartPoint> fallbackHistoricalCandles(String symbol, HistoryRange range) {
+    List<ChartPoint> dailyPoints = dailyCloseChartPoints(symbol, range);
+    if (dailyPoints.size() > 1) {
+      return sample(dailyPoints, 260);
+    }
+    return quoteChartPoints(symbol, range);
+  }
+
+  private List<ChartPoint> dailyCloseChartPoints(String symbol, HistoryRange range) {
+    List<ChartPoint> points = dailyCloses(symbol).stream()
+        .filter(point -> point.value() > 0)
+        .map(point -> new ChartPoint(point.date().atStartOfDay().toInstant(ZoneOffset.UTC), BigDecimal.valueOf(point.value())))
+        .sorted(Comparator.comparing(ChartPoint::timestamp))
+        .toList();
+
+    if (points.size() <= 1) {
+      return points;
+    }
+
+    int minimumRecentPoints = switch (range) {
+      case ONE_HOUR, ONE_DAY -> 2;
+      case FIVE_DAYS -> 5;
+      default -> 0;
+    };
+    if (minimumRecentPoints > 0) {
+      return points.subList(Math.max(0, points.size() - minimumRecentPoints), points.size());
+    }
+
+    if (range.allTime()) {
+      return points;
+    }
+
+    Instant cutoff = Instant.now().minus(range.lookback());
+    List<ChartPoint> filtered = points.stream()
+        .filter(point -> !point.timestamp().isBefore(cutoff))
+        .toList();
+    if (filtered.size() > 1) {
+      return filtered;
+    }
+    return points.subList(Math.max(0, points.size() - 2), points.size());
+  }
+
+  private List<ChartPoint> quoteChartPoints(String symbol, HistoryRange range) {
+    if (assetClass(symbol) != AssetClass.STOCK) {
+      return List.of();
+    }
+
+    try {
+      JsonNode quote = query("/quote", Map.of("symbol", symbol));
+      BigDecimal latestPrice = positiveMetric(quote.path("c"));
+      BigDecimal previousClose = positiveMetric(quote.path("pc"));
+      if (latestPrice == null || previousClose == null) {
+        return List.of();
+      }
+
+      Instant now = Instant.now();
+      Duration lookback = range.allTime() ? Duration.ofDays(1) : range.lookback();
+      return List.of(
+          new ChartPoint(now.minus(lookback), previousClose),
+          new ChartPoint(now, latestPrice)
+      );
     } catch (RuntimeException exception) {
       return List.of();
     }
@@ -436,6 +568,24 @@ public class FinnhubClient {
       case FOREX -> "Currency";
       case STOCK -> stockIndustry == null ? "" : stockIndustry;
     };
+  }
+
+  private List<ChartPoint> sample(List<ChartPoint> points, int maxPoints) {
+    if (points.size() <= maxPoints) {
+      return points;
+    }
+
+    List<ChartPoint> sampled = new ArrayList<>();
+    int step = (int) Math.ceil(points.size() / (double) maxPoints);
+    for (int index = 0; index < points.size(); index += step) {
+      sampled.add(points.get(index));
+    }
+
+    ChartPoint last = points.get(points.size() - 1);
+    if (sampled.isEmpty() || !sampled.get(sampled.size() - 1).timestamp().equals(last.timestamp())) {
+      sampled.add(last);
+    }
+    return sampled;
   }
 
   private JsonNode nullNode() {

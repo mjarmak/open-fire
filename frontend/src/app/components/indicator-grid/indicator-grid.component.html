@@ -6,30 +6,32 @@
     </div>
   } @else {
     @for (indicator of state.indicators; track indicator.id) {
-      <article class="indicator-card" [class.compact-indicator]="isCompactIndicator(indicator)" [ngClass]="statusClass(indicator.status)">
+      <article
+        class="indicator-card"
+        [class.compact-indicator]="isCompactIndicator(indicator)"
+        [class.app-tooltip]="isCompactIndicator(indicator)"
+        [ngClass]="statusClass(indicator.status)"
+        [attr.data-tooltip]="isCompactIndicator(indicator) ? indicator.description : null"
+        [attr.aria-label]="isCompactIndicator(indicator) ? indicator.description : null"
+        [attr.tabindex]="isCompactIndicator(indicator) ? '0' : null"
+      >
         @if (isCompactIndicator(indicator)) {
-          <div
-            class="mini-speedometer"
-            [style.--gauge-sweep]="gaugeSweep(indicator) + 'deg'"
-            [style.--gauge-needle]="gaugeNeedleRotation(indicator) + 'deg'"
-            aria-hidden="true"
-          >
-            <span class="speedometer-needle"></span>
+          <div class="compact-indicator-main">
+            <div
+              class="mini-speedometer"
+              [style.--gauge-sweep]="gaugeSweep(indicator) + 'deg'"
+              [style.--gauge-needle]="gaugeNeedleRotation(indicator) + 'deg'"
+              aria-hidden="true"
+            >
+              <span class="speedometer-needle"></span>
+            </div>
+            <div class="compact-indicator-copy">
+              <p>{{ indicator.category }}</p>
+              <h2>{{ indicator.name }}</h2>
+              <strong>{{ indicator.value }}</strong>
+              <span>{{ indicator.unit }}</span>
+            </div>
           </div>
-          <div class="compact-indicator-copy">
-            <p>{{ indicator.category }}</p>
-            <h2>{{ indicator.name }}</h2>
-            <strong>{{ indicator.value }}</strong>
-            <span>{{ indicator.unit }}</span>
-          </div>
-          <button
-            type="button"
-            class="indicator-help app-tooltip"
-            [attr.data-tooltip]="indicator.description"
-            [attr.aria-label]="indicator.description"
-          >
-            i
-          </button>
         } @else {
           <div class="indicator-head">
             <p>{{ indicator.category }}</p>
@@ -41,7 +43,12 @@
         }
       </article>
     }
-    <article class="indicator-card compact-indicator retirement-progress-indicator">
+    <article
+      class="indicator-card compact-indicator retirement-progress-indicator app-tooltip"
+      [attr.data-tooltip]="retirementProgressTooltip"
+      [attr.aria-label]="retirementProgressTooltip"
+      tabindex="0"
+    >
       <div
         class="mini-speedometer"
         [style.--gauge-sweep]="retirementProgressSweep + 'deg'"
@@ -56,14 +63,6 @@
         <strong>{{ retirementProgressPercent | number: '1.0-1' }}%</strong>
         <span>of target</span>
       </div>
-      <button
-        type="button"
-        class="indicator-help app-tooltip"
-        [attr.data-tooltip]="retirementProgressTooltip"
-        [attr.aria-label]="retirementProgressTooltip"
-      >
-        i
-      </button>
     </article>
   }
 </section>

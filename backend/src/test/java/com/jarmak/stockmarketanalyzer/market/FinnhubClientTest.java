@@ -6,9 +6,12 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
+import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.SymbolSearchResult;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -120,6 +123,77 @@ class FinnhubClientTest {
   }
 
   @Test
+  void historicalCandlesReturnFinnhubCandlePointsAndCacheThem() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/stock/candle")))
+        .andRespond(withSuccess("""
+            {"s":"ok","c":[100,110],"t":[1717200000,1717286400]}
+            """, MediaType.APPLICATION_JSON));
+
+    List<ChartPoint> first = client.historicalCandles("AAPL", HistoryRange.ONE_MONTH);
+    List<ChartPoint> second = client.historicalCandles("AAPL", HistoryRange.ONE_MONTH);
+
+    assertThat(first).hasSize(2);
+    assertThat(first).extracting(ChartPoint::value)
+        .containsExactly(BigDecimal.valueOf(100.0), BigDecimal.valueOf(110.0));
+    assertThat(second).isSameAs(first);
+    server.verify();
+  }
+
+  @Test
+  void historicalCandlesFallBackToDailyClosesWhenRangeCandlesAreUnavailable() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/stock/candle")))
+        .andRespond(withSuccess("""
+            {"s":"no_data"}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/stock/candle")))
+        .andRespond(withSuccess("""
+            {"s":"ok","c":[101,104,108],"t":[1779235200,1779840000,1780444800]}
+            """, MediaType.APPLICATION_JSON));
+
+    List<ChartPoint> points = client.historicalCandles("AAPL", HistoryRange.ONE_MONTH);
+
+    assertThat(points).hasSize(3);
+    assertThat(points).extracting(ChartPoint::value)
+        .containsExactly(BigDecimal.valueOf(101.0), BigDecimal.valueOf(104.0), BigDecimal.valueOf(108.0));
+    server.verify();
+  }
+
+  @Test
+  void historicalCandlesFallBackToQuoteWhenCandlesAreUnavailable() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/stock/candle")))
+        .andRespond(withSuccess("""
+            {"s":"no_data"}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/stock/candle")))
+        .andRespond(withSuccess("""
+            {"s":"no_data"}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/quote")))
+        .andRespond(withSuccess("""
+            {"c":110,"pc":100}
+            """, MediaType.APPLICATION_JSON));
+
+    List<ChartPoint> points = client.historicalCandles("AAPL", HistoryRange.ONE_MONTH);
+
+    assertThat(points).hasSize(2);
+    assertThat(points).extracting(ChartPoint::value)
+        .containsExactly(BigDecimal.valueOf(100.0), BigDecimal.valueOf(110.0));
+    server.verify();
+  }
+
+  @Test
   void cryptoSnapshotUsesCandlesWithoutStockQuoteOrProfileCalls() {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
@@ -169,6 +243,40 @@ class FinnhubClientTest {
     assertThat(snapshot.drawdownPercent()).isEqualByComparingTo("20.0");
     assertThat(snapshot.thirtyDayChangePercent().setScale(2, RoundingMode.HALF_UP))
         .isEqualByComparingTo("2.56");
+    server.verify();
+  }
+
+  @Test
+  void companySnapshotUsesCloseBeforeThirtyDayCutoffForPositiveThirtyDayChange() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(), builder.build());
+    LocalDate cutoff = LocalDate.now(ZoneOffset.UTC).minusDays(30);
+    long priorCloseTimestamp = cutoff.minusDays(2).atStartOfDay().toEpochSecond(ZoneOffset.UTC);
+    long futureCloseTimestamp = cutoff.plusDays(1).atStartOfDay().toEpochSecond(ZoneOffset.UTC);
+    long latestCloseTimestamp = LocalDate.now(ZoneOffset.UTC).minusDays(1).atStartOfDay().toEpochSecond(ZoneOffset.UTC);
+
+    server.expect(requestTo(containsString("/api/v1/quote")))
+        .andRespond(withSuccess("""
+            {"c":110,"pc":108,"h":111,"l":107}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/stock/profile2")))
+        .andRespond(withSuccess("""
+            {"name":"Test Corp","marketCapitalization":1000}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/stock/metric")))
+        .andRespond(withSuccess("""
+            {"metric":{"peBasicExclExtraTTM":12,"beta":1.1,"52WeekHigh":130}}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/stock/candle")))
+        .andRespond(withSuccess("""
+            {"s":"ok","c":[100,130,110],"t":[%d,%d,%d]}
+            """.formatted(priorCloseTimestamp, futureCloseTimestamp, latestCloseTimestamp), MediaType.APPLICATION_JSON));
+
+    CompanySnapshot snapshot = client.companySnapshot("TEST").orElseThrow();
+
+    assertThat(snapshot.thirtyDayChangePercent().setScale(2, RoundingMode.HALF_UP))
+        .isEqualByComparingTo("10.00");
     server.verify();
   }
 

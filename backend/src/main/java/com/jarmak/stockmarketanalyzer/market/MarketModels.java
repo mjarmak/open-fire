@@ -22,6 +22,19 @@ public final class MarketModels {
   ) {
   }
 
+  public record ChartPoint(
+      Instant timestamp,
+      BigDecimal value
+  ) {
+  }
+
+  public record ChartSeries(
+      String id,
+      String range,
+      List<ChartPoint> points
+  ) {
+  }
+
   public record StockAlert(
       Long id,
       String symbol,

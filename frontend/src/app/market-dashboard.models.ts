@@ -11,6 +11,17 @@ export interface IndicatorSnapshot {
   description: string;
 }
 
+export interface ChartPoint {
+  timestamp: string;
+  value: number;
+}
+
+export interface ChartSeries {
+  id: string;
+  range: string;
+  points: ChartPoint[];
+}
+
 export interface StockAlert {
   id: number | null;
   symbol: string;

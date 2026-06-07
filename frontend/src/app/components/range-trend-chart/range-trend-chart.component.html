@@ -1,0 +1,56 @@
+<div
+  class="chart-wrapper range-trend-wrapper"
+  [class.chart-up]="tone === 'up'"
+  [class.chart-down]="tone === 'down'"
+  [class.chart-flat]="tone === 'flat'"
+>
+  <div class="chart-range-options" role="group" aria-label="Chart date range">
+    @for (range of ranges; track range) {
+      <button
+        type="button"
+        [class.active]="selectedRange === range"
+        [attr.aria-pressed]="selectedRange === range"
+        (click)="selectRange(range, $event)"
+      >{{ range }}</button>
+    }
+  </div>
+
+  <div #chartContainer class="chart-container range-trend-container" (mousemove)="onChartMouseMove($event)" (mouseleave)="onChartMouseLeave()">
+    <svg [attr.viewBox]="'0 0 ' + viewBoxWidth + ' ' + viewBoxHeight" class="projection-svg range-trend-svg" role="img" [attr.aria-label]="label">
+      @if (yAxisUnitLabel) {
+        <text class="trend-y-axis-unit" [attr.x]="startX" y="8" text-anchor="start" [attr.font-size]="axisFontSize" fill="var(--muted-strong)">{{ yAxisUnitLabel }}</text>
+      }
+      @for (tick of yAxisTicks; track tick.label + tick.y) {
+        <line [attr.x1]="startX" [attr.y1]="tick.y" [attr.x2]="endX" [attr.y2]="tick.y" stroke="var(--border)" stroke-dasharray="3,3" opacity="0.42" />
+        <text class="trend-y-axis-label" [attr.x]="yAxisLabelX" [attr.y]="(tick.y || 0) + 3" text-anchor="end" [attr.font-size]="axisFontSize" fill="var(--muted-strong)">{{ tick.label }}</text>
+      }
+
+      @for (tick of xAxisTicks; track tick.label + tick.x) {
+        <line [attr.x1]="tick.x" [attr.y1]="startY" [attr.x2]="tick.x" [attr.y2]="endY" stroke="var(--border)" stroke-dasharray="3,3" opacity="0.22" />
+        <text class="trend-x-axis-label" [attr.x]="tick.x" [attr.y]="xAxisLabelY" text-anchor="middle" [attr.font-size]="axisFontSize" fill="var(--muted-strong)">{{ tick.label }}</text>
+      }
+
+      @if (hasPoints) {
+        <path class="no-draw-animation trend-area" [attr.d]="svgAreaPath" fill="var(--chart-color)" opacity="0.08" />
+        <path class="no-draw-animation trend-line" [attr.d]="svgPath" fill="none" stroke="var(--chart-color)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />
+        @if (hoveredPoint; as point) {
+          <line class="trend-hover-guide" [attr.x1]="point.x" [attr.y1]="startY" [attr.x2]="point.x" [attr.y2]="endY" stroke="var(--text)" stroke-dasharray="2,2" opacity="0.46" />
+          <circle class="trend-hover-dot" [attr.cx]="point.x" [attr.cy]="point.y" r="4.5" fill="var(--surface)" stroke="var(--chart-color)" stroke-width="3" />
+        }
+      } @else {
+        <text class="trend-empty-label" [attr.x]="emptyLabelX" [attr.y]="emptyLabelY" text-anchor="middle" [attr.font-size]="axisFontSize" fill="var(--muted-strong)">{{ emptyMessage }}</text>
+      }
+    </svg>
+
+    @if (hoveredPoint; as point) {
+      <div class="chart-tooltip range-trend-tooltip" [style.left.px]="hoverTooltipLeft" [style.top.px]="hoverTooltipTop">
+        <p class="tooltip-title">{{ formatTooltipDate(point.source.date) }}</p>
+        <div class="tooltip-row">
+          <span class="dot"></span>
+          <span class="label">Value</span>
+          <strong class="val">{{ formatTooltipValue(point.source.value) }}</strong>
+        </div>
+      </div>
+    }
+  </div>
+</div>

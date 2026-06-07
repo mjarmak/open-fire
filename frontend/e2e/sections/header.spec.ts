@@ -51,6 +51,30 @@ test.describe('Header Section', () => {
     await expect(dialog).toBeVisible();
   });
 
+  test('application logo is centered in a middle top bar panel', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await registerMockApi(page);
+    await seedRememberedLogin(page);
+    await gotoLoggedInDashboard(page);
+
+    const topBar = page.locator('app-header .top-bar');
+    const leftPanel = topBar.locator('.top-left-panel');
+    const middlePanel = topBar.locator('.top-middle-panel');
+
+    await expect(leftPanel.locator('.brand-mark')).toHaveCount(0);
+    await expect(middlePanel.locator('.brand-mark')).toBeVisible();
+    await expect(middlePanel).toContainText('OpenFIRE');
+
+    const topBarBox = await topBar.boundingBox();
+    const middleBox = await middlePanel.boundingBox();
+    expect(topBarBox).not.toBeNull();
+    expect(middleBox).not.toBeNull();
+
+    const topBarCenter = topBarBox!.x + topBarBox!.width / 2;
+    const middleCenter = middleBox!.x + middleBox!.width / 2;
+    expect(Math.abs(topBarCenter - middleCenter)).toBeLessThanOrEqual(4);
+  });
+
   test('alerts button opens the alerts dialog', async ({ page }) => {
     await registerMockApi(page);
     await seedRememberedLogin(page);

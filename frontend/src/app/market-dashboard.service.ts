@@ -1,7 +1,7 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { DashboardResponse, IndicatorSnapshot, NotificationStatus, PortfolioHolding, PortfolioImportResponse, StockAlert, SymbolSearchResult, UserAccountResponse, UserDcaSettings, UserRetirementSettings } from './market-dashboard.models';
+import { ChartPoint, ChartSeries, DashboardResponse, IndicatorSnapshot, NotificationStatus, PortfolioHolding, PortfolioImportResponse, StockAlert, SymbolSearchResult, UserAccountResponse, UserDcaSettings, UserRetirementSettings } from './market-dashboard.models';
 
 export interface TelegramSendResponse {
   sent: boolean;
@@ -60,6 +60,9 @@ export class MarketDashboardService {
   isSearchingStockLookup = false;
   isLoadingStockLookupRisk = false;
   stockLookupMessage = '';
+  globalIndicatorChartRanges: Record<string, string> = {};
+  private readonly globalIndicatorChartCache = new Map<string, ChartPoint[]>();
+  private readonly globalIndicatorChartLoadingKeys = new Set<string>();
   alertsDialogOpen = false;
   telegramDialogOpen = false;
   telegramChatId = '';
@@ -257,6 +260,48 @@ export class MarketDashboardService {
     });
   }
 
+  fetchStockHistory(username: string, password: string, symbol: string, range: string): Observable<ChartSeries> {
+    return this.http.get<ChartSeries>(`${this.apiBaseUrl}/stocks/${encodeURIComponent(symbol)}/history`, {
+      headers: this.basicAuth(username, password),
+      params: { range },
+    });
+  }
+
+  fetchIndicatorHistory(username: string, password: string, indicatorId: string, range: string): Observable<ChartSeries> {
+    return this.http.get<ChartSeries>(`${this.apiBaseUrl}/indicators/${encodeURIComponent(indicatorId)}/history`, {
+      headers: this.basicAuth(username, password),
+      params: { range },
+    });
+  }
+
+  ensureGlobalIndicatorChart(indicatorId: string): void {
+    this.loadGlobalIndicatorChart(indicatorId);
+  }
+
+  getGlobalIndicatorChartRange(indicatorId: string): string {
+    return this.globalIndicatorChartRanges[indicatorId] ?? '1m';
+  }
+
+  setGlobalIndicatorChartRange(indicatorId: string, range: string): void {
+    if (this.getGlobalIndicatorChartRange(indicatorId) === range) {
+      return;
+    }
+
+    this.globalIndicatorChartRanges = {
+      ...this.globalIndicatorChartRanges,
+      [indicatorId]: range,
+    };
+    this.loadGlobalIndicatorChart(indicatorId, range);
+  }
+
+  globalIndicatorChartPoints(indicatorId: string): ChartPoint[] {
+    return this.globalIndicatorChartCache.get(this.globalIndicatorChartCacheKey(indicatorId)) ?? [];
+  }
+
+  isGlobalIndicatorChartLoading(indicatorId: string): boolean {
+    return this.globalIndicatorChartLoadingKeys.has(this.globalIndicatorChartCacheKey(indicatorId));
+  }
+
   fetchPortfolio(username: string, password: string): Observable<PortfolioHolding[]> {
     return this.http.get<PortfolioHolding[]>(`${this.apiBaseUrl}/portfolio`, {
       headers: this.basicAuth(username, password),
@@ -385,6 +430,31 @@ export class MarketDashboardService {
     return new HttpHeaders({
       Authorization: `Basic ${btoa(`${username}:${password}`)}`,
     });
+  }
+
+  private loadGlobalIndicatorChart(indicatorId: string, range = this.getGlobalIndicatorChartRange(indicatorId)): void {
+    const cacheKey = this.globalIndicatorChartCacheKey(indicatorId, range);
+    if (this.globalIndicatorChartCache.has(cacheKey) || this.globalIndicatorChartLoadingKeys.has(cacheKey)) {
+      return;
+    }
+
+    this.globalIndicatorChartLoadingKeys.add(cacheKey);
+    this.fetchIndicatorHistory(this.username, this.password, indicatorId, range).subscribe({
+      next: (series) => {
+        this.globalIndicatorChartCache.set(cacheKey, series.points || []);
+      },
+      error: () => {
+        this.globalIndicatorChartCache.set(cacheKey, []);
+        this.globalIndicatorChartLoadingKeys.delete(cacheKey);
+      },
+      complete: () => {
+        this.globalIndicatorChartLoadingKeys.delete(cacheKey);
+      },
+    });
+  }
+
+  private globalIndicatorChartCacheKey(indicatorId: string, range = this.getGlobalIndicatorChartRange(indicatorId)): string {
+    return `${indicatorId}|${range}`;
   }
 
   private normalizedHolding(holding: PortfolioHolding): PortfolioHolding {

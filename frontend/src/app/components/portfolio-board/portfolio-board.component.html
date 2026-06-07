@@ -66,6 +66,39 @@
   }
 
   @if (!state.isLoadingStocks) {
+  @if (globalRiskIndicators.length) {
+    <section class="global-risk-chart-list" aria-label="Global risk charts">
+      @for (indicator of globalRiskIndicators; track indicator.id) {
+        <article
+          class="global-risk-chart-panel indicator-chart-panel"
+          [class.chart-up]="globalRiskChartTone(indicator) === 'up'"
+          [class.chart-down]="globalRiskChartTone(indicator) === 'down'"
+          [class.chart-flat]="globalRiskChartTone(indicator) === 'flat'"
+          [attr.aria-label]="globalRiskChartSummary(indicator)"
+        >
+          <div class="global-risk-chart-heading">
+            <span class="position-type-dot" aria-hidden="true"></span>
+            <div>
+              <p>{{ indicator.category }}</p>
+              <strong>{{ indicator.name }}</strong>
+              <span>{{ indicator.value }} {{ indicator.unit }}</span>
+            </div>
+          </div>
+          <app-range-trend-chart
+            [points]="globalRiskChartData(indicator)"
+            [ranges]="chartRanges"
+            [selectedRange]="selectedGlobalRiskChartRange(indicator)"
+            [tone]="globalRiskChartTone(indicator)"
+            [label]="globalRiskChartSummary(indicator)"
+            [loading]="isGlobalRiskChartLoading(indicator)"
+            valueMode="number"
+            [unit]="indicator.unit"
+            (rangeChange)="setGlobalRiskChartRange(indicator, $event)"
+          ></app-range-trend-chart>
+        </article>
+      }
+    </section>
+  }
   <div class="stock-table">
     @for (stock of displayedStocks; track positionRowKey(stock)) {
       <div
@@ -74,8 +107,9 @@
         [class.watch-only-row]="stock.watchOnly"
         [class.collapsed-row]="isCollapsed(stock)"
         [class.menu-open]="isActionDialogOpen(stock)"
+        [class.chart-open]="isPositionChartOpen(stock)"
         [attr.aria-expanded]="stock.watchOnly ? null : !isCollapsed(stock)"
-        [attr.tabindex]="stock.watchOnly ? null : 0"
+        tabindex="0"
         (click)="toggleCollapsedFromRow(stock, $event)"
         (keydown)="handleRowKeydown(stock, $event)"
       >
@@ -265,8 +299,22 @@
         }
         <div class="row-actions" (click)="stopRowClick($event)">
           @if (isCollapsed(stock)) {
-            <button type="button" class="position-expand-hint" (click)="toggleCollapsedFromRow(stock, $event)">click to expand</button>
+            <button type="button" class="position-expand-hint" (click)="toggleCollapsedFromRow(stock, $event)">click to show indicators</button>
           }
+          <button
+            type="button"
+            class="row-action graph-action"
+            title="Position graph"
+            aria-label="Position graph"
+            [attr.aria-pressed]="isPositionChartOpen(stock)"
+            (click)="togglePositionChart(stock, $event)"
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 18h16" />
+              <path d="M5 15l4-4 4 3 6-7" />
+              <path d="M17 7h2v2" />
+            </svg>
+          </button>
           <button
             type="button"
             class="row-action menu-action"
@@ -277,6 +325,28 @@
             (click)="openActionDialog(stock, $event)"
           ></button>
         </div>
+        @if (isPositionChartOpen(stock)) {
+          <div
+            class="position-chart-row"
+            [class.chart-up]="positionChartTone(stock) === 'up'"
+            [class.chart-down]="positionChartTone(stock) === 'down'"
+            [class.chart-flat]="positionChartTone(stock) === 'flat'"
+            [attr.aria-label]="positionChartSummary(stock)"
+            (click)="stopRowClick($event)"
+            (keydown)="stopRowClick($event)"
+          >
+            <app-range-trend-chart
+              [points]="positionChartData(stock)"
+              [ranges]="chartRanges"
+              [selectedRange]="selectedChartRange"
+              [tone]="positionChartTone(stock)"
+              [label]="positionChartSummary(stock)"
+              [loading]="isPositionChartLoading(stock)"
+              valueMode="currency"
+              (rangeChange)="setChartRange($event)"
+            ></app-range-trend-chart>
+          </div>
+        }
         @if (visibleStockReason(stock)) {
           <small>{{ visibleStockReason(stock) }}</small>
         }

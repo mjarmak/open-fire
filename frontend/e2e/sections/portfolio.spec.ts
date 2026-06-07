@@ -2,8 +2,10 @@ import { expect, test } from '@playwright/test';
 import { gotoLoggedInDashboard, registerMockApi, seedRememberedLogin } from '../fixtures/mock-api';
 
 test.describe('Portfolio Section', () => {
+  let api: Awaited<ReturnType<typeof registerMockApi>>;
+
   test.beforeEach(async ({ page }) => {
-    await registerMockApi(page);
+    api = await registerMockApi(page);
     await seedRememberedLogin(page);
     await gotoLoggedInDashboard(page);
   });
@@ -36,12 +38,23 @@ test.describe('Portfolio Section', () => {
     await expect(page.locator('.stock-row').filter({ hasText: 'NVDA' })).toBeVisible();
 
     const nvdaRow = page.locator('.stock-row').filter({ hasText: 'NVDA' });
+    await expect(nvdaRow).not.toHaveClass(/collapsed-row/);
+    await expect(nvdaRow.locator('.ticker-metrics')).toBeVisible();
     await nvdaRow.click({ position: { x: 12, y: 12 } });
     await expect(nvdaRow).toHaveClass(/collapsed-row/);
-    await expect(nvdaRow.locator('.position-expand-hint')).toBeVisible();
+    await expect(nvdaRow.locator('.ticker-metrics')).toHaveCount(0);
+    await expect(nvdaRow.locator('.position-chart-row')).toHaveCount(0);
+
+    await nvdaRow.getByRole('button', { name: 'Position graph' }).click();
+    await expect(nvdaRow.locator('.position-chart-row')).toBeVisible();
+    await expect(nvdaRow.locator('.chart-range-options button')).toHaveCount(7);
+    await expect(nvdaRow.locator('.chart-range-options button.active')).toHaveText('1m');
+    await expect(nvdaRow.locator('.ticker-metrics')).toHaveCount(0);
+
     await nvdaRow.locator('.position-expand-hint').click();
     await expect(nvdaRow).not.toHaveClass(/collapsed-row/);
     await expect(nvdaRow.locator('.ticker-metrics')).toBeVisible();
+    await expect(nvdaRow.locator('.position-chart-row')).toBeVisible();
 
     await nvdaRow.getByRole('button', { name: 'Position actions' }).click();
     const actionDialog = page.getByRole('dialog', { name: 'Menu' });
@@ -122,37 +135,57 @@ test.describe('Portfolio Section', () => {
   });
 
   test('hides collapsed expand hint on mobile', async ({ page }) => {
+    await page.evaluate(() => localStorage.setItem('sma_collapsed_positions', JSON.stringify(['1'])));
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Portfolio' })).toBeVisible();
     await page.setViewportSize({ width: 390, height: 800 });
 
     const portfolio = page.getByLabel('Portfolio tickers');
     const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
     await expect(aaplRow).toBeVisible();
 
-    await aaplRow.click({ position: { x: 12, y: 12 } });
-
     await expect(aaplRow).toHaveClass(/collapsed-row/);
     await expect(aaplRow.locator('.position-expand-hint')).toBeHidden();
+    await expect(aaplRow.locator('.ticker-metrics')).toHaveCount(0);
+    await expect(aaplRow.locator('.position-chart-row')).toHaveCount(0);
   });
 
   test('keeps the collapsed expand hint beside the actions menu on desktop', async ({ page }) => {
+    await page.evaluate(() => localStorage.setItem('sma_collapsed_positions', JSON.stringify(['1'])));
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Portfolio' })).toBeVisible();
     const portfolio = page.getByLabel('Portfolio tickers');
     const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
     await expect(aaplRow).toBeVisible();
-
-    await aaplRow.click({ position: { x: 12, y: 12 } });
     await expect(aaplRow).toHaveClass(/collapsed-row/);
 
     const expandHint = aaplRow.locator('.position-expand-hint');
+    const graphButton = aaplRow.getByRole('button', { name: 'Position graph' });
     const menuButton = aaplRow.getByRole('button', { name: 'Position actions' });
     await expect(expandHint).toBeVisible();
+    await expect(graphButton).toBeVisible();
     await expect(menuButton).toBeVisible();
+    await expect(aaplRow.locator('.ticker-metrics')).toHaveCount(0);
+    await expect(aaplRow.locator('.position-chart-row')).toHaveCount(0);
 
     const hintBox = await expandHint.boundingBox();
+    const graphBox = await graphButton.boundingBox();
     const menuBox = await menuButton.boundingBox();
     expect(hintBox).not.toBeNull();
+    expect(graphBox).not.toBeNull();
     expect(menuBox).not.toBeNull();
-    expect(hintBox!.x).toBeLessThan(menuBox!.x);
+    expect(hintBox!.x).toBeLessThan(graphBox!.x);
+    expect(graphBox!.x).toBeLessThan(menuBox!.x);
     expect(Math.abs(hintBox!.y - menuBox!.y)).toBeLessThan(10);
+
+    await graphButton.click();
+    await expect(aaplRow.locator('.position-chart-row')).toBeVisible();
+    await expect(aaplRow.locator('.ticker-metrics')).toHaveCount(0);
+
+    await expandHint.click();
+    await expect(aaplRow).not.toHaveClass(/collapsed-row/);
+    await expect(aaplRow.locator('.ticker-metrics')).toBeVisible();
+    await expect(aaplRow.locator('.position-chart-row')).toBeVisible();
   });
 
   test('keeps mobile title and profit lines above the expanded metrics grid', async ({ page }) => {
@@ -186,6 +219,121 @@ test.describe('Portfolio Section', () => {
       await expect(aaplRow).not.toHaveClass(/collapsed-row/);
       await expect(aaplRow.locator('.ticker-metrics')).toBeVisible();
     }
+  });
+
+  test('opens a position graph line with date range options from the graph button', async ({ page }) => {
+    const portfolio = page.getByLabel('Portfolio tickers');
+    const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
+    await expect(aaplRow).toBeVisible();
+    await expect(aaplRow.locator('.position-chart-row')).toHaveCount(0);
+
+    await aaplRow.click({ position: { x: 12, y: 12 } });
+    await expect(aaplRow).toHaveClass(/collapsed-row/);
+    await expect(aaplRow.locator('.position-chart-row')).toHaveCount(0);
+    expect(api.calls['GET /stocks/AAPL/history'] || 0).toBe(0);
+
+    await aaplRow.click({ position: { x: 12, y: 12 } });
+    await expect(aaplRow).not.toHaveClass(/collapsed-row/);
+    await aaplRow.getByRole('button', { name: 'Position graph' }).click();
+    await expect.poll(() => api.calls['GET /stocks/AAPL/history'] || 0).toBe(1);
+    const chartRow = aaplRow.locator('.position-chart-row');
+    await expect(chartRow).toBeVisible();
+    await expect(chartRow.locator('.chart-range-options button')).toHaveCount(7);
+    await expect(chartRow.locator('.chart-range-options button.active')).toHaveText('1m');
+    await expect(chartRow.locator('.range-trend-svg .trend-line')).toHaveAttribute('d', /L/);
+    await expect(chartRow.locator('.trend-x-axis-label')).toHaveCount(3);
+    await expect(chartRow.locator('.trend-y-axis-label')).toHaveCount(5);
+    const svgBox = await chartRow.locator('.range-trend-svg').boundingBox();
+    const trendLineBox = await chartRow.locator('.range-trend-svg .trend-line').boundingBox();
+    const chartContainerBox = await chartRow.locator('.range-trend-container').boundingBox();
+    expect(svgBox).not.toBeNull();
+    expect(trendLineBox).not.toBeNull();
+    expect(chartContainerBox).not.toBeNull();
+    expect(svgBox!.height).toBeLessThanOrEqual(110);
+    expect(svgBox!.width).toBeGreaterThan(chartContainerBox!.width - 2);
+    expect(trendLineBox!.width).toBeGreaterThan(svgBox!.width * 0.75);
+
+    const globalChart = portfolio.locator('.global-risk-chart-panel').filter({ hasText: 'Credit Market' });
+    await expect(globalChart).toBeVisible();
+    await expect.poll(async () => {
+      const currentPositionBox = await chartRow.locator('.range-trend-svg').boundingBox();
+      const currentGlobalBox = await globalChart.locator('.range-trend-svg').boundingBox();
+      if (!currentPositionBox || !currentGlobalBox) {
+        return Number.POSITIVE_INFINITY;
+      }
+      return Math.max(
+        Math.abs(currentGlobalBox.width - currentPositionBox.width),
+        Math.abs(currentGlobalBox.height - currentPositionBox.height),
+      );
+    }).toBeLessThanOrEqual(4);
+
+    await chartRow.locator('.range-trend-container').hover({ position: { x: 320, y: 52 } });
+    await expect(chartRow.locator('.range-trend-tooltip')).toBeVisible();
+    await expect(chartRow.locator('.range-trend-tooltip')).toContainText('Value');
+
+    await chartRow.locator('.chart-range-options button', { hasText: '1d' }).click();
+    await expect(chartRow.locator('.chart-range-options button.active')).toHaveText('1d');
+    await expect.poll(() => api.calls['GET /stocks/AAPL/history'] || 0).toBe(2);
+
+    await chartRow.locator('.chart-range-options button', { hasText: '1m' }).click();
+    await expect(chartRow.locator('.chart-range-options button.active')).toHaveText('1m');
+    await page.waitForTimeout(100);
+    expect(api.calls['GET /stocks/AAPL/history'] || 0).toBe(2);
+
+    const rowBox = await aaplRow.boundingBox();
+    const chartBox = await chartRow.boundingBox();
+    expect(rowBox).not.toBeNull();
+    expect(chartBox).not.toBeNull();
+    expect(chartBox!.y).toBeGreaterThan(rowBox!.y);
+  });
+
+  test('uses black graph icons in light mode and white graph icons when enabled or in dark mode', async ({ page }) => {
+    await page.evaluate(() => localStorage.setItem('sma_theme', 'light'));
+    await page.reload();
+    await expect(page.locator('app-root')).toHaveClass(/light-theme/);
+
+    const portfolio = page.getByLabel('Portfolio tickers');
+    const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
+    const graphButton = aaplRow.getByRole('button', { name: 'Position graph' });
+    await expect(graphButton).toBeVisible();
+
+    const rgb = async () => graphButton.evaluate((element) => {
+      const [r = 0, g = 0, b = 0] = getComputedStyle(element).color.match(/\d+/g)?.map(Number) || [];
+      return { r, g, b };
+    });
+
+    const idleColor = await rgb();
+    expect(Math.max(idleColor.r, idleColor.g, idleColor.b)).toBeLessThan(32);
+
+    await graphButton.click();
+    await expect(graphButton).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(async () => {
+      const activeColor = await rgb();
+      return Math.min(activeColor.r, activeColor.g, activeColor.b);
+    }).toBeGreaterThan(240);
+
+    await page.getByRole('button', { name: 'Open menu' }).click();
+    await page.getByRole('button', { name: 'Dark mode' }).click();
+    await expect(page.locator('app-root')).toHaveClass(/dark-theme/);
+    await expect.poll(async () => {
+      const darkColor = await rgb();
+      return Math.min(darkColor.r, darkColor.g, darkColor.b);
+    }).toBeGreaterThan(240);
+  });
+
+  test('opens a watch-only graph line from the graph button', async ({ page }) => {
+    const portfolio = page.getByLabel('Portfolio tickers');
+    const watchRow = portfolio.locator('.stock-row').filter({ hasText: 'TSLA' });
+    await expect(watchRow).toBeVisible();
+    await expect(watchRow).toHaveAttribute('tabindex', '0');
+
+    await watchRow.click({ position: { x: 12, y: 12 } });
+    await expect(watchRow.locator('.position-chart-row')).toHaveCount(0);
+    expect(api.calls['GET /stocks/TSLA/history'] || 0).toBe(0);
+
+    await watchRow.getByRole('button', { name: 'Position graph' }).click();
+    await expect(watchRow.locator('.position-chart-row')).toBeVisible();
+    await expect.poll(() => api.calls['GET /stocks/TSLA/history'] || 0).toBe(1);
   });
 
   test('shows title metrics, tooltip title, and left-side text without wrapping', async ({ page }) => {
@@ -222,7 +370,10 @@ test.describe('Portfolio Section', () => {
     await expect(titleLines).toContainText('12 × $198.2 =');
     await expect(titleLines).toContainText('$2.4K');
     await expect(titleLines).toContainText('16.59%');
-    await expect(titleLines.locator('.position-title-value')).not.toHaveClass(/value-pos|value-neg/);
+    const titleValueClasses = await titleLines.locator('.position-title-value').evaluateAll((elements) =>
+      elements.map((element) => element.className),
+    );
+    expect(titleValueClasses.every((className) => !/value-pos|value-neg/.test(className))).toBe(true);
     const currentArrow = titleLines.locator('.position-title-line-primary .position-title-arrow');
     await expect(currentArrow).toHaveText('↑');
     await expect(currentArrow).toHaveClass(/value-pos/);
@@ -343,12 +494,13 @@ test.describe('Portfolio Section', () => {
   });
 
   test('uses an opacity-only transition when position metrics are toggled', async ({ page }) => {
+    await page.evaluate(() => localStorage.setItem('sma_collapsed_positions', JSON.stringify(['1'])));
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Portfolio' })).toBeVisible();
     const portfolio = page.getByLabel('Portfolio tickers');
     const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
-    await expect(aaplRow.locator('.ticker-metrics')).toBeVisible();
-
-    await aaplRow.click({ position: { x: 12, y: 12 } });
     await expect(aaplRow).toHaveClass(/collapsed-row/);
+
     await aaplRow.click({ position: { x: 12, y: 12 } });
     await expect(aaplRow.locator('.ticker-metrics')).toBeVisible();
 

@@ -3,6 +3,7 @@ package com.jarmak.stockmarketanalyzer.market;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 final class MarketRiskMetrics {
@@ -75,6 +76,22 @@ final class MarketRiskMetrics {
     double normalizedHigh = Math.max(high.doubleValue(), latestPrice.doubleValue());
     double drawdown = Math.max(0, (normalizedHigh - latestPrice.doubleValue()) / normalizedHigh * 100);
     return Double.isFinite(drawdown) ? BigDecimal.valueOf(drawdown) : null;
+  }
+
+  static BigDecimal baselineCloseForChange(List<TimeSeriesPoint> closes, LocalDate targetDate) {
+    if (closes.isEmpty()) {
+      return null;
+    }
+
+    return closes.stream()
+        .filter(point -> point.value() > 0)
+        .filter(point -> !point.date().isAfter(targetDate))
+        .max(Comparator.comparing(TimeSeriesPoint::date))
+        .or(() -> closes.stream()
+            .filter(point -> point.value() > 0)
+            .min(Comparator.comparing(TimeSeriesPoint::date)))
+        .map(point -> BigDecimal.valueOf(point.value()))
+        .orElse(null);
   }
 
   private static boolean positive(BigDecimal value) {
