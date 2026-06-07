@@ -87,7 +87,7 @@
         </button>
 
         @if (state.isLoggedIn) {
-          <button type="button" class="top-menu-action" (click)="selectRefresh()" [disabled]="state.isLoading">
+          <button type="button" class="secondary top-menu-action" (click)="selectRefresh()" [disabled]="state.isLoading">
             @if (state.isLoading) {
               <svg class="spinner-svg" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" stroke-dasharray="30 10" />

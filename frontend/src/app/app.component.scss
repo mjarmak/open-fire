@@ -109,6 +109,11 @@ app-root.light-theme {
   --modal-overlay: rgb(35 39 43 / 48%);
 }
 
+app-root.light-theme .top-bar .icon-btn {
+  background: var(--panel) !important;
+  color: #24292f !important;
+}
+
 @keyframes fade-slide-up {
   from {
     opacity: 0;
