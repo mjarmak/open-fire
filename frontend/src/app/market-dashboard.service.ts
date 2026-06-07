@@ -11,12 +11,24 @@ export interface TelegramSendResponse {
 
 export interface TelegramSettingsResponse {
   chatId: string;
+  alertDays: string[];
 }
 
 @Injectable({ providedIn: 'root' })
 export class MarketDashboardService {
   private readonly apiBaseUrl = this.resolveApiBaseUrl();
   readonly dcaReminderMaxLength = 800;
+  readonly notificationDayOptions: ReadonlyArray<{ value: string; label: string }> = [
+    { value: 'MON', label: 'Mon' },
+    { value: 'TUE', label: 'Tue' },
+    { value: 'WED', label: 'Wed' },
+    { value: 'THU', label: 'Thu' },
+    { value: 'FRI', label: 'Fri' },
+    { value: 'SAT', label: 'Sat' },
+    { value: 'SUN', label: 'Sun' },
+  ];
+  readonly defaultTelegramAlertDays = this.notificationDayOptions.map((day) => day.value);
+  readonly defaultDcaReminderDays = ['WED', 'FRI'];
   title = 'OpenFIRE';
   themeMode: 'dark' | 'light' = 'dark';
   username = '';
@@ -66,6 +78,9 @@ export class MarketDashboardService {
   alertsDialogOpen = false;
   telegramDialogOpen = false;
   telegramChatId = '';
+  telegramAlertDays = [...this.defaultTelegramAlertDays];
+  draftTelegramAlertDays = [...this.defaultTelegramAlertDays];
+  isLoadingTelegram = false;
   isSavingTelegram = false;
   dcaDialogOpen = false;
   dcaSuggestionDialogOpen = false;
@@ -74,8 +89,10 @@ export class MarketDashboardService {
   hasLoadedDcaSettings = false;
   telegramDcaEnabled = false;
   dcaReminderNote = '';
+  dcaReminderDays = [...this.defaultDcaReminderDays];
   draftTelegramDcaEnabled = false;
   draftDcaReminderNote = '';
+  draftDcaReminderDays = [...this.defaultDcaReminderDays];
   readonly dcaSuggestionCards: ReadonlyArray<{ title: string; message: string }> = [
     {
       title: 'Stay Consistent',
@@ -231,6 +248,35 @@ export class MarketDashboardService {
     }
   }
 
+  isDraftTelegramAlertDaySelected(day: string): boolean {
+    return this.draftTelegramAlertDays.includes(day);
+  }
+
+  setDraftTelegramAlertDay(day: string, selected: boolean): void {
+    this.draftTelegramAlertDays = this.updateDaySelection(this.draftTelegramAlertDays, day, selected);
+  }
+
+  isDraftDcaReminderDaySelected(day: string): boolean {
+    return this.draftDcaReminderDays.includes(day);
+  }
+
+  setDraftDcaReminderDay(day: string, selected: boolean): void {
+    this.draftDcaReminderDays = this.updateDaySelection(this.draftDcaReminderDays, day, selected);
+  }
+
+  formatNotificationDays(days: string[]): string {
+    if (!days.length) {
+      return 'No days selected';
+    }
+    if (days.length === this.notificationDayOptions.length) {
+      return 'Every day';
+    }
+    const labels = days
+      .map((day) => this.notificationDayOptions.find((option) => option.value === day)?.label)
+      .filter((label): label is string => Boolean(label));
+    return labels.join(', ');
+  }
+
   createUser(username: string, password: string): Observable<UserAccountResponse> {
     return this.http.post<UserAccountResponse>(`${this.apiBaseUrl}/users`, { username, password });
   }
@@ -328,10 +374,10 @@ export class MarketDashboardService {
     });
   }
 
-  saveTelegramSettings(username: string, password: string, chatId: string): Observable<TelegramSettingsResponse> {
+  saveTelegramSettings(username: string, password: string, chatId: string, alertDays: string[]): Observable<TelegramSettingsResponse> {
     return this.http.put<TelegramSettingsResponse>(
       `${this.apiBaseUrl}/users/me/telegram`,
-      { chatId },
+      { chatId, alertDays },
       { headers: this.basicAuth(username, password) },
     );
   }
@@ -461,6 +507,17 @@ export class MarketDashboardService {
     return holding.watchOnly
       ? { ...holding, quantity: 0, averageCost: 0 }
       : holding;
+  }
+
+  private updateDaySelection(days: string[], day: string, selected: boolean): string[] {
+    const orderedDays = this.notificationDayOptions.map((option) => option.value);
+    const next = new Set(days);
+    if (selected) {
+      next.add(day);
+    } else {
+      next.delete(day);
+    }
+    return orderedDays.filter((option) => next.has(option));
   }
 
   private resolveApiBaseUrl(): string {

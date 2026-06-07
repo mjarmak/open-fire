@@ -106,6 +106,7 @@ describe('AppComponent', () => {
     marketDashboardService.dcaSettings.and.returnValue(of({
       telegramDcaEnabled: false,
       reminderNote: '',
+      reminderDays: ['WED', 'FRI'],
     }));
     marketDashboardService.searchSymbols.and.returnValue(of([]));
     marketDashboardService.getGlobalIndicatorChartRange.and.returnValue('1m');

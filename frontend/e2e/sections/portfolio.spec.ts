@@ -234,10 +234,34 @@ test.describe('Portfolio Section', () => {
 
     await aaplRow.click({ position: { x: 12, y: 12 } });
     await expect(aaplRow).not.toHaveClass(/collapsed-row/);
-    await aaplRow.getByRole('button', { name: 'Position graph' }).click();
+    const graphButton = aaplRow.getByRole('button', { name: 'Position graph' });
+    const rowActionOffset = async () => {
+      const rowBounds = await aaplRow.boundingBox();
+      const actionBounds = await aaplRow.locator('.row-actions').boundingBox();
+      expect(rowBounds).not.toBeNull();
+      expect(actionBounds).not.toBeNull();
+      return actionBounds!.y - rowBounds!.y;
+    };
+    const rowActionOffsetBefore = await rowActionOffset();
+    await graphButton.click();
     await expect.poll(() => api.calls['GET /stocks/AAPL/history'] || 0).toBe(1);
     const chartRow = aaplRow.locator('.position-chart-row');
+    await chartRow.waitFor({ state: 'attached' });
+    const revealHeightSamplesPromise = chartRow.evaluate(async (element) => {
+      const samples: number[] = [];
+      const start = performance.now();
+      while (performance.now() - start < 260) {
+        samples.push(element.getBoundingClientRect().height);
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      }
+      return samples;
+    });
     await expect(chartRow).toBeVisible();
+    const revealHeightSamples = await revealHeightSamplesPromise;
+    const settledChartHeight = await chartRow.evaluate((element) => element.getBoundingClientRect().height);
+    expect(Math.max(...revealHeightSamples)).toBeLessThanOrEqual(settledChartHeight + 1);
+    const rowActionOffsetAfterOpen = await rowActionOffset();
+    expect(Math.abs(rowActionOffsetAfterOpen - rowActionOffsetBefore)).toBeLessThanOrEqual(1);
     await expect(chartRow.locator('.chart-range-options button')).toHaveCount(7);
     await expect(chartRow.locator('.chart-range-options button.active')).toHaveText('1m');
     await expect(chartRow.locator('.range-trend-svg .trend-line')).toHaveAttribute('d', /L/);
@@ -285,6 +309,11 @@ test.describe('Portfolio Section', () => {
     expect(rowBox).not.toBeNull();
     expect(chartBox).not.toBeNull();
     expect(chartBox!.y).toBeGreaterThan(rowBox!.y);
+
+    await graphButton.click();
+    await expect(chartRow).toHaveCount(0);
+    const rowActionOffsetAfterClose = await rowActionOffset();
+    expect(Math.abs(rowActionOffsetAfterClose - rowActionOffsetBefore)).toBeLessThanOrEqual(1);
   });
 
   test('uses black graph icons in light mode and white graph icons when enabled or in dark mode', async ({ page }) => {
@@ -337,6 +366,10 @@ test.describe('Portfolio Section', () => {
   });
 
   test('shows title metrics, tooltip title, and left-side text without wrapping', async ({ page }) => {
+    await page.evaluate(() => localStorage.setItem('sma_theme', 'light'));
+    await page.reload();
+    await expect(page.locator('app-root')).toHaveClass(/light-theme/);
+
     const portfolio = page.getByLabel('Portfolio tickers');
     const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
     await expect(aaplRow).toBeVisible();
@@ -480,6 +513,103 @@ test.describe('Portfolio Section', () => {
     expect(metricLabels).not.toContain('Avg');
     await expect(aaplRow.locator('.metric-30d')).toHaveAttribute('data-tooltip', /percentage price change over the last 30 calendar days/);
     await expect(aaplRow.locator('.risk-pe')).toHaveAttribute('data-tooltip', /trailing price-to-earnings ratio/);
+  });
+
+  test('uses borderless non-risk columns and grey neutral risk accents in both themes', async ({ page }) => {
+    const readStyles = async () => {
+      const portfolio = page.getByLabel('Portfolio tickers');
+      const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
+      const marketCap = aaplRow.locator('.ticker-metrics span').filter({ hasText: 'Market Cap' });
+      const metric30d = aaplRow.locator('.metric-30d');
+      const riskFear = aaplRow.locator('.risk-fear');
+      await expect(marketCap).toBeVisible();
+      await expect(metric30d).toBeVisible();
+      await expect(riskFear).toBeVisible();
+
+      return {
+        marketCap: await marketCap.evaluate((element) => {
+          const style = getComputedStyle(element);
+          const label = element.querySelector('small');
+          return {
+            borderTopColor: style.borderTopColor,
+            borderRightColor: style.borderRightColor,
+            borderBottomColor: style.borderBottomColor,
+            borderLeftColor: style.borderLeftColor,
+            labelColor: label ? getComputedStyle(label).color : style.color,
+          };
+        }),
+        metric30d: await metric30d.evaluate((element) => {
+          const style = getComputedStyle(element);
+          const label = element.querySelector('small');
+          return {
+            borderTopColor: style.borderTopColor,
+            borderRightColor: style.borderRightColor,
+            borderBottomColor: style.borderBottomColor,
+            borderLeftColor: style.borderLeftColor,
+            labelColor: label ? getComputedStyle(label).color : style.color,
+          };
+        }),
+        riskFear: await riskFear.evaluate((element) => {
+          const style = getComputedStyle(element);
+          const label = element.querySelector('small');
+          return {
+            borderTopColor: style.borderTopColor,
+            borderRightColor: style.borderRightColor,
+            borderBottomColor: style.borderBottomColor,
+            borderLeftColor: style.borderLeftColor,
+            backgroundColor: style.backgroundColor,
+            color: style.color,
+            labelColor: label ? getComputedStyle(label).color : style.color,
+          };
+        }),
+      };
+    };
+    const isTransparent = (color: string) => color === 'rgba(0, 0, 0, 0)';
+    const brightness = (color: string) => {
+      const [r = 0, g = 0, b = 0] = color.match(/\d+/g)?.map(Number) || [];
+      return (r + g + b) / 3;
+    };
+
+    await page.evaluate(() => localStorage.setItem('sma_theme', 'light'));
+    await page.reload();
+    await expect(page.locator('app-root')).toHaveClass(/light-theme/);
+    let styles = await readStyles();
+    expect([
+      styles.marketCap.borderTopColor,
+      styles.marketCap.borderRightColor,
+      styles.marketCap.borderBottomColor,
+      styles.marketCap.borderLeftColor,
+      styles.metric30d.borderTopColor,
+      styles.metric30d.borderRightColor,
+      styles.metric30d.borderBottomColor,
+      styles.metric30d.borderLeftColor,
+    ].every(isTransparent)).toBe(true);
+    expect(styles.riskFear.borderLeftColor).toBe('rgb(107, 114, 128)');
+    expect([styles.riskFear.borderTopColor, styles.riskFear.borderRightColor, styles.riskFear.borderBottomColor].every(isTransparent)).toBe(true);
+    expect(styles.marketCap.labelColor).toBe('rgb(63, 70, 76)');
+    expect(styles.metric30d.labelColor).toBe('rgb(63, 70, 76)');
+    expect(styles.riskFear.labelColor).toBe('rgb(63, 70, 76)');
+
+    await page.evaluate(() => localStorage.setItem('sma_theme', 'dark'));
+    await page.reload();
+    await expect(page.locator('app-root')).toHaveClass(/dark-theme/);
+    styles = await readStyles();
+    expect([
+      styles.marketCap.borderTopColor,
+      styles.marketCap.borderRightColor,
+      styles.marketCap.borderBottomColor,
+      styles.marketCap.borderLeftColor,
+      styles.metric30d.borderTopColor,
+      styles.metric30d.borderRightColor,
+      styles.metric30d.borderBottomColor,
+      styles.metric30d.borderLeftColor,
+    ].every(isTransparent)).toBe(true);
+    expect(styles.riskFear.borderLeftColor).toBe('rgb(154, 163, 171)');
+    expect([styles.riskFear.borderTopColor, styles.riskFear.borderRightColor, styles.riskFear.borderBottomColor].every(isTransparent)).toBe(true);
+    expect(styles.marketCap.labelColor).toBe('rgb(63, 70, 76)');
+    expect(styles.metric30d.labelColor).toBe('rgb(63, 70, 76)');
+    expect(styles.riskFear.labelColor).toBe('rgb(63, 70, 76)');
+    expect(brightness(styles.riskFear.color)).toBeGreaterThan(200);
   });
 
   test('leaves alerting portfolio rows without the search-result risk outline', async ({ page }) => {

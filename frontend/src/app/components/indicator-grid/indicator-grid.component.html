@@ -11,8 +11,8 @@
         [class.compact-indicator]="isCompactIndicator(indicator)"
         [class.app-tooltip]="isCompactIndicator(indicator)"
         [ngClass]="statusClass(indicator.status)"
-        [attr.data-tooltip]="isCompactIndicator(indicator) ? indicator.description : null"
-        [attr.aria-label]="isCompactIndicator(indicator) ? indicator.description : null"
+        [attr.data-tooltip]="isCompactIndicator(indicator) ? compactIndicatorTooltip(indicator) : null"
+        [attr.aria-label]="isCompactIndicator(indicator) ? compactIndicatorTooltip(indicator) : null"
         [attr.tabindex]="isCompactIndicator(indicator) ? '0' : null"
       >
         @if (isCompactIndicator(indicator)) {
@@ -20,6 +20,9 @@
             <div
               class="mini-speedometer"
               [style.--gauge-sweep]="gaugeSweep(indicator) + 'deg'"
+              [style.--gauge-threshold]="gaugeThresholdSweep(indicator) + 'deg'"
+              [style.--gauge-risk-start]="gaugeRiskStart(indicator) + 'deg'"
+              [style.--gauge-risk-end]="gaugeRiskEnd(indicator) + 'deg'"
               [style.--gauge-needle]="gaugeNeedleRotation(indicator) + 'deg'"
               aria-hidden="true"
             >
@@ -50,8 +53,7 @@
       tabindex="0"
     >
       <div
-        class="mini-speedometer"
-        [style.--gauge-sweep]="retirementProgressSweep + 'deg'"
+        class="mini-speedometer retirement-speedometer"
         [style.--gauge-needle]="retirementProgressNeedleRotation + 'deg'"
         aria-hidden="true"
       >
@@ -61,7 +63,7 @@
         <p>Retirement</p>
         <h2>Progress</h2>
         <strong>{{ retirementProgressPercent | number: '1.0-1' }}%</strong>
-        <span>of target</span>
+        <span>of {{ formatCompactCurrency(retirementTargetFund) }}</span>
       </div>
     </article>
   }

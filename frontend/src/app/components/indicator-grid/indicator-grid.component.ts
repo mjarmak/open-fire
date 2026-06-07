@@ -11,7 +11,10 @@ import { MarketDashboardService } from '../../market-dashboard.service';
 })
 export class IndicatorGridComponent {
   protected readonly state = inject(MarketDashboardService);
-  protected readonly retirementProgressTooltip = 'Current non-watch-only portfolio value divided by today\'s required retirement fund from your retirement settings.';
+
+  protected get retirementProgressTooltip(): string {
+    return `Current non-watch-only portfolio value (${this.formatCompactCurrency(this.currentRetirementValue)}) on a neutral scale from $0 to the Target Retirement Fund (${this.formatCompactCurrency(this.retirementTargetFund)}). There are no risk thresholds on this gauge.`;
+  }
 
   statusClass(status: string): string {
     return `status-${status.toLowerCase().replace(/\s+/g, '-')}`;
@@ -21,21 +24,36 @@ export class IndicatorGridComponent {
     return indicator.id === 'vix' || indicator.id === 'credit';
   }
 
+  protected compactIndicatorTooltip(indicator: IndicatorSnapshot): string {
+    const threshold = this.compactIndicatorThreshold(indicator);
+    return threshold ? `${indicator.description} ${threshold}` : indicator.description;
+  }
+
   gaugePercent(indicator: IndicatorSnapshot): number {
     const value = Number(indicator.value) || 0;
-    const range = indicator.id === 'credit'
-      ? { min: 0, max: 5 }
-      : { min: 10, max: 40 };
-    const percent = ((value - range.min) / (range.max - range.min)) * 100;
+    const max = this.gaugeThreshold(indicator) * 3;
+    const percent = (value / max) * 100;
     return Math.max(0, Math.min(100, percent));
   }
 
   gaugeNeedleRotation(indicator: IndicatorSnapshot): number {
-    return -90 + (this.gaugePercent(indicator) / 100) * 180;
+    return this.roundGaugeAngle(-180 + (this.gaugePercent(indicator) / 100) * 180);
   }
 
   gaugeSweep(indicator: IndicatorSnapshot): number {
-    return (this.gaugePercent(indicator) / 100) * 180;
+    return this.roundGaugeAngle((this.gaugePercent(indicator) / 100) * 180);
+  }
+
+  gaugeThresholdSweep(indicator: IndicatorSnapshot): number {
+    return 60;
+  }
+
+  gaugeRiskStart(indicator: IndicatorSnapshot): number {
+    return this.gaugeThresholdSweep(indicator);
+  }
+
+  gaugeRiskEnd(indicator: IndicatorSnapshot): number {
+    return 180;
   }
 
   get currentRetirementValue(): number {
@@ -55,11 +73,34 @@ export class IndicatorGridComponent {
   }
 
   get retirementProgressNeedleRotation(): number {
-    return -90 + (this.retirementProgressPercent / 100) * 180;
+    return this.roundGaugeAngle(-180 + (this.retirementProgressPercent / 100) * 180);
   }
 
-  get retirementProgressSweep(): number {
-    return (this.retirementProgressPercent / 100) * 180;
+  protected formatCompactCurrency(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(value);
+  }
+
+  private compactIndicatorThreshold(indicator: IndicatorSnapshot): string {
+    if (indicator.id === 'vix') {
+      return 'Risk threshold: 25 index points or +3 daily change.';
+    }
+    if (indicator.id === 'credit') {
+      return 'Risk threshold: 2.0 spread % or +0.15 daily change.';
+    }
+    return '';
+  }
+
+  private gaugeThreshold(indicator: IndicatorSnapshot): number {
+    return indicator.id === 'credit' ? 2 : 25;
+  }
+
+  private roundGaugeAngle(value: number): number {
+    return Number(value.toFixed(4));
   }
 
 }

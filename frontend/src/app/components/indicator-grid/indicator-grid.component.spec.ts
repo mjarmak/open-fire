@@ -72,11 +72,44 @@ describe('IndicatorGridComponent', () => {
 
   it('renders retirement progress indicator when loaded with no indicators', async () => {
     const element = await render(createState({ indicators: [] }));
+    const retirementCard = element.querySelector<HTMLElement>('.retirement-progress-indicator');
+    const speedometer = retirementCard?.querySelector<HTMLElement>('.mini-speedometer');
 
     expect(element.querySelector('.section-loading .loading-spinner')).toBeNull();
-    expect(element.querySelector('.retirement-progress-indicator')).not.toBeNull();
+    expect(retirementCard).not.toBeNull();
     expect(element.textContent).toContain('Progress');
-    expect(element.textContent).toContain('of target');
+    expect(element.textContent).toContain('of $900K');
+    expect(speedometer?.style.getPropertyValue('--gauge-sweep')).toBe('');
+  });
+
+  it('maps retirement progress from zero to target across the left-to-right gauge arc', async () => {
+    const element = await render(createState({
+      indicators: [],
+      stocks: [
+        { watchOnly: false, marketValue: 90_000 } as any,
+      ],
+    }));
+    const speedometer = element.querySelector<HTMLElement>('.retirement-speedometer');
+
+    expect(element.textContent).toContain('10%');
+    expect(speedometer?.style.getPropertyValue('--gauge-needle')).toBe('-162deg');
+  });
+
+  it('places macro gauge thresholds at one third of the arc and colors the above-threshold range', async () => {
+    const element = await render(createState({
+      indicators: [
+        indicator({
+          value: 12.5,
+          status: 'calm',
+        }),
+      ],
+    }));
+    const speedometer = element.querySelector<HTMLElement>('.mini-speedometer');
+
+    expect(speedometer?.style.getPropertyValue('--gauge-threshold')).toBe('60deg');
+    expect(speedometer?.style.getPropertyValue('--gauge-risk-start')).toBe('60deg');
+    expect(speedometer?.style.getPropertyValue('--gauge-risk-end')).toBe('180deg');
+    expect(speedometer?.style.getPropertyValue('--gauge-needle')).toBe('-150deg');
   });
 
   it('renders compact credit and volatility indicators without inline chart controls', async () => {
@@ -89,16 +122,34 @@ describe('IndicatorGridComponent', () => {
   });
 
   it('puts compact indicator tooltips on the gauge cards without info buttons', async () => {
-    const state = createState({ indicators: [indicator()] });
+    const state = createState({
+      indicators: [
+        indicator(),
+        indicator({
+          id: 'credit',
+          name: 'Credit Market',
+          category: 'Credit',
+          value: 0.74,
+          unit: 'spread %',
+          description: 'Credit stress proxy.',
+        }),
+      ],
+    });
     const element = await render(state);
     const card = element.querySelector<HTMLElement>('.compact-indicator');
+    const creditCard = Array.from(element.querySelectorAll<HTMLElement>('.compact-indicator'))
+      .find((indicatorCard) => indicatorCard.textContent?.includes('Credit Market'));
     const retirementCard = element.querySelector<HTMLElement>('.retirement-progress-indicator');
 
     expect(card?.querySelector('.indicator-help')).toBeNull();
     expect(card?.classList.contains('app-tooltip')).toBeTrue();
-    expect(card?.getAttribute('data-tooltip')).toBe('Volatility benchmark for broad market stress.');
+    expect(card?.getAttribute('data-tooltip')).toBe('Volatility benchmark for broad market stress. Risk threshold: 25 index points or +3 daily change.');
     expect(card?.getAttribute('tabindex')).toBe('0');
+    expect(creditCard?.getAttribute('data-tooltip')).toBe('Credit stress proxy. Risk threshold: 2.0 spread % or +0.15 daily change.');
     expect(retirementCard?.querySelector('.indicator-help')).toBeNull();
     expect(retirementCard?.getAttribute('data-tooltip')).toContain('Current non-watch-only portfolio value');
+    expect(retirementCard?.getAttribute('data-tooltip')).toContain('Target Retirement Fund');
+    expect(retirementCard?.getAttribute('data-tooltip')).toContain('no risk thresholds');
+    expect(retirementCard?.getAttribute('data-tooltip')).toContain('$900K');
   });
 });

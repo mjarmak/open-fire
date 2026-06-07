@@ -25,18 +25,34 @@ test.describe('Indicators Section', () => {
     await expect(compactCards).toHaveCount(3);
     await expect(compactCards.locator('.mini-speedometer')).toHaveCount(3);
     await expect(indicatorGrid.locator('.retirement-progress-indicator')).toContainText('Progress');
-    await expect(indicatorGrid.locator('.retirement-progress-indicator')).toContainText('of target');
+    await expect(indicatorGrid.locator('.retirement-progress-indicator')).toContainText('of $900K');
     await expect(indicatorGrid.locator('.indicator-help')).toHaveCount(0);
 
     const vixCard = compactCards.filter({ hasText: 'Fear Index / VIX' });
-    await expect(vixCard).toHaveAttribute('data-tooltip', 'Volatility benchmark for broad market stress.');
+    await expect(vixCard).toHaveAttribute('data-tooltip', 'Volatility benchmark for broad market stress. Risk threshold: 25 index points or +3 daily change.');
+    await expect.poll(() => vixCard.locator('.mini-speedometer').evaluate((element) => ({
+      riskStart: getComputedStyle(element).getPropertyValue('--gauge-risk-start').trim(),
+      riskEnd: getComputedStyle(element).getPropertyValue('--gauge-risk-end').trim(),
+    }))).toEqual({ riskStart: '60deg', riskEnd: '180deg' });
     await vixCard.hover();
-    await expect(page.getByRole('tooltip')).toHaveText('Volatility benchmark for broad market stress.');
+    await expect(page.getByRole('tooltip')).toHaveText('Volatility benchmark for broad market stress. Risk threshold: 25 index points or +3 daily change.');
+
+    const creditCard = compactCards.filter({ hasText: 'Credit Market' });
+    await expect(creditCard).toHaveAttribute('data-tooltip', 'Tracks corporate bond spread pressure. Risk threshold: 2.0 spread % or +0.15 daily change.');
 
     const retirementCard = indicatorGrid.locator('.retirement-progress-indicator');
     await expect(retirementCard).toHaveAttribute('data-tooltip', /Current non-watch-only portfolio value/);
+    await expect(retirementCard).toHaveAttribute('data-tooltip', /Target Retirement Fund/);
+    await expect(retirementCard).toHaveAttribute('data-tooltip', /\$900K/);
+    await expect.poll(() => retirementCard.locator('.mini-speedometer').evaluate((element) =>
+      getComputedStyle(element).getPropertyValue('--gauge-sweep').trim(),
+    )).toBe('0deg');
+    await expect.poll(() => retirementCard.locator('.retirement-speedometer').evaluate((element) =>
+      Number.parseFloat(getComputedStyle(element).getPropertyValue('--gauge-needle')),
+    )).toBeLessThan(-170);
     await retirementCard.hover();
     await expect(page.getByRole('tooltip')).toContainText('Current non-watch-only portfolio value');
+    await expect(page.getByRole('tooltip')).toContainText('Target Retirement Fund');
   });
 
   test('shows both global risk charts below the pie chart with range controls', async ({ page }) => {

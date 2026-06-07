@@ -11,6 +11,17 @@ describe('DcaPanelComponent', () => {
       hasLoadedDcaSettings: false,
       telegramDcaEnabled: false,
       dcaReminderNote: '',
+      dcaReminderDays: ['WED', 'FRI'],
+      notificationDayOptions: [
+        { value: 'MON', label: 'Mon' },
+        { value: 'TUE', label: 'Tue' },
+        { value: 'WED', label: 'Wed' },
+        { value: 'THU', label: 'Thu' },
+        { value: 'FRI', label: 'Fri' },
+        { value: 'SAT', label: 'Sat' },
+        { value: 'SUN', label: 'Sun' },
+      ],
+      formatNotificationDays: (days: string[]) => days.length ? days.join(', ') : 'No days selected',
       ...overrides,
     } as MarketDashboardService;
   }

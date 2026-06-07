@@ -17,5 +17,9 @@ export class DcaPanelComponent {
     const note = this.state.dcaReminderNote.trim();
     return note.length ? note : 'No custom DCA note set yet.';
   }
+
+  get dcaDaysText(): string {
+    return this.state.formatNotificationDays(this.state.dcaReminderDays);
+  }
 }
 

@@ -28,6 +28,8 @@ app-root {
   --metric-bg: rgb(255 255 255 / 4%);
   --position-indicator-neutral: #9aa3ab;
   --position-indicator-neutral-bg: rgb(154 163 171 / 12%);
+  --position-indicator-neutral-text: var(--text);
+  --position-column-title: #fff;
   --risk-fear: var(--position-indicator-neutral);
   --risk-fear-bg: var(--position-indicator-neutral-bg);
   --risk-pe: var(--position-indicator-neutral);
@@ -81,8 +83,10 @@ app-root.light-theme {
   --tooltip-text: #f4f6f7;
   --tooltip-muted: #d8e0e5;
   --metric-bg: rgb(0 0 0 / 5%);
-  --position-indicator-neutral: #3f464c;
-  --position-indicator-neutral-bg: rgb(63 70 76 / 10%);
+  --position-indicator-neutral: #6b7280;
+  --position-indicator-neutral-bg: rgb(107 114 128 / 12%);
+  --position-indicator-neutral-text: var(--text);
+  --position-column-title: #3f464c;
   --risk-fear: var(--position-indicator-neutral);
   --risk-fear-bg: var(--position-indicator-neutral-bg);
   --risk-pe: var(--position-indicator-neutral);
@@ -779,6 +783,9 @@ button:disabled:not(.icon-btn)::after {
 
 .mini-speedometer {
   --gauge-sweep: 90deg;
+  --gauge-threshold: 90deg;
+  --gauge-risk-start: var(--gauge-threshold);
+  --gauge-risk-end: var(--gauge-threshold);
   --gauge-needle: 0deg;
   position: relative;
   width: 64px;
@@ -798,8 +805,9 @@ button:disabled:not(.icon-btn)::after {
     radial-gradient(circle at 50% 50%, var(--panel) 0 48%, transparent 49%),
   conic-gradient(
       from 270deg,
-      var(--indicator-outline) 0deg var(--gauge-sweep),
-      var(--gauge-track) var(--gauge-sweep) 180deg,
+      var(--gauge-track) 0deg var(--gauge-risk-start),
+      var(--status-risk) var(--gauge-risk-start) var(--gauge-risk-end),
+      var(--gauge-track) var(--gauge-risk-end) 180deg,
       transparent 180deg 360deg
     );
 }
@@ -913,9 +921,27 @@ button:disabled:not(.icon-btn)::after {
 }
 
 .retirement-progress-indicator {
-  --indicator-outline: var(--primary);
-  border-color: var(--primary);
-  box-shadow: inset 4px 0 0 var(--primary);
+  --indicator-outline: var(--gauge-track);
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.retirement-progress-indicator .mini-speedometer {
+  --gauge-sweep: 0deg;
+}
+
+.retirement-progress-indicator .retirement-speedometer::before {
+  background:
+    radial-gradient(circle at 50% 50%, var(--panel) 0 48%, transparent 49%),
+    conic-gradient(
+      from 270deg,
+      var(--gauge-track) 0deg 180deg,
+      transparent 180deg 360deg
+    );
+}
+
+.retirement-progress-indicator .retirement-speedometer::after {
+  border-color: var(--muted-strong);
 }
 
 
@@ -1541,10 +1567,10 @@ button:disabled:not(.icon-btn)::after {
   max-width: 82px;
   min-width: 0;
   padding: 5px 6px;
-  border: 1px solid var(--position-indicator-neutral);
+  border: 1px solid transparent;
   border-radius: 6px;
-  color: var(--position-indicator-neutral);
-  background: var(--position-indicator-neutral-bg);
+  color: var(--position-indicator-neutral-text);
+  background: var(--metric-bg);
   font-weight: 800;
   font-size: 0.78rem;
 }
@@ -1552,13 +1578,14 @@ button:disabled:not(.icon-btn)::after {
 .ticker-metrics .risk-metric {
   --risk-accent: var(--position-indicator-neutral);
   --risk-bg: var(--position-indicator-neutral-bg);
-  border-color: var(--risk-accent);
+  border-color: transparent;
+  border-left-color: var(--risk-accent);
   border-left-width: 4px;
   background: var(--risk-bg);
 }
 
 .ticker-metrics .risk-metric small {
-  color: var(--risk-accent);
+  color: var(--position-column-title);
 }
 
 .ticker-metrics .risk-fear {
@@ -1655,7 +1682,7 @@ button:disabled:not(.icon-btn)::after {
 }
 
 .ticker-metrics small {
-  color: var(--muted-strong);
+  color: var(--position-column-title);
   font-size: 0.58rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -1671,6 +1698,7 @@ button:disabled:not(.icon-btn)::after {
   min-width: 0;
   padding-top: 6px;
   border-top: 1px solid var(--border);
+  will-change: height, opacity;
 }
 
 .indicator-chart-panel {
@@ -1798,21 +1826,67 @@ button:disabled:not(.icon-btn)::after {
 }
 
 .range-trend-container {
+  position: relative;
+  min-height: 104px;
   cursor: crosshair;
 }
 
 .range-trend-svg {
-  height: auto;
+  height: 104px;
   min-height: 0;
+  opacity: 1;
+}
+
+.range-trend-loading .range-trend-svg {
+  opacity: 0;
+  pointer-events: none;
+  animation: none;
+}
+
+.range-trend-ready .range-trend-svg {
+  animation: range-trend-fade-in 180ms ease-out both;
+}
+
+.range-trend-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  min-height: 104px;
+  color: var(--muted-strong);
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  background: color-mix(in srgb, var(--surface) 68%, transparent);
+}
+
+.range-trend-loading-overlay .loading-spinner {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border-width: 2px;
+}
+
+@keyframes range-trend-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .position-chart-row .range-trend-svg {
-  height: auto;
+  height: 104px;
   min-height: 0;
 }
 
 .indicator-chart-panel .range-trend-svg {
-  height: auto;
+  height: 104px;
   min-height: 0;
 }
 
@@ -1928,13 +2002,19 @@ button:disabled:not(.icon-btn)::after {
   font-weight: 800 !important;
 }
 
+.position-title-inline-metric .position-title-quantity-factor,
 .position-title-lines .position-title-quantity-factor {
-  color: var(--muted-strong);
+  color: var(--text);
 }
 
 .position-title-lines .position-title-current-price-factor,
 .position-title-lines .position-title-average-factor {
   color: var(--primary);
+}
+
+app-root.light-theme .position-title-inline-metric .position-title-quantity-factor,
+app-root.light-theme .position-title-lines .position-title-quantity-factor {
+  color: #000;
 }
 
 .row-actions > .position-expand-hint {
@@ -2257,6 +2337,51 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
   gap: 8px;
 }
 
+.dialog-fieldset {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.dialog-fieldset:disabled {
+  cursor: wait;
+}
+
+.dialog-fieldset:disabled label,
+.dialog-fieldset:disabled .weekday-field,
+.dialog-fieldset:disabled .field-hint,
+.dialog-fieldset:disabled .dca-sample-actions span {
+  opacity: 0.55;
+}
+
+.dialog-fieldset:disabled input,
+.dialog-fieldset:disabled textarea {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--input-bg) 70%, var(--panel));
+  color: var(--muted);
+  cursor: wait;
+}
+
+.dialog-fieldset:disabled .weekday-option {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--metric-bg) 55%, var(--panel));
+  color: var(--muted);
+  cursor: wait;
+}
+
+.dialog-fieldset:disabled .weekday-option.selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: color-mix(in srgb, var(--primary) 32%, var(--panel));
+  color: rgb(255 255 255 / 72%);
+}
+
+.dialog-fieldset:disabled .weekday-option.selected span {
+  color: rgb(255 255 255 / 72%);
+}
+
 .edit-dialog .position-cost-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -2285,8 +2410,61 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
   justify-content: end;
 }
 
+.weekday-field {
+  display: grid;
+  gap: 8px;
+}
+
+.weekday-field > span {
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.weekday-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.weekday-option {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 1 48px;
+  min-height: 34px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--metric-bg);
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.weekday-option.selected {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+.weekday-option.selected span {
+  color: #fff;
+}
+
+.weekday-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .dca-dialog {
   width: min(620px, 100%);
+}
+
+.telegram-dialog {
+  width: min(560px, 100%);
 }
 
 .dca-sample-actions {
@@ -3072,17 +3250,6 @@ button.danger:hover {
 }
 
 @media (max-width: 680px) {
-  .retirement-heading {
-    grid-template-columns: 1fr;
-    align-items: start;
-  }
-
-  .retirement-heading .portfolio-actions {
-    grid-column: 1;
-    grid-row: auto;
-    justify-self: start;
-    justify-content: start;
-  }
 
   .retirement-metrics-grid {
     grid-template-columns: 1fr;

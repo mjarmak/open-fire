@@ -20,6 +20,7 @@ import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
@@ -300,7 +301,7 @@ public class DashboardService {
     return new ScheduledTelegramMessage(sb.toString(), List.copyOf(includedAlertSymbols));
   }
 
-  @Scheduled(cron = "0 0 16 * * WED,FRI", zone = BELGIUM_TIME_ZONE)
+  @Scheduled(cron = "0 0 16 * * *", zone = BELGIUM_TIME_ZONE)
   public void sendDcaReminder() {
     sendScheduledTelegramMessage("DCA reminder", username -> new ScheduledTelegramMessage(generateDcaReminderForUser(username), List.of()));
   }
@@ -317,17 +318,24 @@ public class DashboardService {
     }
 
     LOGGER.info("Starting scheduled {}...", description);
-    Map<String, String> userChatIds = "DCA reminder".equals(description)
+    Map<String, UserAccountService.UserTelegramSchedule> userSettings = "DCA reminder".equals(description)
         ? userAccountService.allUserTelegramSettingsForDcaEnabled()
         : userAccountService.allUserTelegramSettings();
-    if (userChatIds.isEmpty()) {
+    if (userSettings.isEmpty()) {
       LOGGER.info("No active users found with configured Telegram chat IDs. Skipping scheduled {}.", description);
       return;
     }
 
-    for (Map.Entry<String, String> entry : userChatIds.entrySet()) {
+    String today = currentBelgiumDayCode();
+    for (Map.Entry<String, UserAccountService.UserTelegramSchedule> entry : userSettings.entrySet()) {
       String username = entry.getKey();
-      String chatId = entry.getValue();
+      UserAccountService.UserTelegramSchedule schedule = entry.getValue();
+      if (!schedule.days().contains(today)) {
+        LOGGER.info("Skipping scheduled {} for user {} because {} is not selected.", description, username, today);
+        continue;
+      }
+
+      String chatId = schedule.chatId();
       LOGGER.info("Sending scheduled {} to user: {} (ChatID: {})", description, username, chatId);
       try {
         ScheduledTelegramMessage message = messageFactory.apply(username);
@@ -339,6 +347,13 @@ public class DashboardService {
         LOGGER.error("Failed to send scheduled {} to user {}: {}", description, username, exception.getMessage(), exception);
       }
     }
+  }
+
+  private String currentBelgiumDayCode() {
+    return LocalDate.now(ZoneId.of(BELGIUM_TIME_ZONE))
+        .getDayOfWeek()
+        .name()
+        .substring(0, 3);
   }
 
   public String generateDcaReminderForUser(String username) {

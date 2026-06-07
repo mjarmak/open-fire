@@ -257,27 +257,36 @@ public class DashboardController {
 
   @GetMapping("/users/me/telegram")
   TelegramSettingsResponse telegramSettings() {
-    return new TelegramSettingsResponse(userAccountService.currentTelegramChatId().orElse(""));
+    UserTelegramSettings settings = userAccountService.currentTelegramSettings();
+    return new TelegramSettingsResponse(settings.chatId(), settings.alertDays());
   }
 
   @PutMapping("/users/me/telegram")
   TelegramSettingsResponse updateTelegramSettings(@Valid @RequestBody TelegramSettingsRequest request) {
-    UserTelegramSettings settings = userAccountService.updateCurrentTelegramChatId(request.chatId());
-    return new TelegramSettingsResponse(settings.chatId());
+    UserTelegramSettings settings = userAccountService.updateCurrentTelegramSettings(request.chatId(), request.alertDays());
+    return new TelegramSettingsResponse(settings.chatId(), settings.alertDays());
   }
 
   @GetMapping("/users/me/dca")
   DcaSettingsResponse dcaSettings() {
     UserDcaSettings settings = userAccountService.currentDcaSettings();
-    return new DcaSettingsResponse(settings.telegramDcaEnabled(), settings.reminderNote() == null ? "" : settings.reminderNote());
+    return new DcaSettingsResponse(
+        settings.telegramDcaEnabled(),
+        settings.reminderNote() == null ? "" : settings.reminderNote(),
+        settings.reminderDays()
+    );
   }
 
   @PutMapping("/users/me/dca")
   DcaSettingsResponse updateDcaSettings(@Valid @RequestBody DcaSettingsRequest request) {
     UserDcaSettings settings = userAccountService.updateCurrentDcaSettings(
-        new UserDcaSettings(request.telegramDcaEnabled(), request.reminderNote())
+        new UserDcaSettings(request.telegramDcaEnabled(), request.reminderNote(), request.reminderDays())
     );
-    return new DcaSettingsResponse(settings.telegramDcaEnabled(), settings.reminderNote() == null ? "" : settings.reminderNote());
+    return new DcaSettingsResponse(
+        settings.telegramDcaEnabled(),
+        settings.reminderNote() == null ? "" : settings.reminderNote(),
+        settings.reminderDays()
+    );
   }
 
   @GetMapping("/users/me/retirement")
@@ -296,21 +305,23 @@ public class DashboardController {
   public record TelegramSendResponse(boolean sent, String message, boolean missingChatId) {
   }
 
-  public record TelegramSettingsRequest(@NotBlank String chatId) {
+  public record TelegramSettingsRequest(@NotBlank String chatId, List<String> alertDays) {
   }
 
-  public record TelegramSettingsResponse(String chatId) {
+  public record TelegramSettingsResponse(String chatId, List<String> alertDays) {
   }
 
   public record DcaSettingsRequest(
       boolean telegramDcaEnabled,
-      @Size(max = 800) String reminderNote
+      @Size(max = 800) String reminderNote,
+      List<String> reminderDays
   ) {
   }
 
   public record DcaSettingsResponse(
       boolean telegramDcaEnabled,
-      String reminderNote
+      String reminderNote,
+      List<String> reminderDays
   ) {
   }
 

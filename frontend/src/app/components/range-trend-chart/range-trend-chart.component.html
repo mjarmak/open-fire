@@ -3,6 +3,8 @@
   [class.chart-up]="tone === 'up'"
   [class.chart-down]="tone === 'down'"
   [class.chart-flat]="tone === 'flat'"
+  [class.range-trend-loading]="loading"
+  [class.range-trend-ready]="!loading"
 >
   <div class="chart-range-options" role="group" aria-label="Chart date range">
     @for (range of ranges; track range) {
@@ -16,6 +18,13 @@
   </div>
 
   <div #chartContainer class="chart-container range-trend-container" (mousemove)="onChartMouseMove($event)" (mouseleave)="onChartMouseLeave()">
+    @if (loading) {
+      <div class="range-trend-loading-overlay" role="status" aria-live="polite">
+        <div class="loading-spinner" aria-hidden="true"></div>
+        <span>Loading market history...</span>
+      </div>
+    }
+
     <svg [attr.viewBox]="'0 0 ' + viewBoxWidth + ' ' + viewBoxHeight" class="projection-svg range-trend-svg" role="img" [attr.aria-label]="label">
       @if (yAxisUnitLabel) {
         <text class="trend-y-axis-unit" [attr.x]="startX" y="8" text-anchor="start" [attr.font-size]="axisFontSize" fill="var(--muted-strong)">{{ yAxisUnitLabel }}</text>
@@ -42,7 +51,7 @@
       }
     </svg>
 
-    @if (hoveredPoint; as point) {
+    @if (!loading && hoveredPoint; as point) {
       <div class="chart-tooltip range-trend-tooltip" [style.left.px]="hoverTooltipLeft" [style.top.px]="hoverTooltipTop">
         <p class="tooltip-title">{{ formatTooltipDate(point.source.date) }}</p>
         <div class="tooltip-row">

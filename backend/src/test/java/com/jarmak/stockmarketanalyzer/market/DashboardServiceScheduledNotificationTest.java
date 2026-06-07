@@ -34,8 +34,8 @@ class DashboardServiceScheduledNotificationTest {
   @Test
   void sendsDcaReminderToEveryConfiguredTelegramUser() {
     when(userAccountService.allUserTelegramSettingsForDcaEnabled()).thenReturn(Map.of(
-        "alice", "111",
-        "bob", "222"
+        "alice", everyDaySchedule("111"),
+        "bob", everyDaySchedule("222")
     ));
     when(userAccountService.getRetirementSettingsForUser(anyString())).thenReturn(retirementSettings());
     when(userAccountService.getDcaSettingsForUser(anyString())).thenReturn(new UserAccountService.UserDcaSettings(true, ""));
@@ -72,7 +72,7 @@ class DashboardServiceScheduledNotificationTest {
 
   @Test
   void skipsAlertSymbolsAlreadySentWithinTheLastWeek() {
-    when(userAccountService.allUserTelegramSettings()).thenReturn(Map.of("alice", "111"));
+    when(userAccountService.allUserTelegramSettings()).thenReturn(Map.of("alice", everyDaySchedule("111")));
     when(marketIndicatorService.indicators()).thenReturn(List.of());
     when(portfolioService.recentlyAlertedSymbolsForUser(
         org.mockito.ArgumentMatchers.eq("alice"),
@@ -100,7 +100,7 @@ class DashboardServiceScheduledNotificationTest {
 
   @Test
   void dcaReminderExcludesWatchOnlyStocksFromCurrentRetirementAssets() {
-    when(userAccountService.allUserTelegramSettingsForDcaEnabled()).thenReturn(Map.of("alice", "111"));
+    when(userAccountService.allUserTelegramSettingsForDcaEnabled()).thenReturn(Map.of("alice", everyDaySchedule("111")));
     when(userAccountService.getRetirementSettingsForUser("alice")).thenReturn(retirementSettings());
     when(userAccountService.getDcaSettingsForUser("alice")).thenReturn(new UserAccountService.UserDcaSettings(true, ""));
     when(stockAlertService.evaluateWatchedStocksForUser("alice", null))
@@ -120,12 +120,28 @@ class DashboardServiceScheduledNotificationTest {
 
 
   @Test
-  void schedulesDcaReminderOnWednesdayAndFridayAtFourPmBelgiumTime() throws NoSuchMethodException {
+  void skipsUsersWhenTodayIsNotSelectedForScheduledNotifications() {
+    when(userAccountService.allUserTelegramSettings()).thenReturn(Map.of(
+        "alice", new UserAccountService.UserTelegramSchedule("111", List.of())
+    ));
+    DashboardService service = dashboardService(true);
+
+    service.sendDailyBriefing();
+
+    verify(telegramNotificationService, never()).sendToChat(anyString(), anyString());
+  }
+
+  @Test
+  void schedulesDcaReminderDailyAtFourPmBelgiumTime() throws NoSuchMethodException {
     Method method = DashboardService.class.getMethod("sendDcaReminder");
     Scheduled scheduled = method.getAnnotation(Scheduled.class);
 
-    assertThat(scheduled.cron()).isEqualTo("0 0 16 * * WED,FRI");
+    assertThat(scheduled.cron()).isEqualTo("0 0 16 * * *");
     assertThat(scheduled.zone()).isEqualTo("Europe/Brussels");
+  }
+
+  private UserAccountService.UserTelegramSchedule everyDaySchedule(String chatId) {
+    return new UserAccountService.UserTelegramSchedule(chatId, UserAccountService.DEFAULT_TELEGRAM_ALERT_DAYS);
   }
 
   private DashboardService dashboardService(boolean telegramEnabled) {

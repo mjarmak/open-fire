@@ -332,6 +332,7 @@
             [class.chart-down]="positionChartTone(stock) === 'down'"
             [class.chart-flat]="positionChartTone(stock) === 'flat'"
             [attr.aria-label]="positionChartSummary(stock)"
+            @positionChartExpansion
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
           >

@@ -1,6 +1,6 @@
 @if (state.telegramDialogOpen) {
   <div class="modal-backdrop" role="presentation" @dialogBackdrop>
-    <section class="edit-dialog" role="dialog" aria-modal="true" aria-labelledby="telegram-title" @dialogPanel (click)="$event.stopPropagation()">
+    <section class="edit-dialog telegram-dialog" role="dialog" aria-modal="true" aria-labelledby="telegram-title" @dialogPanel (click)="$event.stopPropagation()">
       <div class="dialog-heading">
         <div>
           <h2 id="telegram-title">Telegram Configuration</h2>
@@ -9,30 +9,49 @@
       </div>
 
       <form class="edit-form" (ngSubmit)="save.emit()">
-        <label>
-          <span>Chat ID</span>
-          <input name="telegramChatId" [(ngModel)]="state.telegramChatId" autocomplete="off" />
-        </label>
-        <small class="field-hint">
-          Start <strong>&#64;{{ state.telegramBotUsername }}</strong> in Telegram, then save your numeric chat ID here.
-          <br /><br />
-          <strong>How to find your numeric Chat ID:</strong>
-          <ol style="margin: 4px 0 0 16px; padding: 0; line-height: 1.4; display: flex; flex-direction: column; gap: 4px;">
-            <li>Search for <strong>&#64;userinfobot</strong> in Telegram.</li>
-            <li>Send them any message (or start them).</li>
-            <li>They will reply with your numeric ID (e.g. <code>582910482</code>). Copy that number here!</li>
-          </ol>
-        </small>
+        <fieldset class="dialog-fieldset" [disabled]="state.isLoadingTelegram || state.isSavingTelegram">
+          <label>
+            <span>Chat ID</span>
+            <input name="telegramChatId" [(ngModel)]="state.telegramChatId" autocomplete="off" />
+          </label>
+          <small class="field-hint">
+            Start <strong>&#64;{{ state.telegramBotUsername }}</strong> in Telegram, then save your numeric chat ID here.
+            <br /><br />
+            <strong>How to find your numeric Chat ID:</strong>
+            <ol style="margin: 4px 0 0 16px; padding: 0; line-height: 1.4; display: flex; flex-direction: column; gap: 4px;">
+              <li>Search for <strong>&#64;userinfobot</strong> in Telegram.</li>
+              <li>Send them any message (or start them).</li>
+              <li>They will reply with your numeric ID (e.g. <code>582910482</code>). Copy that number here!</li>
+            </ol>
+          </small>
 
-        <div class="dialog-actions">
-          <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
-          <button type="button" class="secondary" [disabled]="state.isSavingTelegram" (click)="test.emit()">
-            {{ state.isSavingTelegram ? 'Working' : 'Test' }}
-          </button>
-          <button type="submit" [disabled]="state.isSavingTelegram || !state.telegramChatId.trim()">
-            {{ state.isSavingTelegram ? 'Saving' : 'Save' }}
-          </button>
-        </div>
+          <div class="weekday-field" role="group" aria-label="Telegram alert briefing days">
+            <span>Alert briefing days</span>
+            <div class="weekday-picker">
+              @for (day of state.notificationDayOptions; track day.value) {
+                <label class="weekday-option" [class.selected]="state.isDraftTelegramAlertDaySelected(day.value)">
+                  <input
+                    type="checkbox"
+                    [name]="'telegramAlertDay' + day.value"
+                    [ngModel]="state.isDraftTelegramAlertDaySelected(day.value)"
+                    (ngModelChange)="state.setDraftTelegramAlertDay(day.value, $event)"
+                  />
+                  <span>{{ day.label }}</span>
+                </label>
+              }
+            </div>
+          </div>
+
+          <div class="dialog-actions">
+            <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+            <button type="button" class="secondary" (click)="test.emit()">
+              {{ state.isSavingTelegram ? 'Working' : 'Test' }}
+            </button>
+            <button type="submit" [disabled]="!state.telegramChatId.trim()">
+              {{ state.isSavingTelegram ? 'Saving' : state.isLoadingTelegram ? 'Loading' : 'Save' }}
+            </button>
+          </div>
+        </fieldset>
       </form>
     </section>
   </div>

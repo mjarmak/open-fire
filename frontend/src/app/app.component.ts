@@ -147,6 +147,12 @@ export class AppComponent implements OnDestroy, OnInit {
   set telegramDialogOpen(value: boolean) { this.marketDashboardService.telegramDialogOpen = value; }
   get telegramChatId(): string { return this.marketDashboardService.telegramChatId; }
   set telegramChatId(value: string) { this.marketDashboardService.telegramChatId = value; }
+  get telegramAlertDays(): string[] { return this.marketDashboardService.telegramAlertDays; }
+  set telegramAlertDays(value: string[]) { this.marketDashboardService.telegramAlertDays = value; }
+  get draftTelegramAlertDays(): string[] { return this.marketDashboardService.draftTelegramAlertDays; }
+  set draftTelegramAlertDays(value: string[]) { this.marketDashboardService.draftTelegramAlertDays = value; }
+  get isLoadingTelegram(): boolean { return this.marketDashboardService.isLoadingTelegram; }
+  set isLoadingTelegram(value: boolean) { this.marketDashboardService.isLoadingTelegram = value; }
   get isSavingTelegram(): boolean { return this.marketDashboardService.isSavingTelegram; }
   set isSavingTelegram(value: boolean) { this.marketDashboardService.isSavingTelegram = value; }
   get dcaDialogOpen(): boolean { return this.marketDashboardService.dcaDialogOpen; }
@@ -163,10 +169,14 @@ export class AppComponent implements OnDestroy, OnInit {
   set telegramDcaEnabled(value: boolean) { this.marketDashboardService.telegramDcaEnabled = value; }
   get dcaReminderNote(): string { return this.marketDashboardService.dcaReminderNote; }
   set dcaReminderNote(value: string) { this.marketDashboardService.dcaReminderNote = value; }
+  get dcaReminderDays(): string[] { return this.marketDashboardService.dcaReminderDays; }
+  set dcaReminderDays(value: string[]) { this.marketDashboardService.dcaReminderDays = value; }
   get draftTelegramDcaEnabled(): boolean { return this.marketDashboardService.draftTelegramDcaEnabled; }
   set draftTelegramDcaEnabled(value: boolean) { this.marketDashboardService.draftTelegramDcaEnabled = value; }
   get draftDcaReminderNote(): string { return this.marketDashboardService.draftDcaReminderNote; }
   set draftDcaReminderNote(value: string) { this.marketDashboardService.draftDcaReminderNote = value; }
+  get draftDcaReminderDays(): string[] { return this.marketDashboardService.draftDcaReminderDays; }
+  set draftDcaReminderDays(value: string[]) { this.marketDashboardService.draftDcaReminderDays = value; }
   get retirementSettingsOpen(): boolean { return this.marketDashboardService.retirementSettingsOpen; }
   set retirementSettingsOpen(value: boolean) { this.marketDashboardService.retirementSettingsOpen = value; }
   get isLoadingRetirement(): boolean { return this.marketDashboardService.isLoadingRetirement; }
@@ -525,8 +535,14 @@ export class AppComponent implements OnDestroy, OnInit {
     this.hasLoadedDcaSettings = false;
     this.telegramDcaEnabled = false;
     this.dcaReminderNote = '';
+    this.dcaReminderDays = [...this.marketDashboardService.defaultDcaReminderDays];
     this.draftTelegramDcaEnabled = false;
     this.draftDcaReminderNote = '';
+    this.draftDcaReminderDays = [...this.marketDashboardService.defaultDcaReminderDays];
+    this.telegramAlertDays = [...this.marketDashboardService.defaultTelegramAlertDays];
+    this.draftTelegramAlertDays = [...this.marketDashboardService.defaultTelegramAlertDays];
+    this.isLoadingTelegram = false;
+    this.isSavingTelegram = false;
     this.dcaDialogOpen = false;
     this.dcaSuggestionDialogOpen = false;
     this.alertsDialogOpen = false;
@@ -639,8 +655,15 @@ export class AppComponent implements OnDestroy, OnInit {
     }
 
     this.telegramDialogOpen = true;
-    this.marketDashboardService.telegramSettings(this.username, this.password).subscribe({
-      next: (settings) => (this.telegramChatId = settings.chatId),
+    this.isLoadingTelegram = true;
+    this.marketDashboardService.telegramSettings(this.username, this.password)
+      .pipe(finalize(() => (this.isLoadingTelegram = false)))
+      .subscribe({
+      next: (settings) => {
+        this.telegramChatId = settings.chatId;
+        this.telegramAlertDays = settings.alertDays ?? [...this.marketDashboardService.defaultTelegramAlertDays];
+        this.draftTelegramAlertDays = [...this.telegramAlertDays];
+      },
       error: () => this.showSnackbar('Could not load Telegram settings.', 'error'),
     });
   }
@@ -972,6 +995,7 @@ export class AppComponent implements OnDestroy, OnInit {
     const settings: UserDcaSettings = {
       telegramDcaEnabled: this.draftTelegramDcaEnabled,
       reminderNote: this.draftDcaReminderNote.trim(),
+      reminderDays: this.draftDcaReminderDays,
     };
     this.marketDashboardService.saveDcaSettings(this.username, this.password, settings)
       .pipe(finalize(() => (this.isSavingDca = false)))
@@ -1081,11 +1105,13 @@ export class AppComponent implements OnDestroy, OnInit {
   private applyDcaSettings(settings: UserDcaSettings): void {
     this.telegramDcaEnabled = settings.telegramDcaEnabled ?? false;
     this.dcaReminderNote = settings.reminderNote ?? '';
+    this.dcaReminderDays = settings.reminderDays ?? [...this.marketDashboardService.defaultDcaReminderDays];
   }
 
   private populateDcaDraft(): void {
     this.draftTelegramDcaEnabled = this.telegramDcaEnabled;
     this.draftDcaReminderNote = this.dcaReminderNote;
+    this.draftDcaReminderDays = [...this.dcaReminderDays];
   }
 
   saveTelegramChatId(): void {
@@ -1096,16 +1122,18 @@ export class AppComponent implements OnDestroy, OnInit {
     }
 
     this.isSavingTelegram = true;
-    this.marketDashboardService.saveTelegramSettings(this.username, this.password, chatId)
+    this.marketDashboardService.saveTelegramSettings(this.username, this.password, chatId, this.draftTelegramAlertDays)
       .pipe(finalize(() => (this.isSavingTelegram = false)))
       .subscribe({
         next: (settings) => {
           this.telegramChatId = settings.chatId;
-          this.showSnackbar('Telegram chat ID saved.');
+          this.telegramAlertDays = settings.alertDays ?? [...this.marketDashboardService.defaultTelegramAlertDays];
+          this.draftTelegramAlertDays = [...this.telegramAlertDays];
+          this.showSnackbar('Telegram settings saved.');
           this.closeTelegramDialog();
           this.refreshDashboard();
         },
-        error: () => this.showSnackbar('Could not save Telegram chat ID.', 'error'),
+        error: () => this.showSnackbar('Could not save Telegram settings.', 'error'),
       });
   }
 
@@ -1117,7 +1145,7 @@ export class AppComponent implements OnDestroy, OnInit {
     }
 
     this.isSavingTelegram = true;
-    this.marketDashboardService.saveTelegramSettings(this.username, this.password, chatId)
+    this.marketDashboardService.saveTelegramSettings(this.username, this.password, chatId, this.draftTelegramAlertDays)
       .pipe(
         switchMap(() => this.marketDashboardService.sendTelegram(this.username, this.password, 'OpenFIRE Telegram test.')),
         finalize(() => (this.isSavingTelegram = false)),

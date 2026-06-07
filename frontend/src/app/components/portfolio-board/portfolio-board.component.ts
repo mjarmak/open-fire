@@ -32,6 +32,40 @@ type PositionFilter = 'all' | 'positions' | 'watchlist';
         style({ display: 'none' }),
       ]),
     ]),
+    trigger('positionChartExpansion', [
+      transition(':enter', [
+        style({
+          height: 0,
+          minHeight: 0,
+          opacity: 0,
+          paddingTop: 0,
+          borderTopColor: 'transparent',
+          overflow: 'hidden',
+        }),
+        animate('190ms ease-out', style({
+          height: '*',
+          opacity: 1,
+          paddingTop: '*',
+          borderTopColor: '*',
+        })),
+      ]),
+      transition(':leave', [
+        style({
+          height: '*',
+          opacity: 1,
+          paddingTop: '*',
+          borderTopColor: '*',
+          overflow: 'hidden',
+        }),
+        animate('150ms ease-in', style({
+          height: 0,
+          minHeight: 0,
+          opacity: 0,
+          paddingTop: 0,
+          borderTopColor: 'transparent',
+        })),
+      ]),
+    ]),
   ],
 })
 export class PortfolioBoardComponent implements OnInit {

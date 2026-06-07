@@ -102,4 +102,5 @@ export interface UserRetirementSettings {
 export interface UserDcaSettings {
   telegramDcaEnabled: boolean;
   reminderNote: string;
+  reminderDays: string[];
 }

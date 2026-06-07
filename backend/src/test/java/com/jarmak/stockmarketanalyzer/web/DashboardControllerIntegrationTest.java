@@ -396,48 +396,60 @@ class DashboardControllerIntegrationTest {
 
   @Test
   void getsTelegramSettings() throws Exception {
-    when(userAccountService.currentTelegramChatId()).thenReturn(Optional.of("12345"));
+    when(userAccountService.currentTelegramSettings()).thenReturn(new UserTelegramSettings("12345", List.of("MON", "WED")));
 
     mockMvc.perform(get("/api/users/me/telegram"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.chatId").value("12345"));
+        .andExpect(jsonPath("$.chatId").value("12345"))
+        .andExpect(jsonPath("$.alertDays[0]").value("MON"))
+        .andExpect(jsonPath("$.alertDays[1]").value("WED"));
   }
 
   @Test
   void updatesTelegramSettings() throws Exception {
-    when(userAccountService.updateCurrentTelegramChatId("67890")).thenReturn(new UserTelegramSettings("67890"));
+    when(userAccountService.updateCurrentTelegramSettings(eq("67890"), any()))
+        .thenReturn(new UserTelegramSettings("67890", List.of("TUE", "THU")));
 
     mockMvc.perform(put("/api/users/me/telegram")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(json(Map.of("chatId", "67890"))))
+            .content(json(Map.of(
+                "chatId", "67890",
+                "alertDays", List.of("TUE", "THU")
+            ))))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.chatId").value("67890"));
+        .andExpect(jsonPath("$.chatId").value("67890"))
+        .andExpect(jsonPath("$.alertDays[0]").value("TUE"))
+        .andExpect(jsonPath("$.alertDays[1]").value("THU"));
   }
 
   @Test
   void getsDcaSettings() throws Exception {
-    when(userAccountService.currentDcaSettings()).thenReturn(new UserDcaSettings(true, null));
+    when(userAccountService.currentDcaSettings()).thenReturn(new UserDcaSettings(true, null, List.of("WED", "FRI")));
 
     mockMvc.perform(get("/api/users/me/dca"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.telegramDcaEnabled").value(true))
-        .andExpect(jsonPath("$.reminderNote").value(""));
+        .andExpect(jsonPath("$.reminderNote").value(""))
+        .andExpect(jsonPath("$.reminderDays[0]").value("WED"))
+        .andExpect(jsonPath("$.reminderDays[1]").value("FRI"));
   }
 
   @Test
   void updatesDcaSettings() throws Exception {
     when(userAccountService.updateCurrentDcaSettings(any(UserDcaSettings.class)))
-        .thenReturn(new UserDcaSettings(true, "Buy monthly allocation"));
+        .thenReturn(new UserDcaSettings(true, "Buy monthly allocation", List.of("MON")));
 
     mockMvc.perform(put("/api/users/me/dca")
             .contentType(MediaType.APPLICATION_JSON)
             .content(json(Map.of(
                 "telegramDcaEnabled", true,
-                "reminderNote", "Buy monthly allocation"
+                "reminderNote", "Buy monthly allocation",
+                "reminderDays", List.of("MON")
             ))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.telegramDcaEnabled").value(true))
-        .andExpect(jsonPath("$.reminderNote").value("Buy monthly allocation"));
+        .andExpect(jsonPath("$.reminderNote").value("Buy monthly allocation"))
+        .andExpect(jsonPath("$.reminderDays[0]").value("MON"));
   }
 
   @Test

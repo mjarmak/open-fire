@@ -10,34 +10,53 @@
       </div>
 
       <form class="edit-form" (ngSubmit)="save.emit()">
-        <label class="remember-login">
-          <input name="telegramDcaEnabled" type="checkbox" [(ngModel)]="state.draftTelegramDcaEnabled" />
-          <span>Enable Telegram DCA reminder</span>
-        </label>
-        <small class="field-hint">Disabled by default. Turn this on only if you want scheduled DCA messages in Telegram.</small>
+        <fieldset class="dialog-fieldset" [disabled]="state.isLoadingDca || state.isSavingDca">
+          <label class="remember-login">
+            <input name="telegramDcaEnabled" type="checkbox" [(ngModel)]="state.draftTelegramDcaEnabled" />
+            <span>Enable Telegram DCA reminder</span>
+          </label>
+          <small class="field-hint">Disabled by default. Turn this on only if you want scheduled DCA messages in Telegram.</small>
 
-        <label>
-          <span>DCA Note (shown first in Telegram reminder)</span>
-          <textarea
-            name="dcaReminderNote"
-            rows="8"
-            [attr.maxlength]="state.dcaReminderMaxLength"
-            [(ngModel)]="state.draftDcaReminderNote"
-            placeholder="Follow your plan and buy consistently."
-          ></textarea>
-        </label>
+          <div class="weekday-field" role="group" aria-label="DCA reminder days">
+            <span>Reminder days</span>
+            <div class="weekday-picker">
+              @for (day of state.notificationDayOptions; track day.value) {
+                <label class="weekday-option" [class.selected]="state.isDraftDcaReminderDaySelected(day.value)">
+                  <input
+                    type="checkbox"
+                    [name]="'dcaReminderDay' + day.value"
+                    [ngModel]="state.isDraftDcaReminderDaySelected(day.value)"
+                    (ngModelChange)="state.setDraftDcaReminderDay(day.value, $event)"
+                  />
+                  <span>{{ day.label }}</span>
+                </label>
+              }
+            </div>
+          </div>
 
-        <div class="dialog-actions dca-sample-actions">
-          <button type="button" class="secondary" (click)="openSuggestions.emit()">Suggest</button>
-          <span>{{ state.draftDcaReminderNote.length }}/{{ state.dcaReminderMaxLength }}</span>
-        </div>
+          <label>
+            <span>DCA Note (shown first in Telegram reminder)</span>
+            <textarea
+              name="dcaReminderNote"
+              rows="8"
+              [attr.maxlength]="state.dcaReminderMaxLength"
+              [(ngModel)]="state.draftDcaReminderNote"
+              placeholder="Follow your plan and buy consistently."
+            ></textarea>
+          </label>
 
-        <div class="dialog-actions">
-          <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
-          <button type="submit" [disabled]="state.isSavingDca">
-            {{ state.isSavingDca ? 'Saving' : 'Save' }}
-          </button>
-        </div>
+          <div class="dialog-actions dca-sample-actions">
+            <button type="button" class="secondary" (click)="openSuggestions.emit()">Suggest</button>
+            <span>{{ state.draftDcaReminderNote.length }}/{{ state.dcaReminderMaxLength }}</span>
+          </div>
+
+          <div class="dialog-actions">
+            <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+            <button type="submit">
+              {{ state.isSavingDca ? 'Saving' : state.isLoadingDca ? 'Loading' : 'Save' }}
+            </button>
+          </div>
+        </fieldset>
       </form>
     </section>
   </div>

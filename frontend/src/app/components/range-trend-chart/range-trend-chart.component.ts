@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild, inject } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 
 export type TrendChartRange = '1h' | '1d' | '5d' | '1m' | '1y' | '5y' | 'all';
 
@@ -26,7 +26,7 @@ type ChartRenderPoint = {
   imports: [CommonModule],
   templateUrl: './range-trend-chart.component.html',
 })
-export class RangeTrendChartComponent implements AfterViewInit, OnDestroy {
+export class RangeTrendChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
 
   @ViewChild('chartContainer') private chartContainer?: ElementRef<HTMLElement>;
@@ -84,6 +84,12 @@ export class RangeTrendChartComponent implements AfterViewInit, OnDestroy {
       this.scheduleViewBoxUpdate();
     });
     this.resizeObserver.observe(this.chartContainer.nativeElement);
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['loading']?.currentValue) {
+      this.hoveredPoint = null;
+    }
   }
 
   ngOnDestroy(): void {
@@ -162,6 +168,11 @@ export class RangeTrendChartComponent implements AfterViewInit, OnDestroy {
   }
 
   protected onChartMouseMove(event: MouseEvent): void {
+    if (this.loading) {
+      this.hoveredPoint = null;
+      return;
+    }
+
     const points = this.chartPoints;
     if (!points.length) {
       this.hoveredPoint = null;

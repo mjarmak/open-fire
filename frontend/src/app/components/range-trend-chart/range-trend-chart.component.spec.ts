@@ -57,6 +57,26 @@ describe('RangeTrendChartComponent', () => {
     expect(trendLine?.classList.contains('no-draw-animation')).toBeTrue();
   });
 
+  it('keeps the graph hidden while loading and marks it ready for fade-in after loading', async () => {
+    const { fixture, element } = await render();
+
+    fixture.componentRef.setInput('loading', true);
+    fixture.detectChanges();
+
+    const loadingWrapper = element.querySelector<HTMLElement>('.range-trend-wrapper');
+    expect(loadingWrapper?.classList.contains('range-trend-loading')).toBeTrue();
+    expect(loadingWrapper?.classList.contains('range-trend-ready')).toBeFalse();
+    expect(element.querySelector('.range-trend-loading-overlay')?.textContent).toContain('Loading market history');
+
+    fixture.componentRef.setInput('loading', false);
+    fixture.detectChanges();
+
+    const readyWrapper = element.querySelector<HTMLElement>('.range-trend-wrapper');
+    expect(readyWrapper?.classList.contains('range-trend-ready')).toBeTrue();
+    expect(readyWrapper?.classList.contains('range-trend-loading')).toBeFalse();
+    expect(element.querySelector('.range-trend-loading-overlay')).toBeNull();
+  });
+
   it('shows the nearest point value in a hover tooltip', async () => {
     const { fixture, element } = await render();
     const container = element.querySelector<HTMLElement>('.range-trend-container');
