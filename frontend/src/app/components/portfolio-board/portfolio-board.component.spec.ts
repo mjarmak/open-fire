@@ -178,19 +178,26 @@ describe('PortfolioBoardComponent', () => {
     const { element } = await render(state);
     const piePanel = element.querySelector<HTMLElement>('.position-type-panel');
     const globalCharts = Array.from(element.querySelectorAll<HTMLElement>('.global-risk-chart-panel'));
-    const vixChart = globalCharts.find((chart) => textContent(chart).includes('Fear Index / VIX'));
-    const creditChart = globalCharts.find((chart) => textContent(chart).includes('Credit Market'));
+    const vixChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Fear Index / VIX'));
+    const creditChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Credit Market'));
     const stockTable = element.querySelector<HTMLElement>('.stock-table');
 
     expect(piePanel).not.toBeNull();
     expect(globalCharts.length).toBe(2);
     expect(vixChart).not.toBeNull();
     expect(creditChart).not.toBeNull();
+    expect(vixChart!.querySelector('.global-risk-chart-heading')).not.toBeNull();
+    expect(textContent(vixChart!.querySelector('.global-risk-chart-heading'))).toContain('Fear Index / VIX');
     expect(stockTable).not.toBeNull();
     expect(Boolean(piePanel!.compareDocumentPosition(globalCharts[0]) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTrue();
     expect(Boolean(globalCharts[1].compareDocumentPosition(stockTable!) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTrue();
-    expect(textContent(vixChart!)).toContain('15.32 index points');
-    expect(textContent(creditChart!)).toContain('0.74 spread %');
+    expect(vixChart!.getAttribute('aria-label')).toContain('15.32 index points');
+    expect(creditChart!.getAttribute('aria-label')).toContain('0.74 spread %');
+    expect(vixChart!.classList.contains('chart-flat')).toBeTrue();
+    expect(vixChart!.classList.contains('chart-down')).toBeFalse();
+    expect(creditChart!.classList.contains('chart-flat')).toBeTrue();
+    expect(vixChart!.querySelector('.trend-threshold-line')).not.toBeNull();
+    expect(creditChart!.querySelector('.trend-threshold-line')).not.toBeNull();
     expect(textContent(creditChart!.querySelector('.chart-range-options button.active'))).toBe('1m');
     expect(creditChart!.querySelector('.range-trend-svg .trend-line')?.getAttribute('d')).toContain('L');
     expect(state.ensureGlobalIndicatorChart).toHaveBeenCalledWith('vix');
@@ -199,10 +206,29 @@ describe('PortfolioBoardComponent', () => {
     expect(state.globalIndicatorChartPoints).toHaveBeenCalledWith('credit');
 
     Array.from(creditChart!.querySelectorAll<HTMLButtonElement>('.chart-range-options button'))
-      .find((button) => textContent(button) === '5y')
+      .find((button) => textContent(button) === '10y')
       ?.click();
 
-    expect(state.setGlobalIndicatorChartRange).toHaveBeenCalledOnceWith('credit', '5y');
+    expect(state.setGlobalIndicatorChartRange).toHaveBeenCalledOnceWith('credit', '10y');
+  });
+
+  it('colors global risk charts as risk only when value or positive daily change crosses the threshold', async () => {
+    const state = createState({
+      stocks: [stock()],
+      indicators: [
+        indicator({ id: 'vix', name: 'Fear Index / VIX', category: 'Volatility', value: 18, unit: 'index points', change: 3 }),
+        indicator({ value: 2.1, change: -0.15 }),
+      ],
+    });
+    const { element } = await render(state);
+    const globalCharts = Array.from(element.querySelectorAll<HTMLElement>('.global-risk-chart-panel'));
+    const vixChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Fear Index / VIX'));
+    const creditChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Credit Market'));
+
+    expect(vixChart?.classList.contains('chart-down')).toBeTrue();
+    expect(vixChart?.classList.contains('chart-flat')).toBeFalse();
+    expect(creditChart?.classList.contains('chart-down')).toBeTrue();
+    expect(creditChart?.classList.contains('chart-flat')).toBeFalse();
   });
 
   it('uses row clicks for columns and the graph button for chart rows', async () => {
@@ -243,7 +269,9 @@ describe('PortfolioBoardComponent', () => {
     expect(row.getAttribute('aria-expanded')).toBe('true');
     expect(row.querySelector('.ticker-metrics')).not.toBeNull();
     expect(row.querySelector('.position-chart-row')).not.toBeNull();
-    expect(row.querySelectorAll('.chart-range-options button').length).toBe(7);
+    const rangeButtons = Array.from(row.querySelectorAll('.chart-range-options button'));
+    expect(rangeButtons.length).toBe(8);
+    expect(textContent(rangeButtons[6])).toBe('10y');
     expect(textContent(row.querySelector('.chart-range-options button.active'))).toBe('1m');
     expect(row.querySelector('.range-trend-svg .trend-line')?.getAttribute('d')).toContain('L');
     expect(row.querySelectorAll('.trend-x-axis-label').length).toBeGreaterThan(1);
@@ -284,6 +312,50 @@ describe('PortfolioBoardComponent', () => {
     fixture.detectChanges();
 
     expect(fetchSpy.calls.count()).toBe(2);
+  });
+
+  it('keeps multiple position graphs open and reloads each open graph on range changes', async () => {
+    const state = createState({
+      stocks: [
+        stock(),
+        stock({ id: 2, symbol: 'MSFT', companyName: 'Microsoft Corp.' }),
+      ],
+    });
+    const { fixture, element } = await render(state);
+    const fetchSpy = state.fetchStockHistory as jasmine.Spy;
+    const aaplRow = positionRow(element, 'AAPL');
+    const msftRow = positionRow(element, 'MSFT');
+
+    aaplRow.querySelector<HTMLButtonElement>('.graph-action')?.click();
+    msftRow.querySelector<HTMLButtonElement>('.graph-action')?.click();
+    fixture.detectChanges();
+
+    expect(aaplRow.querySelector('.position-chart-row')).not.toBeNull();
+    expect(msftRow.querySelector('.position-chart-row')).not.toBeNull();
+    expect(fetchSpy.calls.count()).toBe(2);
+    expect(fetchSpy.calls.allArgs()).toContain(['demo', 'password123', 'AAPL', '1m']);
+    expect(fetchSpy.calls.allArgs()).toContain(['demo', 'password123', 'MSFT', '1m']);
+
+    Array.from(aaplRow.querySelectorAll<HTMLButtonElement>('.chart-range-options button'))
+      .find((button) => textContent(button) === '10y')
+      ?.click();
+    fixture.detectChanges();
+
+    expect(aaplRow.querySelector('.position-chart-row')).not.toBeNull();
+    expect(msftRow.querySelector('.position-chart-row')).not.toBeNull();
+    expect(textContent(aaplRow.querySelector('.chart-range-options button.active'))).toBe('10y');
+    expect(textContent(msftRow.querySelector('.chart-range-options button.active'))).toBe('10y');
+    expect(fetchSpy.calls.count()).toBe(4);
+    expect(fetchSpy.calls.allArgs()).toContain(['demo', 'password123', 'AAPL', '10y']);
+    expect(fetchSpy.calls.allArgs()).toContain(['demo', 'password123', 'MSFT', '10y']);
+
+    aaplRow.querySelector<HTMLButtonElement>('.graph-action')?.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(aaplRow.querySelector('.position-chart-row')).toBeNull();
+    expect(msftRow.querySelector('.position-chart-row')).not.toBeNull();
   });
 
   it('does not cache an empty position history response', async () => {

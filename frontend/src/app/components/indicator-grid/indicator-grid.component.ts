@@ -16,8 +16,12 @@ export class IndicatorGridComponent {
     return `Current non-watch-only portfolio value (${this.formatCompactCurrency(this.currentRetirementValue)}) on a neutral scale from $0 to the Target Retirement Fund (${this.formatCompactCurrency(this.retirementTargetFund)}). There are no risk thresholds on this gauge.`;
   }
 
-  statusClass(status: string): string {
-    return `status-${status.toLowerCase().replace(/\s+/g, '-')}`;
+  statusClass(indicator: IndicatorSnapshot): string {
+    if (this.isCompactIndicator(indicator)) {
+      return this.isCompactIndicatorOverThreshold(indicator) ? 'status-risk' : 'status-primary';
+    }
+
+    return `status-${indicator.status.toLowerCase().replace(/\s+/g, '-')}`;
   }
 
   isCompactIndicator(indicator: IndicatorSnapshot): boolean {
@@ -54,6 +58,16 @@ export class IndicatorGridComponent {
 
   gaugeRiskEnd(indicator: IndicatorSnapshot): number {
     return 180;
+  }
+
+  protected isCompactIndicatorOverThreshold(indicator: IndicatorSnapshot): boolean {
+    if (!this.isCompactIndicator(indicator)) {
+      return false;
+    }
+
+    const value = Number(indicator.value) || 0;
+    const change = Number(indicator.change) || 0;
+    return value >= this.gaugeThreshold(indicator) || change >= this.gaugeChangeThreshold(indicator);
   }
 
   get currentRetirementValue(): number {
@@ -97,6 +111,10 @@ export class IndicatorGridComponent {
 
   private gaugeThreshold(indicator: IndicatorSnapshot): number {
     return indicator.id === 'credit' ? 2 : 25;
+  }
+
+  private gaugeChangeThreshold(indicator: IndicatorSnapshot): number {
+    return indicator.id === 'credit' ? 0.15 : 3;
   }
 
   private roundGaugeAngle(value: number): number {

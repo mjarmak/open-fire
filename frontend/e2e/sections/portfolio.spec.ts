@@ -47,7 +47,7 @@ test.describe('Portfolio Section', () => {
 
     await nvdaRow.getByRole('button', { name: 'Position graph' }).click();
     await expect(nvdaRow.locator('.position-chart-row')).toBeVisible();
-    await expect(nvdaRow.locator('.chart-range-options button')).toHaveCount(7);
+    await expect(nvdaRow.locator('.chart-range-options button')).toHaveCount(8);
     await expect(nvdaRow.locator('.chart-range-options button.active')).toHaveText('1m');
     await expect(nvdaRow.locator('.ticker-metrics')).toHaveCount(0);
 
@@ -262,7 +262,8 @@ test.describe('Portfolio Section', () => {
     expect(Math.max(...revealHeightSamples)).toBeLessThanOrEqual(settledChartHeight + 1);
     const rowActionOffsetAfterOpen = await rowActionOffset();
     expect(Math.abs(rowActionOffsetAfterOpen - rowActionOffsetBefore)).toBeLessThanOrEqual(1);
-    await expect(chartRow.locator('.chart-range-options button')).toHaveCount(7);
+    await expect(chartRow.locator('.chart-range-options button')).toHaveCount(8);
+    await expect(chartRow.locator('.chart-range-options button', { hasText: '10y' })).toBeVisible();
     await expect(chartRow.locator('.chart-range-options button.active')).toHaveText('1m');
     await expect(chartRow.locator('.range-trend-svg .trend-line')).toHaveAttribute('d', /L/);
     await expect(chartRow.locator('.trend-x-axis-label')).toHaveCount(3);
@@ -277,7 +278,7 @@ test.describe('Portfolio Section', () => {
     expect(svgBox!.width).toBeGreaterThan(chartContainerBox!.width - 2);
     expect(trendLineBox!.width).toBeGreaterThan(svgBox!.width * 0.75);
 
-    const globalChart = portfolio.locator('.global-risk-chart-panel').filter({ hasText: 'Credit Market' });
+    const globalChart = portfolio.locator('.global-risk-chart-panel[aria-label*="Credit Market"]');
     await expect(globalChart).toBeVisible();
     await expect.poll(async () => {
       const currentPositionBox = await chartRow.locator('.range-trend-svg').boundingBox();
@@ -314,6 +315,34 @@ test.describe('Portfolio Section', () => {
     await expect(chartRow).toHaveCount(0);
     const rowActionOffsetAfterClose = await rowActionOffset();
     expect(Math.abs(rowActionOffsetAfterClose - rowActionOffsetBefore)).toBeLessThanOrEqual(1);
+  });
+
+  test('keeps multiple position graphs open at the same time', async ({ page }) => {
+    const portfolio = page.getByLabel('Portfolio tickers');
+    const aaplRow = portfolio.locator('.stock-row').filter({ hasText: 'AAPL' });
+    const msftRow = portfolio.locator('.stock-row').filter({ hasText: 'MSFT' });
+    await expect(aaplRow).toBeVisible();
+    await expect(msftRow).toBeVisible();
+
+    await aaplRow.getByRole('button', { name: 'Position graph' }).click();
+    await msftRow.getByRole('button', { name: 'Position graph' }).click();
+
+    await expect(aaplRow.locator('.position-chart-row')).toBeVisible();
+    await expect(msftRow.locator('.position-chart-row')).toBeVisible();
+    await expect(aaplRow.getByRole('button', { name: 'Position graph' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(msftRow.getByRole('button', { name: 'Position graph' })).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(() => api.calls['GET /stocks/AAPL/history'] || 0).toBe(1);
+    await expect.poll(() => api.calls['GET /stocks/MSFT/history'] || 0).toBe(1);
+
+    await aaplRow.locator('.chart-range-options button', { hasText: '10y' }).click();
+    await expect(aaplRow.locator('.chart-range-options button.active')).toHaveText('10y');
+    await expect(msftRow.locator('.chart-range-options button.active')).toHaveText('10y');
+    await expect.poll(() => api.calls['GET /stocks/AAPL/history'] || 0).toBe(2);
+    await expect.poll(() => api.calls['GET /stocks/MSFT/history'] || 0).toBe(2);
+
+    await aaplRow.getByRole('button', { name: 'Position graph' }).click();
+    await expect(aaplRow.locator('.position-chart-row')).toHaveCount(0);
+    await expect(msftRow.locator('.position-chart-row')).toBeVisible();
   });
 
   test('uses black graph icons in light mode and white graph icons when enabled or in dark mode', async ({ page }) => {

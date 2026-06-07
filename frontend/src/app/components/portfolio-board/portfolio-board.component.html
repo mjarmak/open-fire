@@ -91,6 +91,7 @@
             [tone]="globalRiskChartTone(indicator)"
             [label]="globalRiskChartSummary(indicator)"
             [loading]="isGlobalRiskChartLoading(indicator)"
+            [thresholdValue]="globalRiskChartThreshold(indicator)"
             valueMode="number"
             [unit]="indicator.unit"
             (rangeChange)="setGlobalRiskChartRange(indicator, $event)"

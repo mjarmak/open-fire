@@ -95,21 +95,45 @@ describe('IndicatorGridComponent', () => {
     expect(speedometer?.style.getPropertyValue('--gauge-needle')).toBe('-162deg');
   });
 
-  it('places macro gauge thresholds at one third of the arc and colors the above-threshold range', async () => {
+  it('keeps compact macro gauges primary unless the risk threshold is crossed', async () => {
     const element = await render(createState({
       indicators: [
         indicator({
           value: 12.5,
+          change: -0.4,
           status: 'calm',
         }),
       ],
     }));
-    const speedometer = element.querySelector<HTMLElement>('.mini-speedometer');
+    const card = element.querySelector<HTMLElement>('.compact-indicator');
+    const speedometer = card?.querySelector<HTMLElement>('.mini-speedometer');
 
+    expect(card?.classList.contains('status-primary')).toBeTrue();
+    expect(card?.classList.contains('status-risk')).toBeFalse();
     expect(speedometer?.style.getPropertyValue('--gauge-threshold')).toBe('60deg');
     expect(speedometer?.style.getPropertyValue('--gauge-risk-start')).toBe('60deg');
     expect(speedometer?.style.getPropertyValue('--gauge-risk-end')).toBe('180deg');
     expect(speedometer?.style.getPropertyValue('--gauge-needle')).toBe('-150deg');
+  });
+
+  it('colors compact macro gauge containers as risk when value or positive daily change crosses the threshold', async () => {
+    const element = await render(createState({
+      indicators: [
+        indicator({
+          id: 'credit',
+          name: 'Credit Market',
+          category: 'Credit',
+          value: 0.74,
+          unit: 'spread %',
+          change: 0.15,
+          status: 'watch',
+        }),
+      ],
+    }));
+    const card = element.querySelector<HTMLElement>('.compact-indicator');
+
+    expect(card?.classList.contains('status-risk')).toBeTrue();
+    expect(card?.classList.contains('status-primary')).toBeFalse();
   });
 
   it('renders compact credit and volatility indicators without inline chart controls', async () => {

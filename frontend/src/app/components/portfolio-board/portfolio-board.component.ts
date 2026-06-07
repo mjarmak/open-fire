@@ -96,9 +96,9 @@ export class PortfolioBoardComponent implements OnInit {
   collapsedSymbols = new Set<string>();
   protected positionFilter: PositionFilter = 'all';
   protected actionDialogRowKey: string | null = null;
-  protected chartRowKey: string | null = null;
+  protected chartRowKeys = new Set<string>();
   protected selectedChartRange: TrendChartRange = '1m';
-  protected readonly chartRanges: TrendChartRange[] = ['1h', '1d', '5d', '1m', '1y', '5y', 'all'];
+  protected readonly chartRanges: TrendChartRange[] = ['1h', '1d', '5d', '1m', '1y', '5y', '10y', 'all'];
   private readonly chartCache = new Map<string, TrendChartPoint[]>();
   private readonly loadingChartKeys = new Set<string>();
 
@@ -287,15 +287,17 @@ export class PortfolioBoardComponent implements OnInit {
   }
 
   protected isPositionChartOpen(stock: StockAlert): boolean {
-    return this.chartRowKey === this.positionRowKey(stock);
+    return this.chartRowKeys.has(this.positionRowKey(stock));
   }
 
   protected togglePositionChart(stock: StockAlert, event: Event): void {
     event.stopPropagation();
     this.actionDialogRowKey = null;
     const rowKey = this.positionRowKey(stock);
-    this.chartRowKey = this.chartRowKey === rowKey ? null : rowKey;
-    if (this.chartRowKey === rowKey) {
+    if (this.chartRowKeys.has(rowKey)) {
+      this.chartRowKeys.delete(rowKey);
+    } else {
+      this.chartRowKeys.add(rowKey);
       this.loadPositionChart(stock);
     }
   }
@@ -306,9 +308,10 @@ export class PortfolioBoardComponent implements OnInit {
     }
 
     this.selectedChartRange = range;
-    const openStock = this.displayedStocks.find((stock) => this.positionRowKey(stock) === this.chartRowKey);
-    if (openStock) {
-      this.loadPositionChart(openStock);
+    for (const stock of this.displayedStocks) {
+      if (this.chartRowKeys.has(this.positionRowKey(stock))) {
+        this.loadPositionChart(stock);
+      }
     }
   }
 
@@ -339,10 +342,17 @@ export class PortfolioBoardComponent implements OnInit {
   }
 
   protected globalRiskChartTone(indicator: IndicatorSnapshot): 'up' | 'down' | 'flat' {
-    const change = Number(indicator.change) || 0;
-    if (change > 0) return 'up';
-    if (change < 0) return 'down';
-    return 'flat';
+    return this.isGlobalRiskIndicatorOverThreshold(indicator) ? 'down' : 'flat';
+  }
+
+  protected globalRiskChartThreshold(indicator: IndicatorSnapshot): number | null {
+    if (indicator.id === 'vix') {
+      return 25;
+    }
+    if (indicator.id === 'credit') {
+      return 2;
+    }
+    return null;
   }
 
   protected globalRiskChartSummary(indicator: IndicatorSnapshot): string {
@@ -640,6 +650,20 @@ export class PortfolioBoardComponent implements OnInit {
     if (indicatorId === 'vix') return 0;
     if (indicatorId === 'credit') return 1;
     return 2;
+  }
+
+  private isGlobalRiskIndicatorOverThreshold(indicator: IndicatorSnapshot): boolean {
+    const value = Number(indicator.value) || 0;
+    const change = Number(indicator.change) || 0;
+    return value >= this.globalRiskValueThreshold(indicator) || change >= this.globalRiskChangeThreshold(indicator);
+  }
+
+  private globalRiskValueThreshold(indicator: IndicatorSnapshot): number {
+    return this.globalRiskChartThreshold(indicator) ?? Number.POSITIVE_INFINITY;
+  }
+
+  private globalRiskChangeThreshold(indicator: IndicatorSnapshot): number {
+    return indicator.id === 'credit' ? 0.15 : 3;
   }
 
   private asTrendChartRange(range: string): TrendChartRange {

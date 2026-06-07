@@ -10,7 +10,8 @@ app-root {
   --surface: #1f2124;
   --input-bg: #17191c;
   --empty-border: #435978;
-  --primary: #24406f;
+  --primary: #2a4c83;
+  --primary-light: #5b87ff;
   --primary-hover: #325792;
   --secondary: #22344f;
   --row-hover: #1b2a40;
@@ -68,6 +69,7 @@ app-root.light-theme {
   --input-bg: #e2e5e7;
   --empty-border: #9ca5ab;
   --primary: #355d9f;
+  --primary-light: #405eb4;
   --primary-hover: #2f4f8f;
   --secondary: #b9c0c5;
   --row-hover: #c1c7cb;
@@ -902,6 +904,12 @@ button:disabled:not(.icon-btn)::after {
   --indicator-outline: var(--status-risk);
   border-color: var(--status-risk);
   box-shadow: inset 4px 0 0 var(--status-risk);
+}
+
+.status-primary {
+  --indicator-outline: var(--primary);
+  border-color: var(--primary);
+  box-shadow: inset 4px 0 0 var(--primary);
 }
 
 .status-watch,
@@ -1894,6 +1902,24 @@ button:disabled:not(.icon-btn)::after {
   filter: drop-shadow(0 5px 10px var(--shadow-soft));
 }
 
+.range-trend-svg .trend-threshold-line {
+  stroke: var(--status-risk);
+  stroke-width: 1.4;
+  stroke-dasharray: 5 4;
+  opacity: 0.72;
+  vector-effect: non-scaling-stroke;
+}
+
+.range-trend-svg .trend-threshold-label {
+  fill: var(--status-risk);
+  font-family: inherit;
+  font-weight: 800;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
 .range-trend-svg .trend-hover-guide,
 .range-trend-svg .trend-hover-dot {
   pointer-events: none;
@@ -1906,7 +1932,8 @@ button:disabled:not(.icon-btn)::after {
 .range-trend-svg .trend-x-axis-label,
 .range-trend-svg .trend-y-axis-label,
 .range-trend-svg .trend-y-axis-unit,
-.range-trend-svg .trend-empty-label {
+.range-trend-svg .trend-empty-label,
+.range-trend-svg .trend-threshold-label {
   font-family: inherit;
   font-weight: 750;
   user-select: none;
@@ -2010,6 +2037,11 @@ button:disabled:not(.icon-btn)::after {
 .position-title-lines .position-title-current-price-factor,
 .position-title-lines .position-title-average-factor {
   color: var(--primary);
+}
+
+app-root:not(.light-theme) .position-title-lines .position-title-current-price-factor,
+app-root:not(.light-theme) .position-title-lines .position-title-average-factor {
+  color: var(--primary-light);
 }
 
 app-root.light-theme .position-title-inline-metric .position-title-quantity-factor,
@@ -2461,6 +2493,10 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
 
 .dca-dialog {
   width: min(620px, 100%);
+}
+
+.retirement-settings-dialog {
+  width: min(760px, 100%);
 }
 
 .telegram-dialog {

@@ -170,17 +170,17 @@ class DashboardControllerIntegrationTest {
 
   @Test
   void getsIndicatorHistory() throws Exception {
-    when(marketIndicatorService.indicatorHistory("vix", HistoryRange.ONE_YEAR))
+    when(marketIndicatorService.indicatorHistory("vix", HistoryRange.TEN_YEARS))
         .thenReturn(new ChartSeries(
             "vix",
-            "1y",
+            "10y",
             List.of(new ChartPoint(Instant.parse("2026-06-03T00:00:00Z"), BigDecimal.valueOf(18.5)))
         ));
 
-    mockMvc.perform(get("/api/indicators/vix/history").param("range", "1y"))
+    mockMvc.perform(get("/api/indicators/vix/history").param("range", "10y"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value("vix"))
-        .andExpect(jsonPath("$.range").value("1y"))
+        .andExpect(jsonPath("$.range").value("10y"))
         .andExpect(jsonPath("$.points[0].timestamp").value("2026-06-03T00:00:00Z"))
         .andExpect(jsonPath("$.points[0].value").value(18.5));
   }

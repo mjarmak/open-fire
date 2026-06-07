@@ -343,8 +343,10 @@ function rangeDurationMs(range: string): number {
       return 365 * day;
     case '5y':
       return 5 * 365 * day;
-    case 'all':
+    case '10y':
       return 10 * 365 * day;
+    case 'all':
+      return 15 * 365 * day;
     case '1m':
     default:
       return 30 * day;

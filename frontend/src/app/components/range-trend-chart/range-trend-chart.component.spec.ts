@@ -57,6 +57,28 @@ describe('RangeTrendChartComponent', () => {
     expect(trendLine?.classList.contains('no-draw-animation')).toBeTrue();
   });
 
+  it('renders a horizontal threshold line when a threshold value is provided', async () => {
+    const { fixture, element } = await render();
+
+    expect(element.querySelector('.trend-threshold-line')).toBeNull();
+
+    fixture.componentRef.setInput('thresholdValue', 30);
+    fixture.componentRef.setInput('thresholdLabel', 'Threshold');
+    fixture.detectChanges();
+
+    const thresholdLine = element.querySelector<SVGLineElement>('.trend-threshold-line');
+    const thresholdLabel = element.querySelector<SVGTextElement>('.trend-threshold-label');
+    const thresholdY = Number(thresholdLine?.getAttribute('y1'));
+
+    expect(thresholdLine).not.toBeNull();
+    expect(thresholdLine?.getAttribute('x1')).toBe('58');
+    expect(thresholdLine?.getAttribute('x2')).toBe('616');
+    expect(thresholdLine?.getAttribute('y1')).toBe(thresholdLine?.getAttribute('y2'));
+    expect(thresholdY).toBeGreaterThanOrEqual(12);
+    expect(thresholdY).toBeLessThanOrEqual(72);
+    expect(thresholdLabel?.textContent?.trim()).toBe('Threshold');
+  });
+
   it('keeps the graph hidden while loading and marks it ready for fade-in after loading', async () => {
     const { fixture, element } = await render();
 

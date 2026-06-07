@@ -10,7 +10,7 @@
         class="indicator-card"
         [class.compact-indicator]="isCompactIndicator(indicator)"
         [class.app-tooltip]="isCompactIndicator(indicator)"
-        [ngClass]="statusClass(indicator.status)"
+        [ngClass]="statusClass(indicator)"
         [attr.data-tooltip]="isCompactIndicator(indicator) ? compactIndicatorTooltip(indicator) : null"
         [attr.aria-label]="isCompactIndicator(indicator) ? compactIndicatorTooltip(indicator) : null"
         [attr.tabindex]="isCompactIndicator(indicator) ? '0' : null"

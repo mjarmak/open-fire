@@ -72,16 +72,18 @@ test.describe('Indicators Section', () => {
 
     const portfolioBoard = page.getByLabel('Portfolio tickers');
     const globalCharts = portfolioBoard.locator('.global-risk-chart-panel');
-    const vixChart = globalCharts.filter({ hasText: 'Fear Index / VIX' });
-    const creditChart = globalCharts.filter({ hasText: 'Credit Market' });
+    const vixChart = portfolioBoard.locator('.global-risk-chart-panel[aria-label*="Fear Index / VIX"]');
+    const creditChart = portfolioBoard.locator('.global-risk-chart-panel[aria-label*="Credit Market"]');
     await expect(globalCharts).toHaveCount(2);
     await expect(vixChart).toBeVisible();
     await expect(creditChart).toBeVisible();
-    await expect(vixChart.locator('.chart-range-options button')).toHaveCount(7);
+    await expect(portfolioBoard.locator('.global-risk-chart-heading')).toHaveCount(2);
+    await expect(vixChart.locator('.global-risk-chart-heading')).toContainText('Fear Index / VIX');
+    await expect(vixChart.locator('.chart-range-options button')).toHaveCount(8);
     await expect(vixChart.locator('.chart-range-options button.active')).toHaveText('1m');
 
-    await vixChart.locator('.chart-range-options button', { hasText: '5y' }).click();
-    await expect(vixChart.locator('.chart-range-options button.active')).toHaveText('5y');
+    await vixChart.locator('.chart-range-options button', { hasText: '10y' }).click();
+    await expect(vixChart.locator('.chart-range-options button.active')).toHaveText('10y');
     await expect.poll(() => api.calls['GET /indicators/vix/history'] || 0).toBe(initialVixHistoryCalls + 1);
     expect(api.calls['GET /indicators/credit/history'] || 0).toBe(initialCreditHistoryCalls);
 
@@ -174,7 +176,7 @@ test.describe('Indicators Section', () => {
     const creditCard = indicatorGrid.locator('.compact-indicator').filter({ hasText: 'Credit Market' });
     await expect(creditCard).toBeVisible();
 
-    const globalChart = page.getByLabel('Portfolio tickers').locator('.global-risk-chart-panel').filter({ hasText: 'Credit Market' });
+    const globalChart = page.getByLabel('Portfolio tickers').locator('.global-risk-chart-panel[aria-label*="Credit Market"]');
     await expect(globalChart).toBeVisible();
     const svgBox = await globalChart.locator('.range-trend-svg').boundingBox();
     const trendLineBox = await globalChart.locator('.range-trend-svg .trend-line').boundingBox();

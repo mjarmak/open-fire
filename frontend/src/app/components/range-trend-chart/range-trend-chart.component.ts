@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 
-export type TrendChartRange = '1h' | '1d' | '5d' | '1m' | '1y' | '5y' | 'all';
+export type TrendChartRange = '1h' | '1d' | '5d' | '1m' | '1y' | '5y' | '10y' | 'all';
 
 export type TrendChartPoint = {
   date: Date;
@@ -40,13 +40,15 @@ export class RangeTrendChartComponent implements AfterViewInit, OnChanges, OnDes
   private resizeObserver?: ResizeObserver;
 
   @Input() points: TrendChartPoint[] = [];
-  @Input() ranges: readonly TrendChartRange[] = ['1h', '1d', '5d', '1m', '1y', '5y', 'all'];
+  @Input() ranges: readonly TrendChartRange[] = ['1h', '1d', '5d', '1m', '1y', '5y', '10y', 'all'];
   @Input() selectedRange: TrendChartRange = '1m';
   @Input() tone: 'up' | 'down' | 'flat' = 'flat';
   @Input() label = 'Trend chart';
   @Input() valueMode: 'currency' | 'number' = 'currency';
   @Input() unit = '';
   @Input() loading = false;
+  @Input() thresholdValue: number | null = null;
+  @Input() thresholdLabel = 'Threshold';
 
   @Output() rangeChange = new EventEmitter<TrendChartRange>();
 
@@ -162,6 +164,14 @@ export class RangeTrendChartComponent implements AfterViewInit, OnChanges, OnDes
     return this.startY + (this.endY - this.startY) / 2;
   }
 
+  protected get hasThresholdLine(): boolean {
+    return this.thresholdValue !== null && Number.isFinite(this.thresholdValue);
+  }
+
+  protected get thresholdY(): number {
+    return this.hasThresholdLine ? this.chartYForValue(Number(this.thresholdValue)) : this.endY;
+  }
+
   selectRange(range: TrendChartRange, event: Event): void {
     event.stopPropagation();
     this.rangeChange.emit(range);
@@ -233,6 +243,9 @@ export class RangeTrendChartComponent implements AfterViewInit, OnChanges, OnDes
     const values = this.points
       .map((point) => point.value)
       .filter((value) => Number.isFinite(value));
+    if (this.hasThresholdLine) {
+      values.push(Number(this.thresholdValue));
+    }
 
     if (!values.length) {
       return { min: 0, max: 1 };
@@ -296,7 +309,7 @@ export class RangeTrendChartComponent implements AfterViewInit, OnChanges, OnDes
       }).format(safeDate);
     }
 
-    if (this.selectedRange === '1y' || this.selectedRange === '5y' || this.selectedRange === 'all') {
+    if (this.selectedRange === '1y' || this.selectedRange === '5y' || this.selectedRange === '10y' || this.selectedRange === 'all') {
       return new Intl.DateTimeFormat('en-US', {
         month: 'short',
         year: '2-digit',

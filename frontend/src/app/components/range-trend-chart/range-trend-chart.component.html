@@ -39,6 +39,11 @@
         <text class="trend-x-axis-label" [attr.x]="tick.x" [attr.y]="xAxisLabelY" text-anchor="middle" [attr.font-size]="axisFontSize" fill="var(--muted-strong)">{{ tick.label }}</text>
       }
 
+      @if (hasThresholdLine) {
+        <line class="trend-threshold-line" [attr.x1]="startX" [attr.y1]="thresholdY" [attr.x2]="endX" [attr.y2]="thresholdY" />
+        <text class="trend-threshold-label" [attr.x]="endX - 4" [attr.y]="thresholdY - 4" text-anchor="end" [attr.font-size]="axisFontSize">{{ thresholdLabel }}</text>
+      }
+
       @if (hasPoints) {
         <path class="no-draw-animation trend-area" [attr.d]="svgAreaPath" fill="var(--chart-color)" opacity="0.08" />
         <path class="no-draw-animation trend-line" [attr.d]="svgPath" fill="none" stroke="var(--chart-color)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" />

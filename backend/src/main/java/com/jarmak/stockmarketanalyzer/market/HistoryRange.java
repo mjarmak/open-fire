@@ -10,6 +10,7 @@ public enum HistoryRange {
   ONE_MONTH("1m", "D", Duration.ofDays(30)),
   ONE_YEAR("1y", "W", Duration.ofDays(365)),
   FIVE_YEARS("5y", "M", Duration.ofDays(365L * 5)),
+  TEN_YEARS("10y", "M", Duration.ofDays(365L * 10)),
   ALL("all", "M", null);
 
   private final String label;
