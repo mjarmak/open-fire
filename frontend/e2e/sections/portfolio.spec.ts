@@ -47,7 +47,7 @@ test.describe('Portfolio Section', () => {
 
     await nvdaRow.getByRole('button', { name: 'Position graph' }).click();
     await expect(nvdaRow.locator('.position-chart-row')).toBeVisible();
-    await expect(nvdaRow.locator('.chart-range-options button')).toHaveCount(8);
+    await expect(nvdaRow.locator('.chart-range-options button')).toHaveCount(5);
     await expect(nvdaRow.locator('.chart-range-options button.active')).toHaveText('1m');
     await expect(nvdaRow.locator('.ticker-metrics')).toHaveCount(0);
 
@@ -262,8 +262,10 @@ test.describe('Portfolio Section', () => {
     expect(Math.max(...revealHeightSamples)).toBeLessThanOrEqual(settledChartHeight + 1);
     const rowActionOffsetAfterOpen = await rowActionOffset();
     expect(Math.abs(rowActionOffsetAfterOpen - rowActionOffsetBefore)).toBeLessThanOrEqual(1);
-    await expect(chartRow.locator('.chart-range-options button')).toHaveCount(8);
+    await expect(chartRow.locator('.chart-range-options button')).toHaveCount(5);
     await expect(chartRow.locator('.chart-range-options button', { hasText: '10y' })).toBeVisible();
+    await expect(chartRow.locator('.chart-range-options button', { hasText: '1d' })).toHaveCount(0);
+    await expect(chartRow.locator('.chart-range-options button', { hasText: '5y' })).toHaveCount(0);
     await expect(chartRow.locator('.chart-range-options button.active')).toHaveText('1m');
     await expect(chartRow.locator('.range-trend-svg .trend-line')).toHaveAttribute('d', /L/);
     await expect(chartRow.locator('.trend-x-axis-label')).toHaveCount(3);
@@ -296,8 +298,8 @@ test.describe('Portfolio Section', () => {
     await expect(chartRow.locator('.range-trend-tooltip')).toBeVisible();
     await expect(chartRow.locator('.range-trend-tooltip')).toContainText('Value');
 
-    await chartRow.locator('.chart-range-options button', { hasText: '1d' }).click();
-    await expect(chartRow.locator('.chart-range-options button.active')).toHaveText('1d');
+    await chartRow.locator('.chart-range-options button', { hasText: '5d' }).click();
+    await expect(chartRow.locator('.chart-range-options button.active')).toHaveText('5d');
     await expect.poll(() => api.calls['GET /stocks/AAPL/history'] || 0).toBe(2);
 
     await chartRow.locator('.chart-range-options button', { hasText: '1m' }).click();
@@ -336,9 +338,9 @@ test.describe('Portfolio Section', () => {
 
     await aaplRow.locator('.chart-range-options button', { hasText: '10y' }).click();
     await expect(aaplRow.locator('.chart-range-options button.active')).toHaveText('10y');
-    await expect(msftRow.locator('.chart-range-options button.active')).toHaveText('10y');
+    await expect(msftRow.locator('.chart-range-options button.active')).toHaveText('1m');
     await expect.poll(() => api.calls['GET /stocks/AAPL/history'] || 0).toBe(2);
-    await expect.poll(() => api.calls['GET /stocks/MSFT/history'] || 0).toBe(2);
+    expect(api.calls['GET /stocks/MSFT/history'] || 0).toBe(1);
 
     await aaplRow.getByRole('button', { name: 'Position graph' }).click();
     await expect(aaplRow.locator('.position-chart-row')).toHaveCount(0);

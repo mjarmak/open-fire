@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -379,6 +380,44 @@ class DashboardControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].symbol").value("AAPL"))
         .andExpect(jsonPath("$[0].currency").value("USD"));
+
+    verify(stockAlertService, never()).preview(anyString(), anyString());
+  }
+
+  @Test
+  void searchesSymbolsWithIndicatorsFalseDoesNotPreview() throws Exception {
+    when(finnhubClient.searchSymbols("app"))
+        .thenReturn(List.of(new SymbolSearchResult("AAPL", "Apple Inc.", "US", "USD")));
+
+    mockMvc.perform(get("/api/symbols/search")
+            .param("keywords", "app")
+            .param("includeIndicators", "false"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].symbol").value("AAPL"))
+        .andExpect(jsonPath("$[0].currency").value("USD"));
+
+    verify(stockAlertService, never()).preview(anyString(), anyString());
+  }
+
+  @Test
+  void searchesSymbolsWithPriceDetailsUsesLightweightPreviewOnly() throws Exception {
+    when(finnhubClient.searchSymbols("app"))
+        .thenReturn(List.of(new SymbolSearchResult("AAPL", "Apple Inc.", "US", "USD")));
+    when(stockAlertService.pricePreview("AAPL", "Apple Inc.")).thenReturn(priceDetails());
+
+    mockMvc.perform(get("/api/symbols/search")
+            .param("keywords", "app")
+            .param("includePriceDetails", "true"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].symbol").value("AAPL"))
+        .andExpect(jsonPath("$[0].indicators.latestPrice").value(110))
+        .andExpect(jsonPath("$[0].indicators.marketCap").value(3000000000000L))
+        .andExpect(jsonPath("$[0].indicators.dayGainLoss").value(4))
+        .andExpect(jsonPath("$[0].indicators.fearScore").doesNotExist())
+        .andExpect(jsonPath("$[0].indicators.thirtyDayChangePercent").doesNotExist());
+
+    verify(stockAlertService).pricePreview("AAPL", "Apple Inc.");
+    verify(stockAlertService, never()).preview(anyString(), anyString());
   }
 
   @Test
@@ -573,6 +612,34 @@ class DashboardControllerIntegrationTest {
 
   private StockAlert stockWithoutLatestPrice() {
     return stock(null);
+  }
+
+  private StockAlert priceDetails() {
+    return new StockAlert(
+        null,
+        "AAPL",
+        "Apple Inc.",
+        "Core",
+        BigDecimal.ONE,
+        BigDecimal.ZERO,
+        BigDecimal.valueOf(110),
+        BigDecimal.valueOf(3000000000000L),
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        BigDecimal.valueOf(4),
+        BigDecimal.valueOf(2),
+        null,
+        null,
+        null,
+        true,
+        false,
+        "Price details loaded."
+    );
   }
 
   private PortfolioHolding holding() {

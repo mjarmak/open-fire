@@ -22,6 +22,7 @@ type RetirementProjection = {
 type RetirementSnapshot = {
   currentPortfolioValue: number;
   currentPortfolioCost: number;
+  totalDayChange: number;
   totalProfitLoss: number;
   actualCagr: number;
   safeWithdrawalRatio: number;
@@ -44,8 +45,8 @@ export class RetirementPlannerComponent {
     holdings: 'Number of portfolio rows you have saved, including watch-only holdings.',
     initialDeposit: 'Initial starting capital from your retirement configuration. This is used as the projection starting balance.',
     totalInvested: 'Sum of cost basis across non-watch-only positions: quantity multiplied by average cost.',
-    totalProfitLoss: 'Unrealized gain or loss across non-watch-only positions.',
-    totalProfitLossPercent: 'Total P&L divided by total invested for non-watch-only positions.',
+    todayChange: 'Total daily gain or loss across non-watch-only positions. Percentage uses yesterday\'s implied portfolio value.',
+    totalProfitLoss: 'Unrealized gain or loss across non-watch-only positions. Percentage is total P&L divided by total invested.',
     annualizedReturn: 'Annualized return from total invested to the current non-watch-only portfolio value, using your configured return start date.',
     returnSince: 'Investing start date from your retirement configuration, used for annualized return timing.',
   };
@@ -64,8 +65,22 @@ export class RetirementPlannerComponent {
     return this.snapshot.currentPortfolioValue;
   }
 
+  get hasNoPortfolioValue(): boolean {
+    return this.currentPortfolioValue <= 0;
+  }
+
   get currentPortfolioCost(): number {
     return this.snapshot.currentPortfolioCost;
+  }
+
+  get totalDayChange(): number {
+    return this.snapshot.totalDayChange;
+  }
+
+  get totalDayChangePercent(): number {
+    const previousValue = this.currentPortfolioValue - this.totalDayChange;
+    if (previousValue <= 0) return 0;
+    return (this.totalDayChange / previousValue) * 100;
   }
 
   get totalProfitLoss(): number {
@@ -198,6 +213,15 @@ export class RetirementPlannerComponent {
     }).format(value);
   }
 
+  formatSignedCompactCurrency(value: number | null | undefined): string {
+    if (value === null || value === undefined) {
+      return '-';
+    }
+
+    const formatted = this.formatCompactCurrency(value);
+    return value > 0 ? `+${formatted}` : formatted;
+  }
+
   private projectNoWithdrawalBalance(initial: number, monthly: number, annualRate: number, years: number): number {
     const months = Math.max(0, Math.round(years * 12));
     const monthlyRate = annualRate / 12;
@@ -214,7 +238,7 @@ export class RetirementPlannerComponent {
 
   private get snapshot(): RetirementSnapshot {
     const stocksKey = this.state.stocks
-      .map((stock) => `${stock.symbol}:${stock.watchOnly ? 1 : 0}:${stock.marketValue ?? 0}:${stock.costBasis ?? 0}:${stock.unrealizedGainLoss ?? 0}`)
+      .map((stock) => `${stock.symbol}:${stock.watchOnly ? 1 : 0}:${stock.marketValue ?? 0}:${stock.costBasis ?? 0}:${stock.dayGainLoss ?? 0}:${stock.unrealizedGainLoss ?? 0}`)
       .join('|');
     const key = [
       stocksKey,
@@ -237,6 +261,9 @@ export class RetirementPlannerComponent {
     const currentPortfolioCost = this.state.stocks
       .filter((stock) => !stock.watchOnly)
       .reduce((sum, stock) => sum + (stock.costBasis || 0), 0);
+    const totalDayChange = this.state.stocks
+      .filter((stock) => !stock.watchOnly)
+      .reduce((sum, stock) => sum + (stock.dayGainLoss || 0), 0);
     const totalProfitLoss = this.state.stocks
       .filter((stock) => !stock.watchOnly)
       .reduce((sum, stock) => sum + (stock.unrealizedGainLoss || 0), 0);
@@ -309,6 +336,7 @@ export class RetirementPlannerComponent {
     this.snapshotCache = {
       currentPortfolioValue,
       currentPortfolioCost,
+      totalDayChange,
       totalProfitLoss,
       actualCagr,
       safeWithdrawalRatio,

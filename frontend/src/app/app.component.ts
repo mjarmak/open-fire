@@ -19,6 +19,7 @@ import { PortfolioBoardComponent } from './components/portfolio-board/portfolio-
 import { RetirementPlannerComponent } from './components/retirement-planner/retirement-planner.component';
 import { RetirementSettingsDialogComponent } from './components/retirement-settings-dialog/retirement-settings-dialog.component';
 import { StockRiskPanelComponent } from './components/stock-risk-panel/stock-risk-panel.component';
+import { StockLookupResultRowComponent } from './components/stock-lookup-result-row/stock-lookup-result-row.component';
 import { TelegramDialogComponent } from './components/telegram-dialog/telegram-dialog.component';
 import { TooltipBodyComponent } from './components/tooltip-body/tooltip-body.component';
 import { dialogBackdropAnimation, dialogPanelAnimation } from './components/dialog.animations';
@@ -42,6 +43,7 @@ import { dialogBackdropAnimation, dialogPanelAnimation } from './components/dial
     PortfolioBoardComponent,
     RetirementPlannerComponent,
     RetirementSettingsDialogComponent,
+    StockLookupResultRowComponent,
     StockRiskPanelComponent,
     TelegramDialogComponent,
     TooltipBodyComponent,
@@ -722,7 +724,7 @@ export class AppComponent implements OnDestroy, OnInit {
 
     this.marketDashboardService.isSearchingStockLookup = true;
     this.marketDashboardService.stockLookupMessage = 'Searching...';
-    this.marketDashboardService.searchSymbols(this.username, this.password, query, true)
+    this.marketDashboardService.searchSymbols(this.username, this.password, query, false, true)
       .pipe(finalize(() => (this.marketDashboardService.isSearchingStockLookup = false)))
       .subscribe({
         next: (results) => {
@@ -731,12 +733,9 @@ export class AppComponent implements OnDestroy, OnInit {
           }
 
           this.marketDashboardService.stockLookupSuggestions = results;
-          this.marketDashboardService.stockLookupRisks = results.reduce<Record<string, StockAlert | null>>((risks, result) => {
-            risks[result.symbol.toUpperCase()] = result.indicators ?? null;
-            return risks;
-          }, {});
+          this.marketDashboardService.stockLookupRisks = {};
           this.marketDashboardService.stockLookupMessage = results.length
-            ? 'Indicators loaded.'
+            ? 'Choose a result to add it to your portfolio.'
             : 'No matching symbols found. Try a different ticker, name, or pair.';
         },
         error: () => {
@@ -837,94 +836,10 @@ export class AppComponent implements OnDestroy, OnInit {
     return event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
   }
 
-  stockLookupRiskFor(symbol: string): StockAlert | null | undefined {
-    return this.marketDashboardService.stockLookupRisks[symbol.toUpperCase()];
-  }
-
   addStockLookupResult(result: SymbolSearchResult): void {
     this.closeStockLookupDialog();
     this.openAddPosition();
     this.chooseSymbol(result);
-  }
-
-  formatStockLookupMoney(value: number | null | undefined): string {
-    if (value === null || value === undefined) {
-      return '-';
-    }
-
-    const abs = Math.abs(value);
-    if (!Number.isFinite(abs)) {
-      return value < 0 ? '-$Infinity' : '$Infinity';
-    }
-
-    if (abs < 1000) {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        maximumFractionDigits: abs >= 100 ? 0 : 2,
-      }).format(value);
-    }
-
-    const suffixes = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
-    const tier = Math.min(Math.floor(Math.log10(abs) / 3), suffixes.length - 1);
-    const scaled = value / Math.pow(1000, tier);
-    const compact = new Intl.NumberFormat('en-US', {
-      maximumFractionDigits: Math.abs(scaled) >= 100 ? 0 : Math.abs(scaled) >= 10 ? 1 : 2,
-    }).format(scaled);
-
-    return `$${compact}${suffixes[tier]}`;
-  }
-
-  formatStockLookupDayChange(value: number | null | undefined): string {
-    if (value === null || value === undefined) {
-      return '-';
-    }
-
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 2,
-    }).format(value);
-  }
-
-  formatStockLookupStockDayChange(stock: StockAlert): string {
-    const value = this.calculateStockLookupDayChange(stock);
-    return this.formatStockLookupDayChange(value);
-  }
-
-  formatStockLookupPositionDayChange(stock: StockAlert): string {
-    return stock.watchOnly ? '-' : this.formatStockLookupDayChange(stock.dayGainLoss);
-  }
-
-  formatStockLookupQuantity(value: number | null | undefined): string {
-    if (value === null || value === undefined || Number.isNaN(value)) {
-      return '-';
-    }
-
-    return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value);
-  }
-
-  formatStockLookupReason(reason: string | null | undefined): string {
-    const normalizedReason = reason?.trim() || '';
-    return /^No watched (stock|position) alerts fired(?: under current thresholds)?\.?$/i.test(normalizedReason)
-      ? ''
-      : normalizedReason;
-  }
-
-  private calculateStockLookupDayChange(stock: StockAlert): number | null {
-    if (stock.dayGainLoss === null || stock.dayGainLoss === undefined) {
-      return null;
-    }
-
-    if (stock.watchOnly) {
-      return stock.dayGainLoss;
-    }
-
-    if (stock.quantity === 0) {
-      return null;
-    }
-
-    return stock.dayGainLoss / stock.quantity;
   }
 
   closeAlertsDialog(): void {

@@ -1,8 +1,10 @@
-package com.jarmak.stockmarketanalyzer.market;
+package com.jarmak.stockmarketanalyzer.market.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
+import com.jarmak.stockmarketanalyzer.market.HistoryRange;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
+import com.jarmak.stockmarketanalyzer.market.TimeSeriesPoint;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -12,18 +14,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 
 @Component
 public class FredClient {
+  private static final Logger LOGGER = LoggerFactory.getLogger(FredClient.class);
+  private static final long HISTORY_CACHE_SECONDS = 900;
+
   private final AppProperties properties;
   private final RestClient restClient;
   private final Map<String, List<TimeSeriesPoint>> lastGoodObservations = new ConcurrentHashMap<>();
   private final Map<String, List<ChartPoint>> lastGoodHistory = new ConcurrentHashMap<>();
   private final Map<String, CacheEntry<List<ChartPoint>>> historyCache = new ConcurrentHashMap<>();
-  private static final long HISTORY_CACHE_SECONDS = 900;
 
   public FredClient(AppProperties properties, RestClient restClient) {
     this.properties = properties;
@@ -62,6 +68,7 @@ public class FredClient {
         }
       }
       if (!points.isEmpty()) {
+        LOGGER.debug("FRED latest observations found {} result(s) for {}.", points.size(), seriesId);
         lastGoodObservations.put(seriesId, points);
         return points;
       }
@@ -123,6 +130,7 @@ public class FredClient {
 
       List<ChartPoint> sampled = sample(points.stream().sorted(Comparator.comparing(ChartPoint::timestamp)).toList(), 260);
       if (!sampled.isEmpty()) {
+        LOGGER.debug("FRED history found {} result(s) for {} {}.", sampled.size(), seriesId, range.label());
         lastGoodHistory.put(cacheKey, sampled);
         historyCache.put(cacheKey, new CacheEntry<>(sampled, Instant.now().plusSeconds(HISTORY_CACHE_SECONDS)));
         return sampled;

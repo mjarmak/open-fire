@@ -1,9 +1,13 @@
-package com.jarmak.stockmarketanalyzer.market;
+package com.jarmak.stockmarketanalyzer.market.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
+import com.jarmak.stockmarketanalyzer.market.HistoryRange;
+import com.jarmak.stockmarketanalyzer.market.MarketApiUtils;
+import com.jarmak.stockmarketanalyzer.market.MarketSnapshotCandidate;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.SymbolSearchResult;
+import com.jarmak.stockmarketanalyzer.market.TimeSeriesPoint;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
@@ -22,7 +26,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 @Component
-class FinnhubApiService {
+public class FinnhubApiService {
   private static final Logger LOGGER = LoggerFactory.getLogger(FinnhubApiService.class);
   private static final long SEARCH_PROVIDER_CACHE_SECONDS = 60;
   private static final long SNAPSHOT_CACHE_SECONDS = 300;
@@ -41,16 +45,16 @@ class FinnhubApiService {
   private final Map<String, CacheEntry<List<SymbolSearchResult>>> symbolListCache = new ConcurrentHashMap<>();
   private final Map<String, CacheEntry<Boolean>> historyBackoff = new ConcurrentHashMap<>();
 
-  FinnhubApiService(AppProperties properties, RestClient restClient) {
+  public FinnhubApiService(AppProperties properties, RestClient restClient) {
     this.properties = properties;
     this.restClient = restClient;
   }
 
-  boolean configured() {
+  public boolean configured() {
     return StringUtils.hasText(properties.market().finnhubApiKey());
   }
 
-  Optional<MarketSnapshotCandidate> companySnapshot(String symbol) {
+  public Optional<MarketSnapshotCandidate> companySnapshot(String symbol) {
     return cached(snapshotCache, "finnhub|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> {
       if (!configured()) {
         return Optional.empty();
@@ -81,7 +85,7 @@ class FinnhubApiService {
           if (marketCap != null) {
             marketCap = marketCap.multiply(BigDecimal.valueOf(MARKET_CAP_MILLION_MULTIPLIER));
           }
-          return Optional.of(new MarketSnapshotCandidate(
+          return logSnapshotResult("snapshot", symbol, Optional.of(new MarketSnapshotCandidate(
               MarketApiUtils.resolveName(profile.path("name").asText(""), symbol),
               MarketApiUtils.assetClassLabel(assetClass, profile.path("finnhubIndustry").asText("")),
               marketCap,
@@ -92,7 +96,7 @@ class FinnhubApiService {
               dailyHigh,
               dailyLow,
               MarketApiUtils.positiveMetric(metrics.path("52WeekHigh"))
-          ));
+          )));
         }
 
         long to = Instant.now().getEpochSecond();
@@ -138,7 +142,7 @@ class FinnhubApiService {
           parsedPreviousClose = parsedLatest;
         }
 
-        return Optional.of(new MarketSnapshotCandidate(
+        return logSnapshotResult("snapshot", symbol, Optional.of(new MarketSnapshotCandidate(
             symbol,
             MarketApiUtils.assetClassLabel(assetClass, ""),
             null,
@@ -149,14 +153,70 @@ class FinnhubApiService {
             parsedDailyHigh,
             parsedDailyLow,
             null
-        ));
+        )));
       } catch (RuntimeException exception) {
         return Optional.empty();
       }
     });
   }
 
-  List<TimeSeriesPoint> dailyCloses(String symbol) {
+  public Optional<MarketSnapshotCandidate> companyPriceSnapshot(String symbol) {
+    return cached(snapshotCache, "finnhub-price|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> {
+      if (!configured()) {
+        return Optional.empty();
+      }
+
+      try {
+        MarketApiUtils.AssetClass assetClass = MarketApiUtils.assetClass(symbol);
+        JsonNode quote = query("/quote", Map.of("symbol", symbol));
+        BigDecimal latestPrice = MarketApiUtils.positiveMetric(quote.path("c"));
+        if (latestPrice == null || latestPrice.signum() <= 0) {
+          return Optional.empty();
+        }
+
+        BigDecimal previousClose = MarketApiUtils.positiveMetric(quote.path("pc"));
+        if (previousClose == null) {
+          previousClose = latestPrice;
+        }
+        BigDecimal dailyHigh = MarketApiUtils.positiveMetric(quote.path("h"));
+        BigDecimal dailyLow = MarketApiUtils.positiveMetric(quote.path("l"));
+
+        String name = symbol;
+        String industry = MarketApiUtils.assetClassLabel(assetClass, "");
+        BigDecimal marketCap = null;
+        if (assetClass == MarketApiUtils.AssetClass.STOCK) {
+          try {
+            JsonNode profile = query("/stock/profile2", Map.of("symbol", symbol));
+            name = MarketApiUtils.resolveName(profile.path("name").asText(""), symbol);
+            industry = MarketApiUtils.assetClassLabel(assetClass, profile.path("finnhubIndustry").asText(""));
+            marketCap = MarketApiUtils.positiveMetric(profile.path("marketCapitalization"));
+            if (marketCap != null) {
+              marketCap = marketCap.multiply(BigDecimal.valueOf(MARKET_CAP_MILLION_MULTIPLIER));
+            }
+          } catch (RuntimeException ignored) {
+            // Price previews should stay available even if provider profile metadata is unavailable.
+          }
+        }
+
+        return logSnapshotResult("price snapshot", symbol, Optional.of(new MarketSnapshotCandidate(
+            name,
+            industry,
+            marketCap,
+            null,
+            null,
+            latestPrice,
+            previousClose,
+            dailyHigh,
+            dailyLow,
+            null
+        )));
+      } catch (RuntimeException exception) {
+        return Optional.empty();
+      }
+    });
+  }
+
+  public List<TimeSeriesPoint> dailyCloses(String symbol) {
     return cachedNonEmptyList(dailyClosesCache, symbol, CLOSES_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
@@ -192,14 +252,14 @@ class FinnhubApiService {
               close.doubleValue()
           ));
         }
-        return points.stream().sorted(Comparator.comparing(TimeSeriesPoint::date)).toList();
+        return logListResult("daily closes", symbol, points.stream().sorted(Comparator.comparing(TimeSeriesPoint::date)).toList());
       } catch (RuntimeException exception) {
         return List.of();
       }
     });
   }
 
-  List<SymbolSearchResult> searchSymbols(String keywords) {
+  public List<SymbolSearchResult> searchSymbols(String keywords) {
     return cached(searchCache, "finnhub|" + MarketApiUtils.normalizeSearchText(keywords), SEARCH_PROVIDER_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
@@ -216,15 +276,15 @@ class FinnhubApiService {
           ));
         }
       }
-      return symbols;
+      return logListResult("symbol search", keywords, symbols);
     });
   }
 
-  List<SymbolSearchResult> symbolList(String type) {
+  public List<SymbolSearchResult> symbolList(String type) {
     return cached(symbolListCache, type, 3_600, () -> fetchAssetSymbols(type));
   }
 
-  List<ChartPoint> historicalCandles(String symbol, HistoryRange range) {
+  public List<ChartPoint> historicalCandles(String symbol, HistoryRange range) {
     CacheEntry<Boolean> accessBlocked = historyBackoff.get(FINNHUB_HISTORY_BACKOFF_KEY);
     if (accessBlocked != null && !accessBlocked.expired()) {
       LOGGER.debug("Skipping Finnhub history for {} {} due to recent access errors.", symbol, range.label());
@@ -358,7 +418,7 @@ class FinnhubApiService {
         // Keep the other exchange/source results available if one provider endpoint fails.
       }
     }
-    return symbols;
+    return logListResult(type + " symbol list", type, symbols);
   }
 
   private BigDecimal latestClose(String symbol) {
@@ -419,6 +479,22 @@ class FinnhubApiService {
 
   private List<ChartPoint> sample(List<ChartPoint> points, int maxPoints) {
     return MarketApiUtils.sample(points, maxPoints, ChartPoint::timestamp);
+  }
+
+  private Optional<MarketSnapshotCandidate> logSnapshotResult(
+      String operation,
+      String symbol,
+      Optional<MarketSnapshotCandidate> result
+  ) {
+    result.ifPresent(ignored -> LOGGER.debug("Finnhub {} found a result for {}.", operation, symbol));
+    return result;
+  }
+
+  private <T> List<T> logListResult(String operation, String subject, List<T> results) {
+    if (results != null && !results.isEmpty()) {
+      LOGGER.debug("Finnhub {} found {} result(s) for {}.", operation, results.size(), subject);
+    }
+    return results;
   }
 
   private record CacheEntry<T>(T value, Instant expiresAt) {

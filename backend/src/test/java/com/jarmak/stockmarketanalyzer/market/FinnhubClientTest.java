@@ -447,6 +447,97 @@ class FinnhubClientTest {
   }
 
   @Test
+  void companyPriceSnapshotUsesFinnhubQuoteAndProfileWithoutRiskEndpoints() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/quote")))
+        .andRespond(withSuccess("""
+            {"c":190,"pc":188,"h":191,"l":186}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/stock/profile2")))
+        .andRespond(withSuccess("""
+            {"name":"Apple Inc","finnhubIndustry":"Technology","marketCapitalization":3000000}
+            """, MediaType.APPLICATION_JSON));
+
+    CompanySnapshot snapshot = client.companyPriceSnapshot("AAPL").orElseThrow();
+
+    assertThat(snapshot.name()).isEqualTo("Apple Inc");
+    assertThat(snapshot.marketCap()).isEqualByComparingTo("3000000000000");
+    assertThat(snapshot.latestPrice()).isEqualByComparingTo("190");
+    assertThat(snapshot.previousClose()).isEqualByComparingTo("188");
+    assertThat(snapshot.peRatio()).isNull();
+    assertThat(snapshot.beta()).isNull();
+    assertThat(snapshot.realizedVolatilityPercent()).isNull();
+    assertThat(snapshot.drawdownPercent()).isNull();
+    assertThat(snapshot.priceThirtyDaysAgo()).isNull();
+    server.verify();
+  }
+
+  @Test
+  void companyPriceSnapshotUsesTwelveDataPriceDetailsWithoutIndicatorFields() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(null, "twelve", null), builder.build());
+
+    server.expect(requestTo(containsString("/quote")))
+        .andRespond(withSuccess("""
+            {
+              "name":"Apple Inc",
+              "exchange":"NASDAQ",
+              "values":[{"close":"190","previous_close":"188","high":"191","low":"186"}]
+            }
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/quote")))
+        .andRespond(withSuccess("""
+            {"name":"Apple Inc","market_cap":"3000000000000","pe_ratio":"44","beta":"1.2"}
+            """, MediaType.APPLICATION_JSON));
+
+    CompanySnapshot snapshot = client.companyPriceSnapshot("AAPL").orElseThrow();
+
+    assertThat(snapshot.name()).isEqualTo("Apple Inc");
+    assertThat(snapshot.marketCap()).isEqualByComparingTo("3000000000000");
+    assertThat(snapshot.latestPrice()).isEqualByComparingTo("190");
+    assertThat(snapshot.previousClose()).isEqualByComparingTo("188");
+    assertThat(snapshot.peRatio()).isNull();
+    assertThat(snapshot.beta()).isNull();
+    assertThat(snapshot.realizedVolatilityPercent()).isNull();
+    assertThat(snapshot.drawdownPercent()).isNull();
+    assertThat(snapshot.priceThirtyDaysAgo()).isNull();
+    server.verify();
+  }
+
+  @Test
+  void companyPriceSnapshotUsesAlphaVantagePriceDetailsWithoutIndicatorFields() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(null, null, "alpha"), builder.build());
+
+    server.expect(requestTo(containsString("function=GLOBAL_QUOTE")))
+        .andRespond(withSuccess("""
+            {"Global Quote":{"01. symbol":"AAPL","03. high":"191","04. low":"186","05. price":"190","08. previous close":"188"}}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("function=OVERVIEW")))
+        .andRespond(withSuccess("""
+            {"Name":"Apple Inc","Industry":"Technology","MarketCapitalization":"3000000000000","PERatio":"44","Beta":"1.2"}
+            """, MediaType.APPLICATION_JSON));
+
+    CompanySnapshot snapshot = client.companyPriceSnapshot("AAPL").orElseThrow();
+
+    assertThat(snapshot.name()).isEqualTo("Apple Inc");
+    assertThat(snapshot.marketCap()).isEqualByComparingTo("3000000000000");
+    assertThat(snapshot.latestPrice()).isEqualByComparingTo("190");
+    assertThat(snapshot.previousClose()).isEqualByComparingTo("188");
+    assertThat(snapshot.peRatio()).isNull();
+    assertThat(snapshot.beta()).isNull();
+    assertThat(snapshot.realizedVolatilityPercent()).isNull();
+    assertThat(snapshot.drawdownPercent()).isNull();
+    assertThat(snapshot.priceThirtyDaysAgo()).isNull();
+    server.verify();
+  }
+
+  @Test
   void cryptoSnapshotUsesCandlesWithoutStockQuoteOrProfileCalls() {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();

@@ -17,6 +17,12 @@
         <div class="metric-card current-assets-card">
           <span class="label">Portfolio Summary</span>
           <strong class="value">{{ formatCompactCurrency(currentPortfolioValue) }}</strong>
+          @if (hasNoPortfolioValue) {
+            <p class="portfolio-empty-note">
+              <span class="portfolio-empty-note-icon" aria-hidden="true">i</span>
+              <span>Add your positions to see your portfolio value.</span>
+            </p>
+          }
           <div class="assets-subtext-grid">
             <div
               class="subtext-item app-tooltip"
@@ -48,23 +54,25 @@
             <div
               class="subtext-item app-tooltip"
               tabindex="0"
-              [attr.data-tooltip]="portfolioSummaryTooltips.totalProfitLoss"
-              [attr.aria-label]="portfolioSummaryTooltips.totalProfitLoss"
+              [attr.data-tooltip]="portfolioSummaryTooltips.todayChange"
+              [attr.aria-label]="portfolioSummaryTooltips.todayChange"
             >
-              <span>Total P&amp;L:</span>
-              <strong [class.value-pos]="totalProfitLoss > 0" [class.value-neg]="totalProfitLoss < 0">
-                {{ formatCompactCurrency(totalProfitLoss) }}
+              <span>Today:</span>
+              <strong [class.value-pos]="totalDayChange > 0" [class.value-neg]="totalDayChange < 0">
+                {{ formatSignedCompactCurrency(totalDayChange) }}
+                ({{ totalDayChangePercent > 0 ? '+' : '' }}{{ totalDayChangePercent | number: '1.1-2' }}%)
               </strong>
             </div>
             <div
               class="subtext-item app-tooltip"
               tabindex="0"
-              [attr.data-tooltip]="portfolioSummaryTooltips.totalProfitLossPercent"
-              [attr.aria-label]="portfolioSummaryTooltips.totalProfitLossPercent"
+              [attr.data-tooltip]="portfolioSummaryTooltips.totalProfitLoss"
+              [attr.aria-label]="portfolioSummaryTooltips.totalProfitLoss"
             >
-              <span>Total P&amp;L %:</span>
+              <span>Total P&amp;L:</span>
               <strong [class.value-pos]="totalProfitLoss > 0" [class.value-neg]="totalProfitLoss < 0">
-                {{ totalProfitLoss > 0 ? '+' : '' }}{{ totalProfitLossPercent | number: '1.1-2' }}%
+                {{ formatSignedCompactCurrency(totalProfitLoss) }}
+                ({{ totalProfitLoss > 0 ? '+' : '' }}{{ totalProfitLossPercent | number: '1.1-2' }}%)
               </strong>
             </div>
             <div

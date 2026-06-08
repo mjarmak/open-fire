@@ -62,6 +62,36 @@ final class MarketSnapshotFactory {
     ));
   }
 
+  static Optional<CompanySnapshot> fromPriceCandidate(String symbol, MarketSnapshotCandidate candidate) {
+    if (candidate == null) {
+      return Optional.empty();
+    }
+
+    BigDecimal latestPrice = candidate.latestPrice();
+    if (latestPrice == null || latestPrice.signum() <= 0) {
+      return Optional.empty();
+    }
+
+    BigDecimal previousClose = candidate.previousClose();
+    if (previousClose == null || previousClose.signum() <= 0) {
+      previousClose = latestPrice;
+    }
+
+    return Optional.of(new CompanySnapshot(
+        symbol,
+        candidate.name(),
+        candidate.industry(),
+        candidate.marketCap(),
+        null,
+        null,
+        null,
+        null,
+        latestPrice,
+        previousClose,
+        null
+    ));
+  }
+
   private static BigDecimal latestClose(List<TimeSeriesPoint> closes) {
     if (closes == null || closes.isEmpty()) {
       return null;

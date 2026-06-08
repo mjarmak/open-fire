@@ -97,7 +97,7 @@ export class PortfolioBoardComponent implements OnInit {
   protected positionFilter: PositionFilter = 'all';
   protected actionDialogRowKey: string | null = null;
   protected chartRowKeys = new Set<string>();
-  protected readonly chartRanges: TrendChartRange[] = ['1h', '1d', '5d', '1m', '1y', '5y', '10y', 'all'];
+  protected readonly chartRanges: TrendChartRange[] = ['5d', '1m', '1y', '10y', 'all'];
   private readonly chartCache = new Map<string, TrendChartPoint[]>();
   private readonly loadingChartKeys = new Set<string>();
   private readonly positionChartRanges = new Map<string, TrendChartRange>();
@@ -471,7 +471,7 @@ export class PortfolioBoardComponent implements OnInit {
 
   protected getPositionLinesTooltip(stock?: StockAlert): string {
     if (stock?.watchOnly) {
-      return 'Current shows the latest available price.';
+      return 'Current shows the latest available price and market cap.';
     }
 
     return 'Current shows the current market value and unrealized return.\nOriginal shows the invested cost based on the average price.';

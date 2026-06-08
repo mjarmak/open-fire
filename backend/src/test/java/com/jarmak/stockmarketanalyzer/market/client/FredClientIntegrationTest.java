@@ -1,4 +1,4 @@
-package com.jarmak.stockmarketanalyzer.market;
+package com.jarmak.stockmarketanalyzer.market.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -6,6 +6,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
+import com.jarmak.stockmarketanalyzer.market.HistoryRange;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
 import java.math.BigDecimal;
 import java.util.List;
@@ -14,7 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-class FredClientTest {
+class FredClientIntegrationTest {
   @Test
   void cachesHistoryForRepeatedRangeRequests() {
     RestClient.Builder builder = RestClient.builder();

@@ -98,7 +98,7 @@ test.describe('Retirement Section', () => {
     await expect(summary).toContainText('$1');
     await expect(summary).toContainText('Total Invested:');
     await expect(summary).toContainText('Total P&L: $0');
-    await expect(summary).toContainText('Total P&L %: 0.0%');
+    await expect(summary).not.toContainText('Total P&L %:');
     await expect(summary).toContainText('Annualized Return %: 0.0%');
     await expect(summary).toContainText('Return Since:');
     await expect(summary).toContainText('2024-01-01');

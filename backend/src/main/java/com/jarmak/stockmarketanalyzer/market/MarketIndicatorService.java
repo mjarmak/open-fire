@@ -2,6 +2,7 @@ package com.jarmak.stockmarketanalyzer.market;
 
 import com.jarmak.stockmarketanalyzer.config.CacheConfig;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
+import com.jarmak.stockmarketanalyzer.market.client.FredClient;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartSeries;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.IndicatorSnapshot;
 import java.math.BigDecimal;
@@ -159,8 +160,7 @@ public class MarketIndicatorService {
     }
 
     Map<LocalDate, int[]> countsByDate = new LinkedHashMap<>();
-    for (String symbol : properties.market().breadthSymbols()) {
-      List<TimeSeriesPoint> points = historicalCloses(symbol, range);
+    for (List<TimeSeriesPoint> points : historicalCloses(properties.market().breadthSymbols(), range)) {
       if (points.size() < 2) {
         continue;
       }
@@ -202,15 +202,20 @@ public class MarketIndicatorService {
   }
 
   private List<MarketModels.ChartPoint> historicalFearGreed(HistoryRange range) {
-    Map<LocalDate, Double> vix = chartPointsByDate(fredClient.observations("VIXCLS", range));
-    Map<LocalDate, Double> credit = chartPointsByDate(fredClient.observations("BAMLC0A0CM", range));
-    Map<LocalDate, Double> breadth = chartPointsByDate(historicalBreadth(range));
+    CompletableFuture<Map<LocalDate, Double>> vixFuture = historyFuture(() -> chartPointsByDate(fredClient.observations("VIXCLS", range)));
+    CompletableFuture<Map<LocalDate, Double>> creditFuture = historyFuture(() -> chartPointsByDate(fredClient.observations("BAMLC0A0CM", range)));
+    CompletableFuture<Map<LocalDate, Double>> breadthFuture = historyFuture(() -> chartPointsByDate(historicalBreadth(range)));
+    CompletableFuture<Map<LocalDate, Double>> correlationFuture = historyFuture(() -> chartPointsByDate(historicalCorrelation(range)));
+
+    Map<LocalDate, Double> vix = emptyIfNull(vixFuture.join());
+    Map<LocalDate, Double> credit = emptyIfNull(creditFuture.join());
+    Map<LocalDate, Double> breadth = emptyIfNull(breadthFuture.join());
 
     if (vix.isEmpty() || credit.isEmpty() || breadth.isEmpty()) {
       return List.of();
     }
 
-    Map<LocalDate, Double> correlation = chartPointsByDate(historicalCorrelation(range));
+    Map<LocalDate, Double> correlation = emptyIfNull(correlationFuture.join());
     double fallbackCorrelation = crossAssetCorrelation()
         .map(indicator -> indicator.value().doubleValue())
         .orElse(0d);
@@ -273,8 +278,8 @@ public class MarketIndicatorService {
   }
 
   private List<MarketModels.ChartPoint> historicalCorrelation(HistoryRange range) {
-    List<Map<LocalDate, Double>> symbolReturns = properties.market().crossAssetSymbols().stream()
-        .map(symbol -> historicalDailyReturns(historicalCloses(symbol, range), range))
+    List<Map<LocalDate, Double>> symbolReturns = historicalCloses(properties.market().crossAssetSymbols(), range).stream()
+        .map(points -> historicalDailyReturns(points, range))
         .filter(returns -> returns.size() >= 5)
         .toList();
 
@@ -347,6 +352,21 @@ public class MarketIndicatorService {
     return returns;
   }
 
+  private List<List<TimeSeriesPoint>> historicalCloses(List<String> symbols, HistoryRange range) {
+    if (symbols == null || symbols.isEmpty()) {
+      return List.of();
+    }
+
+    List<CompletableFuture<List<TimeSeriesPoint>>> futures = symbols.stream()
+        .map(symbol -> historyFuture(() -> historicalCloses(symbol, range)))
+        .toList();
+    return futures.stream()
+        .map(CompletableFuture::join)
+        .filter(java.util.Objects::nonNull)
+        .filter(points -> !points.isEmpty())
+        .toList();
+  }
+
   private List<TimeSeriesPoint> historicalCloses(String symbol, HistoryRange range) {
     if (range == HistoryRange.ONE_HOUR || range == HistoryRange.ONE_DAY || range == HistoryRange.FIVE_DAYS) {
       return historicalWindow(finnhubClient.dailyCloses(symbol), range);
@@ -368,6 +388,16 @@ public class MarketIndicatorService {
     return pointsByDate.values().stream()
         .sorted(Comparator.comparing(TimeSeriesPoint::date))
         .toList();
+  }
+
+  private <T> CompletableFuture<T> historyFuture(java.util.function.Supplier<T> supplier) {
+    return CompletableFuture.supplyAsync(supplier)
+        .completeOnTimeout(null, 30, TimeUnit.SECONDS)
+        .exceptionally(exception -> null);
+  }
+
+  private Map<LocalDate, Double> emptyIfNull(Map<LocalDate, Double> values) {
+    return values == null ? Map.of() : values;
   }
 
   private List<Double> trailingValues(Map<LocalDate, Double> valuesByDate, LocalDate date, int maxValues) {

@@ -1,9 +1,13 @@
-package com.jarmak.stockmarketanalyzer.market;
+package com.jarmak.stockmarketanalyzer.market.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
+import com.jarmak.stockmarketanalyzer.market.HistoryRange;
+import com.jarmak.stockmarketanalyzer.market.MarketApiUtils;
+import com.jarmak.stockmarketanalyzer.market.MarketSnapshotCandidate;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.SymbolSearchResult;
+import com.jarmak.stockmarketanalyzer.market.TimeSeriesPoint;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -24,7 +28,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 @Component
-class TwelveDataApiService {
+public class TwelveDataApiService {
   private static final Logger LOGGER = LoggerFactory.getLogger(TwelveDataApiService.class);
   private static final String RATE_LIMIT_BACKOFF_KEY = "twelvedata-rate-limit";
   private static final long TWELVE_DATA_RATE_LIMIT_BACKOFF_SECONDS = 60;
@@ -41,16 +45,16 @@ class TwelveDataApiService {
   private final Map<String, CacheEntry<List<SymbolSearchResult>>> searchCache = new ConcurrentHashMap<>();
   private final Map<String, CacheEntry<Boolean>> rateLimitBackoff = new ConcurrentHashMap<>();
 
-  TwelveDataApiService(AppProperties properties, RestClient restClient) {
+  public TwelveDataApiService(AppProperties properties, RestClient restClient) {
     this.properties = properties;
     this.restClient = restClient;
   }
 
-  boolean configured() {
+  public boolean configured() {
     return StringUtils.hasText(properties.market().twelveDataApiKey());
   }
 
-  Optional<MarketSnapshotCandidate> companySnapshot(String symbol) {
+  public Optional<MarketSnapshotCandidate> companySnapshot(String symbol) {
     return cached(snapshotCache, "twelvedata|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> {
       if (!configured()) {
         return Optional.empty();
@@ -84,7 +88,7 @@ class TwelveDataApiService {
             StringUtils.hasText(overview.path("name").asText()) ? overview.path("name").asText() : quote.path("name").asText(),
             symbol
         );
-        return Optional.of(new MarketSnapshotCandidate(
+        return logSnapshotResult("snapshot", symbol, Optional.of(new MarketSnapshotCandidate(
             name,
             MarketApiUtils.assetClassLabel(MarketApiUtils.assetClass(symbol), quote.path("exchange").asText("")),
             MarketApiUtils.positiveMetricFromText(overview.path("market_cap")),
@@ -95,14 +99,70 @@ class TwelveDataApiService {
             high,
             low,
             MarketApiUtils.positiveMetricFromText(quote.path("fifty_two_week_high"))
-        ));
+        )));
       } catch (RuntimeException exception) {
         return Optional.empty();
       }
     });
   }
 
-  List<TimeSeriesPoint> dailyCloses(String symbol) {
+  public Optional<MarketSnapshotCandidate> companyPriceSnapshot(String symbol) {
+    return cached(snapshotCache, "twelvedata-price|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> {
+      if (!configured()) {
+        return Optional.empty();
+      }
+      try {
+        String providerSymbol = MarketApiUtils.toTwelveDataSymbol(symbol);
+        if (!StringUtils.hasText(providerSymbol)) {
+          return Optional.empty();
+        }
+
+        JsonNode quote = query("quote", Map.of("symbol", providerSymbol));
+        JsonNode values = quote.path("values");
+        JsonNode latest = values.isArray() && !values.isEmpty() ? values.get(0) : quote;
+        BigDecimal latestPrice = MarketApiUtils.positiveMetricFromText(latest.path("close"));
+        if (latestPrice == null) {
+          latestPrice = MarketApiUtils.positiveMetricFromText(latest.path("price"));
+        }
+        if (latestPrice == null) {
+          return Optional.empty();
+        }
+
+        BigDecimal previousClose = MarketApiUtils.positiveMetricFromText(latest.path("previous_close"));
+        if (previousClose == null && values.isArray() && values.size() > 1) {
+          previousClose = MarketApiUtils.positiveMetricFromText(values.get(1).path("close"));
+        }
+        if (previousClose == null) {
+          previousClose = latestPrice;
+        }
+        BigDecimal high = MarketApiUtils.positiveMetricFromText(latest.path("high"));
+        BigDecimal low = MarketApiUtils.positiveMetricFromText(latest.path("low"));
+
+        JsonNode overview = query("quote", Map.of("symbol", providerSymbol, "outputsize", "1"));
+        JsonNode details = overview == null ? quote : overview;
+        String name = MarketApiUtils.resolveName(
+            StringUtils.hasText(details.path("name").asText()) ? details.path("name").asText() : quote.path("name").asText(),
+            symbol
+        );
+        return logSnapshotResult("price snapshot", symbol, Optional.of(new MarketSnapshotCandidate(
+            name,
+            MarketApiUtils.assetClassLabel(MarketApiUtils.assetClass(symbol), quote.path("exchange").asText("")),
+            MarketApiUtils.positiveMetricFromText(details.path("market_cap")),
+            null,
+            null,
+            latestPrice,
+            previousClose,
+            high,
+            low,
+            null
+        )));
+      } catch (RuntimeException exception) {
+        return Optional.empty();
+      }
+    });
+  }
+
+  public List<TimeSeriesPoint> dailyCloses(String symbol) {
     return cached(closesCache, "symbol:" + symbol, CLOSES_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
@@ -133,14 +193,14 @@ class TwelveDataApiService {
           }
           points.add(new TimeSeriesPoint(date, close.doubleValue()));
         }
-        return points.stream().sorted(Comparator.comparing(TimeSeriesPoint::date)).toList();
+        return logListResult("daily closes", symbol, points.stream().sorted(Comparator.comparing(TimeSeriesPoint::date)).toList());
       } catch (RuntimeException exception) {
         return List.of();
       }
     });
   }
 
-  List<SymbolSearchResult> searchSymbols(String keywords) {
+  public List<SymbolSearchResult> searchSymbols(String keywords) {
     return cached(searchCache, "twelvedata|" + MarketApiUtils.normalizeSearchText(keywords), SEARCH_PROVIDER_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
@@ -163,11 +223,11 @@ class TwelveDataApiService {
           ));
         }
       }
-      return symbols;
+      return logListResult("symbol search", keywords, symbols);
     });
   }
 
-  List<ChartPoint> historicalCandles(String symbol, HistoryRange range) {
+  public List<ChartPoint> historicalCandles(String symbol, HistoryRange range) {
     if (!configured()) {
       LOGGER.debug("Skipping Twelve Data history for {} {} because Twelve Data API key is not configured.", symbol, range.label());
       return List.of();
@@ -326,6 +386,22 @@ class TwelveDataApiService {
 
   private List<ChartPoint> sample(List<ChartPoint> points, int maxPoints) {
     return MarketApiUtils.sample(points, maxPoints, ChartPoint::timestamp);
+  }
+
+  private Optional<MarketSnapshotCandidate> logSnapshotResult(
+      String operation,
+      String symbol,
+      Optional<MarketSnapshotCandidate> result
+  ) {
+    result.ifPresent(ignored -> LOGGER.debug("Twelve Data {} found a result for {}.", operation, symbol));
+    return result;
+  }
+
+  private <T> List<T> logListResult(String operation, String subject, List<T> results) {
+    if (results != null && !results.isEmpty()) {
+      LOGGER.debug("Twelve Data {} found {} result(s) for {}.", operation, results.size(), subject);
+    }
+    return results;
   }
 
   private record CacheEntry<T>(T value, Instant expiresAt) {

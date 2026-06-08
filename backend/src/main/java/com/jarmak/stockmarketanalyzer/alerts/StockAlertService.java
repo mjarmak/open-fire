@@ -48,6 +48,75 @@ public class StockAlertService {
     return evaluate(holding, null);
   }
 
+  public StockAlert pricePreview(String symbol, String companyName) {
+    Optional<CompanySnapshot> maybeSnapshot = finnhubClient.companyPriceSnapshot(symbol);
+    if (maybeSnapshot.isEmpty()) {
+      return new StockAlert(
+          null,
+          symbol,
+          companyName,
+          "Unknown",
+          BigDecimal.ONE,
+          BigDecimal.ZERO,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          true,
+          false,
+          "Price details are unavailable."
+      );
+    }
+
+    CompanySnapshot snapshot = maybeSnapshot.get();
+    BigDecimal latestPrice = snapshot.latestPrice().setScale(2, RoundingMode.HALF_UP);
+    BigDecimal previousClose = snapshot.previousClose() == null
+        ? null
+        : snapshot.previousClose().setScale(2, RoundingMode.HALF_UP);
+    BigDecimal stockDayChange = previousClose == null
+        ? null
+        : latestPrice.subtract(previousClose).setScale(2, RoundingMode.HALF_UP);
+    BigDecimal dayGainLossPercent = previousClose == null || previousClose.signum() == 0
+        ? null
+        : stockDayChange.divide(previousClose, 6, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(1, RoundingMode.HALF_UP);
+
+    return new StockAlert(
+        null,
+        snapshot.symbol(),
+        snapshot.name() == null || snapshot.name().isBlank() ? companyName : snapshot.name(),
+        positionType(snapshot),
+        BigDecimal.ONE,
+        BigDecimal.ZERO,
+        latestPrice,
+        snapshot.marketCap(),
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        stockDayChange,
+        dayGainLossPercent,
+        null,
+        null,
+        null,
+        true,
+        false,
+        "Price details loaded."
+    );
+  }
+
   private StockAlert evaluate(PortfolioHolding holding, BigDecimal vixFearIndex) {
     BigDecimal roundedVixFearIndex = vixFearIndex == null ? null : vixFearIndex.setScale(1, RoundingMode.HALF_UP);
     boolean highFear = aboveOrEqual(roundedVixFearIndex, properties.market().highVixThreshold());

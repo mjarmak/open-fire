@@ -1,6 +1,8 @@
 package com.jarmak.stockmarketanalyzer.market;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.atLeast;
@@ -9,10 +11,12 @@ import static org.mockito.Mockito.when;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
+import com.jarmak.stockmarketanalyzer.market.client.FredClient;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
@@ -143,8 +147,68 @@ class MarketIndicatorServiceTest {
     assertThat(series.points().get(0).timestamp()).isEqualTo(java.time.Instant.parse("2024-01-03T00:00:00Z"));
   }
 
+  @Test
+  void loadsHistoryBackedBreadthSymbolsConcurrently() {
+    FinnhubClient concurrentFinnhubClient = mock(FinnhubClient.class);
+    MarketIndicatorService concurrentService = new MarketIndicatorService(
+        properties(List.of("SPY", "QQQ"), List.of("SPY", "TLT")),
+        fredClient,
+        concurrentFinnhubClient
+    );
+    AtomicInteger activeCalls = new AtomicInteger();
+    AtomicInteger maxActiveCalls = new AtomicInteger();
+    when(concurrentFinnhubClient.historicalCandles(anyString(), eq(HistoryRange.TEN_YEARS))).thenAnswer(invocation -> {
+      int active = activeCalls.incrementAndGet();
+      maxActiveCalls.accumulateAndGet(active, Math::max);
+      try {
+        Thread.sleep(150);
+      } catch (InterruptedException exception) {
+        Thread.currentThread().interrupt();
+      } finally {
+        activeCalls.decrementAndGet();
+      }
+      return List.of(
+          chartPoint("2024-01-01T00:00:00Z", 100),
+          chartPoint("2024-01-02T00:00:00Z", 101),
+          chartPoint("2024-01-03T00:00:00Z", 102)
+      );
+    });
+
+    var series = concurrentService.indicatorHistory("breadth", HistoryRange.TEN_YEARS);
+
+    assertThat(series.points()).hasSize(2);
+    assertThat(maxActiveCalls.get()).isGreaterThan(1);
+    verify(concurrentFinnhubClient).historicalCandles("SPY", HistoryRange.TEN_YEARS);
+    verify(concurrentFinnhubClient).historicalCandles("QQQ", HistoryRange.TEN_YEARS);
+  }
+
   private static MarketModels.ChartPoint chartPoint(String timestamp, double value) {
     return new MarketModels.ChartPoint(java.time.Instant.parse(timestamp), BigDecimal.valueOf(value));
+  }
+
+  private static AppProperties properties(List<String> breadthSymbols, List<String> crossAssetSymbols) {
+    return new AppProperties(
+        null,
+        new AppProperties.Market(
+            "fred",
+            "finnhub",
+            null,
+            null,
+            breadthSymbols,
+            crossAssetSymbols,
+            BigDecimal.valueOf(2_000_000_000L),
+            BigDecimal.valueOf(35),
+            BigDecimal.valueOf(25),
+            BigDecimal.valueOf(25),
+            BigDecimal.valueOf(1.5),
+            BigDecimal.valueOf(40),
+            BigDecimal.valueOf(20),
+            BigDecimal.valueOf(65)
+        ),
+        null,
+        null,
+        null
+    );
   }
 
   @Configuration
@@ -157,28 +221,7 @@ class MarketIndicatorServiceTest {
 
     @Bean
     AppProperties properties() {
-      return new AppProperties(
-          null,
-        new AppProperties.Market(
-            "fred",
-            "finnhub",
-            null,
-            null,
-            List.of("SPY"),
-            List.of("SPY", "TLT"),
-            BigDecimal.valueOf(2_000_000_000L),
-            BigDecimal.valueOf(35),
-              BigDecimal.valueOf(25),
-              BigDecimal.valueOf(25),
-              BigDecimal.valueOf(1.5),
-              BigDecimal.valueOf(40),
-              BigDecimal.valueOf(20),
-              BigDecimal.valueOf(65)
-          ),
-          null,
-          null,
-          null
-      );
+      return MarketIndicatorServiceTest.properties(List.of("SPY"), List.of("SPY", "TLT"));
     }
 
     @Bean

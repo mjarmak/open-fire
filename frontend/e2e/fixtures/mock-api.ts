@@ -310,7 +310,7 @@ function syncStockFromHolding(state: MockApiState, holding: PortfolioHolding): S
 }
 
 function buildHistorySeries(id: string, range: string, latestValue: number): { id: string; range: string; points: { timestamp: string; value: number }[] } {
-  const pointCount = range === '1h' ? 12 : range === '1d' || range === '5d' ? 16 : range === '1m' ? 22 : 28;
+  const pointCount = range === '5d' ? 16 : range === '1m' ? 22 : 28;
   const durationMs = rangeDurationMs(range);
   const now = new Date('2026-06-06T12:00:00Z').getTime();
   const start = now - durationMs;
@@ -333,16 +333,10 @@ function buildHistorySeries(id: string, range: string, latestValue: number): { i
 function rangeDurationMs(range: string): number {
   const day = 24 * 60 * 60 * 1000;
   switch (range) {
-    case '1h':
-      return 60 * 60 * 1000;
-    case '1d':
-      return day;
     case '5d':
       return 5 * day;
     case '1y':
       return 365 * day;
-    case '5y':
-      return 5 * 365 * day;
     case '10y':
       return 10 * 365 * day;
     case 'all':
@@ -464,12 +458,13 @@ export async function registerMockApi(page: Page, initial?: Partial<MockApiState
     if (method === 'GET' && path === '/symbols/search') {
       const query = (url.searchParams.get('keywords') || '').trim().toLowerCase();
       const includeIndicators = url.searchParams.get('includeIndicators') === 'true';
+      const includePriceDetails = url.searchParams.get('includePriceDetails') === 'true';
       const results = state.symbolCatalog.filter((item) =>
         item.symbol.toLowerCase().includes(query) || item.name.toLowerCase().includes(query),
       ).slice(0, 8);
       await route.fulfill({
         status: 200,
-        json: includeIndicators
+        json: includeIndicators || includePriceDetails
           ? results.map((item) => ({
               ...item,
               indicators: state.stocks.find((stock) => stock.symbol === item.symbol) || null,

@@ -319,8 +319,7 @@ describe('PortfolioBoardComponent', () => {
     expect(row.querySelector('.ticker-metrics')).not.toBeNull();
     expect(row.querySelector('.position-chart-row')).not.toBeNull();
     const rangeButtons = Array.from(row.querySelectorAll('.chart-range-options button'));
-    expect(rangeButtons.length).toBe(8);
-    expect(textContent(rangeButtons[6])).toBe('10y');
+    expect(rangeButtons.map(textContent)).toEqual(['5d', '1m', '1y', '10y', 'all']);
     expect(textContent(row.querySelector('.chart-range-options button.active'))).toBe('1m');
     expect(row.querySelector('.range-trend-svg .trend-line')?.getAttribute('d')).toContain('L');
     expect(row.querySelectorAll('.trend-x-axis-label').length).toBeGreaterThan(1);
@@ -563,7 +562,7 @@ describe('PortfolioBoardComponent', () => {
     expect(positionLines?.getAttribute('data-tooltip')).not.toContain('25%');
   });
 
-  it('shows today change and current price for watch-only rows without a position total', async () => {
+  it('shows today change, current price, and market cap for watch-only rows without a position total', async () => {
     const watchOnly = stock({
       id: 2,
       symbol: 'MSFT',
@@ -607,9 +606,12 @@ describe('PortfolioBoardComponent', () => {
     const positionLines = row.querySelector('.position-title-lines');
     expect(textContent(positionLines)).toContain('Current');
     expect(textContent(positionLines)).toContain('$25');
+    expect(textContent(positionLines)).toContain('Market Cap');
+    expect(textContent(positionLines)).toContain('$1B');
     expect(textContent(positionLines)).not.toContain('Original');
     expect(textContent(positionLines)).not.toContain('=');
     expect(positionLines?.getAttribute('data-tooltip')).toContain('latest available price');
+    expect(positionLines?.getAttribute('data-tooltip')).toContain('market cap');
   });
 
   it('hides current total percent when unrealized percent is unavailable', async () => {

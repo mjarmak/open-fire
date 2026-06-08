@@ -432,10 +432,19 @@ export class MarketDashboardService {
     );
   }
 
-  searchSymbols(username: string, password: string, keywords: string, includeIndicators = false): Observable<SymbolSearchResult[]> {
+  searchSymbols(
+    username: string,
+    password: string,
+    keywords: string,
+    includeIndicators = false,
+    includePriceDetails = false,
+  ): Observable<SymbolSearchResult[]> {
     const params: Record<string, string> = { keywords };
     if (includeIndicators) {
       params['includeIndicators'] = 'true';
+    }
+    if (includePriceDetails) {
+      params['includePriceDetails'] = 'true';
     }
 
     return this.http.get<SymbolSearchResult[]>(`${this.apiBaseUrl}/symbols/search`, {

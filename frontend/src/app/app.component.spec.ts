@@ -68,6 +68,7 @@ describe('AppComponent', () => {
       'setGlobalIndicatorChartRange',
       'globalIndicatorChartPoints',
       'isGlobalIndicatorChartLoading',
+      'formatNotificationDays',
     ]);
     Object.assign(marketDashboardService, new MarketDashboardService({} as never));
     Object.defineProperties(marketDashboardService, {
@@ -112,6 +113,7 @@ describe('AppComponent', () => {
     marketDashboardService.getGlobalIndicatorChartRange.and.returnValue('1m');
     marketDashboardService.globalIndicatorChartPoints.and.returnValue([]);
     marketDashboardService.isGlobalIndicatorChartLoading.and.returnValue(false);
+    marketDashboardService.formatNotificationDays.and.callFake((days: string[]) => days.join(', '));
 
     await TestBed.configureTestingModule({
       imports: [AppComponent],
@@ -329,7 +331,7 @@ describe('AppComponent', () => {
     app.marketDashboardService.stockLookupRisks = { AAPL: stockLookupRisk() };
     app.marketDashboardService.stockLookupResult = stockLookupRisk();
     app.marketDashboardService.selectedStockLookup = result;
-    app.marketDashboardService.stockLookupMessage = 'Indicators loaded.';
+    app.marketDashboardService.stockLookupMessage = 'Choose a result to add it to your portfolio.';
 
     fixture.detectChanges();
 
@@ -346,6 +348,42 @@ describe('AppComponent', () => {
     expect(app.marketDashboardService.stockLookupMessage).toBe('Searching...');
     expect(fixture.nativeElement.querySelector('.stock-lookup-result-row')).toBeNull();
   }));
+
+  it('searches stock lookup without requesting preview indicators', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    const result: SymbolSearchResult = {
+      symbol: 'AAPL',
+      name: 'Apple Inc.',
+      region: 'US',
+      currency: 'USD',
+      indicators: stockLookupRisk(),
+    };
+    marketDashboardService.searchSymbols.and.returnValue(of([result]));
+    app.isLoggedIn = true;
+    app.username = 'user';
+    app.password = 'password123';
+    app.marketDashboardService.stockLookupDialogOpen = true;
+    app.marketDashboardService.stockLookupQuery = 'app';
+
+    app.runStockLookupSearch();
+    fixture.detectChanges();
+
+    expect(marketDashboardService.searchSymbols).toHaveBeenCalledOnceWith('user', 'password123', 'app', false, true);
+    expect(app.marketDashboardService.stockLookupSuggestions).toEqual([result]);
+    expect(app.marketDashboardService.stockLookupRisks).toEqual({});
+    expect(app.marketDashboardService.stockLookupMessage).toBe('Choose a result to add it to your portfolio.');
+    const metrics = fixture.nativeElement.querySelector('.stock-lookup-result-row .ticker-metrics') as HTMLElement | null;
+    expect(metrics).not.toBeNull();
+    expect(metrics?.textContent).toContain('Price');
+    expect(metrics?.textContent).toContain('$195.50');
+    expect(metrics?.textContent).toContain('Today');
+    expect(metrics?.textContent).toContain('1.21%');
+    expect(metrics?.textContent).toContain('$2.34');
+    expect(metrics?.textContent).toContain('Market Cap');
+    expect(metrics?.textContent).toContain('$3T');
+    expect(fixture.nativeElement.querySelector('.stock-lookup-result-row .position-title-inline-metric')).toBeNull();
+  });
 
   it('keeps stock lookup results when a non-editing key is pressed', fakeAsync(() => {
     const fixture = TestBed.createComponent(AppComponent);
@@ -420,7 +458,7 @@ describe('AppComponent', () => {
     expect(app.symbolQuery).toBe('AAPL');
   });
 
-  it('shows stock-level today change in stock lookup result rows', () => {
+  it('only shows price details in stock lookup result rows', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
     const result: SymbolSearchResult = {
@@ -428,6 +466,10 @@ describe('AppComponent', () => {
       name: 'Apple Inc.',
       region: 'US',
       currency: 'USD',
+      indicators: stockLookupRisk({
+        dayGainLoss: -3.2,
+        dayGainLossPercent: -1.25,
+      }),
     };
     app.isLoggedIn = true;
     app.marketDashboardService.stockLookupDialogOpen = true;
@@ -441,14 +483,18 @@ describe('AppComponent', () => {
 
     fixture.detectChanges();
 
-    const todayMetric = fixture.nativeElement.querySelector('.stock-lookup-result-row .position-title-inline-metric') as HTMLElement | null;
-    expect(todayMetric).not.toBeNull();
-    expect(todayMetric?.textContent).toContain('1.25%');
-    expect(todayMetric?.textContent).toContain('-$3.20');
-    expect(todayMetric?.textContent).not.toContain('=');
-    expect(todayMetric?.querySelector('.position-title-arrow')?.classList.contains('value-neg')).toBeTrue();
-    expect(todayMetric?.querySelector('.position-title-percent')?.classList.contains('value-neg')).toBeTrue();
-    expect(todayMetric?.querySelector('.position-title-value')?.classList.contains('value-neg')).toBeTrue();
+    const row = fixture.nativeElement.querySelector('.stock-lookup-result-row') as HTMLElement | null;
+    expect(row).not.toBeNull();
+    expect(row?.querySelector('.position-title-inline-metric')).toBeNull();
+    expect(row?.querySelector('.ticker-metrics')).not.toBeNull();
+    expect(row?.textContent).toContain('Price');
+    expect(row?.textContent).toContain('Today');
+    expect(row?.textContent).toContain('Market Cap');
+    expect(row?.textContent).not.toContain('Fear');
+    expect(row?.textContent).not.toContain('30D');
+    expect(row?.textContent).not.toContain('P/E');
+    expect(row?.textContent).not.toContain('Vol');
+    expect(row?.textContent).not.toContain('DD');
   });
 
   it('does not show a today change badge for lookup results without indicators', () => {
@@ -467,6 +513,7 @@ describe('AppComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.stock-lookup-result-row .position-title-inline-metric')).toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('Could not load indicators.');
+    expect(fixture.nativeElement.querySelector('.stock-lookup-result-row .ticker-metrics')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Could not load indicators.');
   });
 });

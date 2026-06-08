@@ -1,6 +1,9 @@
 package com.jarmak.stockmarketanalyzer.market;
 
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
+import com.jarmak.stockmarketanalyzer.market.client.AlphaVantageApiService;
+import com.jarmak.stockmarketanalyzer.market.client.FinnhubApiService;
+import com.jarmak.stockmarketanalyzer.market.client.TwelveDataApiService;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.SymbolSearchResult;
 import java.math.BigDecimal;
@@ -35,6 +38,7 @@ public class FinnhubClient {
   private final AlphaVantageApiService alphaVantageApiService;
   private final Map<String, CacheEntry<List<SymbolSearchResult>>> searchCache = new ConcurrentHashMap<>();
   private final Map<String, CacheEntry<Optional<CompanySnapshot>>> snapshotCache = new ConcurrentHashMap<>();
+  private final Map<String, CacheEntry<Optional<CompanySnapshot>>> priceSnapshotCache = new ConcurrentHashMap<>();
   private final Map<String, CacheEntry<List<TimeSeriesPoint>>> closesCache = new ConcurrentHashMap<>();
   private final Map<String, CacheEntry<List<ChartPoint>>> historyCache = new ConcurrentHashMap<>();
   private final Map<String, CacheEntry<List<SymbolSearchResult>>> symbolListCache = new ConcurrentHashMap<>();
@@ -65,6 +69,15 @@ public class FinnhubClient {
 
     String normalizedSymbol = symbol.trim().toUpperCase();
     return cached(snapshotCache, normalizedSymbol, SNAPSHOT_CACHE_SECONDS, () -> fetchCompanySnapshot(normalizedSymbol));
+  }
+
+  public Optional<CompanySnapshot> companyPriceSnapshot(String symbol) {
+    if (!StringUtils.hasText(symbol)) {
+      return Optional.empty();
+    }
+
+    String normalizedSymbol = symbol.trim().toUpperCase();
+    return cached(priceSnapshotCache, normalizedSymbol, SNAPSHOT_CACHE_SECONDS, () -> fetchCompanyPriceSnapshot(normalizedSymbol));
   }
 
   public List<TimeSeriesPoint> dailyCloses(String symbol) {
@@ -144,6 +157,14 @@ public class FinnhubClient {
     );
   }
 
+  private Optional<CompanySnapshot> fetchCompanyPriceSnapshot(String symbol) {
+    return firstPresent(
+        () -> fromPriceSnapshotCandidate(symbol, finnhubApiService.companyPriceSnapshot(symbol)),
+        () -> fromPriceSnapshotCandidate(symbol, twelveDataApiService.companyPriceSnapshot(symbol)),
+        () -> fromPriceSnapshotCandidate(symbol, alphaVantageApiService.companyPriceSnapshot(symbol))
+    );
+  }
+
   private Optional<CompanySnapshot> fromSnapshotCandidate(
       String symbol,
       Optional<MarketSnapshotCandidate> candidate
@@ -152,6 +173,14 @@ public class FinnhubClient {
         ? dailyCloses(symbol)
         : List.of();
     return candidate.map(value -> MarketSnapshotFactory.fromCandidate(symbol, value, closes))
+        .orElse(Optional.empty());
+  }
+
+  private Optional<CompanySnapshot> fromPriceSnapshotCandidate(
+      String symbol,
+      Optional<MarketSnapshotCandidate> candidate
+  ) {
+    return candidate.map(value -> MarketSnapshotFactory.fromPriceCandidate(symbol, value))
         .orElse(Optional.empty());
   }
 

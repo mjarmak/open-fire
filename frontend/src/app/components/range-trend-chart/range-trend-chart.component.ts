@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 
-export type TrendChartRange = '1h' | '1d' | '5d' | '1m' | '1y' | '5y' | '10y' | 'all';
+export type TrendChartRange = '5d' | '1m' | '1y' | '10y' | 'all';
 
 export type TrendChartPoint = {
   date: Date;
@@ -40,7 +40,7 @@ export class RangeTrendChartComponent implements AfterViewInit, OnChanges, OnDes
   private resizeObserver?: ResizeObserver;
 
   @Input() points: TrendChartPoint[] = [];
-  @Input() ranges: readonly TrendChartRange[] = ['1h', '1d', '5d', '1m', '1y', '5y', '10y', 'all'];
+  @Input() ranges: readonly TrendChartRange[] = ['5d', '1m', '1y', '10y', 'all'];
   @Input() selectedRange: TrendChartRange = '1m';
   @Input() tone: 'up' | 'down' | 'flat' = 'flat';
   @Input() label = 'Trend chart';
@@ -210,15 +210,6 @@ export class RangeTrendChartComponent implements AfterViewInit, OnChanges, OnDes
 
   protected formatTooltipDate(date: Date): string {
     const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
-    if (this.selectedRange === '1h' || this.selectedRange === '1d') {
-      return new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      }).format(safeDate);
-    }
-
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
@@ -302,14 +293,7 @@ export class RangeTrendChartComponent implements AfterViewInit, OnChanges, OnDes
 
   private formatDate(date: Date): string {
     const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
-    if (this.selectedRange === '1h' || this.selectedRange === '1d') {
-      return new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-      }).format(safeDate);
-    }
-
-    if (this.selectedRange === '1y' || this.selectedRange === '5y' || this.selectedRange === '10y' || this.selectedRange === 'all') {
+    if (this.selectedRange === '1y' || this.selectedRange === '10y' || this.selectedRange === 'all') {
       return new Intl.DateTimeFormat('en-US', {
         month: 'short',
         year: '2-digit',

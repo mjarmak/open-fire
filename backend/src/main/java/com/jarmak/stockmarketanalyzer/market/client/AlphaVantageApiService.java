@@ -1,9 +1,13 @@
-package com.jarmak.stockmarketanalyzer.market;
+package com.jarmak.stockmarketanalyzer.market.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
+import com.jarmak.stockmarketanalyzer.market.HistoryRange;
+import com.jarmak.stockmarketanalyzer.market.MarketApiUtils;
+import com.jarmak.stockmarketanalyzer.market.MarketSnapshotCandidate;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.SymbolSearchResult;
+import com.jarmak.stockmarketanalyzer.market.TimeSeriesPoint;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -20,7 +24,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 
 @Component
-class AlphaVantageApiService {
+public class AlphaVantageApiService {
   private static final Logger LOGGER = LoggerFactory.getLogger(AlphaVantageApiService.class);
   private static final long SNAPSHOT_CACHE_SECONDS = 300;
   private static final long CLOSES_CACHE_SECONDS = 900;
@@ -34,16 +38,16 @@ class AlphaVantageApiService {
   private final Map<String, CacheEntry<List<ChartPoint>>> historyCache = new ConcurrentHashMap<>();
   private final Map<String, CacheEntry<List<SymbolSearchResult>>> searchCache = new ConcurrentHashMap<>();
 
-  AlphaVantageApiService(AppProperties properties, RestClient restClient) {
+  public AlphaVantageApiService(AppProperties properties, RestClient restClient) {
     this.properties = properties;
     this.restClient = restClient;
   }
 
-  boolean configured() {
+  public boolean configured() {
     return StringUtils.hasText(properties.market().alphaVantageApiKey());
   }
 
-  Optional<MarketSnapshotCandidate> companySnapshot(String symbol) {
+  public Optional<MarketSnapshotCandidate> companySnapshot(String symbol) {
     return cached(snapshotCache, "alphavantage|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> {
       if (!configured()) {
         return Optional.empty();
@@ -68,7 +72,7 @@ class AlphaVantageApiService {
         BigDecimal low = MarketApiUtils.positiveMetricFromText(globalQuote.path("04. low"));
         JsonNode overview = query("OVERVIEW", Map.of("symbol", providerSymbol));
         String name = MarketApiUtils.resolveName(overview.path("Name").asText(), quote.path("01. symbol").asText());
-        return Optional.of(new MarketSnapshotCandidate(
+        return logSnapshotResult("snapshot", symbol, Optional.of(new MarketSnapshotCandidate(
             MarketApiUtils.resolveName(name, symbol),
             overview.path("Industry").asText(""),
             MarketApiUtils.decimalMetricFromText(overview.path("MarketCapitalization")),
@@ -79,14 +83,65 @@ class AlphaVantageApiService {
             high,
             low,
             MarketApiUtils.positiveMetricFromText(overview.path("52WeekHigh"))
-        ));
+        )));
       } catch (RuntimeException exception) {
         return Optional.empty();
       }
     });
   }
 
-  List<TimeSeriesPoint> dailyCloses(String symbol) {
+  public Optional<MarketSnapshotCandidate> companyPriceSnapshot(String symbol) {
+    return cached(snapshotCache, "alphavantage-price|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> {
+      if (!configured()) {
+        return Optional.empty();
+      }
+      try {
+        String providerSymbol = MarketApiUtils.toAlphaVantageSymbol(symbol);
+        if (!StringUtils.hasText(providerSymbol)) {
+          return Optional.empty();
+        }
+
+        JsonNode quote = query("GLOBAL_QUOTE", Map.of("symbol", providerSymbol));
+        JsonNode globalQuote = quote.path("Global Quote");
+        BigDecimal latestPrice = MarketApiUtils.positiveMetricFromText(globalQuote.path("05. price"));
+        if (latestPrice == null) {
+          return Optional.empty();
+        }
+        BigDecimal previousClose = MarketApiUtils.positiveMetricFromText(globalQuote.path("08. previous close"));
+        if (previousClose == null) {
+          previousClose = latestPrice;
+        }
+        BigDecimal high = MarketApiUtils.positiveMetricFromText(globalQuote.path("03. high"));
+        BigDecimal low = MarketApiUtils.positiveMetricFromText(globalQuote.path("04. low"));
+
+        JsonNode overview = query("OVERVIEW", Map.of("symbol", providerSymbol));
+        String name = MarketApiUtils.resolveName(globalQuote.path("01. symbol").asText(), symbol);
+        String industry = "";
+        BigDecimal marketCap = null;
+        if (overview != null) {
+          name = MarketApiUtils.resolveName(overview.path("Name").asText(), name);
+          industry = overview.path("Industry").asText("");
+          marketCap = MarketApiUtils.decimalMetricFromText(overview.path("MarketCapitalization"));
+        }
+        return logSnapshotResult("price snapshot", symbol, Optional.of(new MarketSnapshotCandidate(
+            MarketApiUtils.resolveName(name, symbol),
+            industry,
+            marketCap,
+            null,
+            null,
+            latestPrice,
+            previousClose,
+            high,
+            low,
+            null
+        )));
+      } catch (RuntimeException exception) {
+        return Optional.empty();
+      }
+    });
+  }
+
+  public List<TimeSeriesPoint> dailyCloses(String symbol) {
     return cached(closesCache, "symbol:" + symbol, CLOSES_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
@@ -115,14 +170,14 @@ class AlphaVantageApiService {
           }
           points.add(new TimeSeriesPoint(date, close.doubleValue()));
         });
-        return points.stream().sorted(Comparator.comparing(TimeSeriesPoint::date)).toList();
+        return logListResult("daily closes", symbol, points.stream().sorted(Comparator.comparing(TimeSeriesPoint::date)).toList());
       } catch (RuntimeException exception) {
         return List.of();
       }
     });
   }
 
-  List<SymbolSearchResult> searchSymbols(String keywords) {
+  public List<SymbolSearchResult> searchSymbols(String keywords) {
     return cached(searchCache, "alphavantage|" + MarketApiUtils.normalizeSearchText(keywords), SEARCH_PROVIDER_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
@@ -140,11 +195,11 @@ class AlphaVantageApiService {
           ));
         }
       }
-      return symbols;
+      return logListResult("symbol search", keywords, symbols);
     });
   }
 
-  List<ChartPoint> historicalCandles(String symbol, HistoryRange range) {
+  public List<ChartPoint> historicalCandles(String symbol, HistoryRange range) {
     if (!configured()) {
       LOGGER.debug("Skipping Alpha Vantage history for {} {} because Alpha Vantage API key is not configured.", symbol, range.label());
       return List.of();
@@ -366,6 +421,22 @@ class AlphaVantageApiService {
 
   private List<ChartPoint> sample(List<ChartPoint> points, int maxPoints) {
     return MarketApiUtils.sample(points, maxPoints, ChartPoint::timestamp);
+  }
+
+  private Optional<MarketSnapshotCandidate> logSnapshotResult(
+      String operation,
+      String symbol,
+      Optional<MarketSnapshotCandidate> result
+  ) {
+    result.ifPresent(ignored -> LOGGER.debug("Alpha Vantage {} found a result for {}.", operation, symbol));
+    return result;
+  }
+
+  private <T> List<T> logListResult(String operation, String subject, List<T> results) {
+    if (results != null && !results.isEmpty()) {
+      LOGGER.debug("Alpha Vantage {} found {} result(s) for {}.", operation, results.size(), subject);
+    }
+    return results;
   }
 
   private record CacheEntry<T>(T value, Instant expiresAt) {

@@ -231,10 +231,22 @@ public class DashboardController {
   @GetMapping("/symbols/search")
   List<SymbolSearchResult> searchSymbols(
       @RequestParam String keywords,
-      @RequestParam(defaultValue = "false") boolean includeIndicators
+      @RequestParam(defaultValue = "false") boolean includeIndicators,
+      @RequestParam(defaultValue = "false") boolean includePriceDetails
   ) {
     List<SymbolSearchResult> results = finnhubClient.searchSymbols(keywords);
     if (!includeIndicators) {
+      if (includePriceDetails) {
+        return results.stream()
+            .map(result -> new SymbolSearchResult(
+                result.symbol(),
+                result.name(),
+                result.region(),
+                result.currency(),
+                pricePreviewOrNull(result)
+            ))
+            .toList();
+      }
       return results;
     }
 
@@ -366,6 +378,14 @@ public class DashboardController {
   private StockAlert previewOrNull(SymbolSearchResult result) {
     try {
       return stockAlertService.preview(result.symbol(), result.name());
+    } catch (RuntimeException exception) {
+      return null;
+    }
+  }
+
+  private StockAlert pricePreviewOrNull(SymbolSearchResult result) {
+    try {
+      return stockAlertService.pricePreview(result.symbol(), result.name());
     } catch (RuntimeException exception) {
       return null;
     }

@@ -199,6 +199,8 @@
                 <span class="position-title-label">Current</span>
                 @if (stock.watchOnly) {
                   <span class="position-title-factor position-title-current-price-factor">{{ formatMoney(stock.latestPrice) }}</span>
+                  <span class="position-title-label">Market Cap</span>
+                  <span class="position-title-factor">{{ formatMoney(stock.marketCap) }}</span>
                 } @else {
                   <span class="position-title-factor position-title-quantity-factor">{{ formatQuantity(stock.quantity) }}</span> × <span class="position-title-factor position-title-current-price-factor">{{ formatMoney(stock.latestPrice) }}</span> =
                   <strong class="position-title-value">{{ formatMoney(calculatePositionMarketValue(stock)) }}</strong>

@@ -2,7 +2,7 @@ package com.jarmak.stockmarketanalyzer.market;
 
 import java.math.BigDecimal;
 
-record MarketSnapshotCandidate(
+public record MarketSnapshotCandidate(
     String name,
     String industry,
     BigDecimal marketCap,

@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.function.Function;
 import org.springframework.util.StringUtils;
 
-final class MarketApiUtils {
+public final class MarketApiUtils {
   private static final Map<String, String> CRYPTO_NAMES = Map.ofEntries(
       Map.entry("BTC", "Bitcoin"),
       Map.entry("ETH", "Ethereum"),
@@ -43,19 +43,19 @@ final class MarketApiUtils {
       Map.entry("OP", "Optimism")
   );
 
-  static final List<String> CRYPTO_EXCHANGES = List.of("binance", "coinbase");
-  static final List<String> FOREX_EXCHANGES = List.of("oanda", "fxcm");
+  public static final List<String> CRYPTO_EXCHANGES = List.of("binance", "coinbase");
+  public static final List<String> FOREX_EXCHANGES = List.of("oanda", "fxcm");
 
   private MarketApiUtils() {
   }
 
-  enum AssetClass {
+  public enum AssetClass {
     STOCK,
     CRYPTO,
     FOREX
   }
 
-  static AssetClass assetClass(String symbol) {
+  public static AssetClass assetClass(String symbol) {
     String normalized = symbol == null ? "" : symbol.toUpperCase();
     if (normalized.contains(":")) {
       String prefix = normalized.substring(0, normalized.indexOf(':'));
@@ -70,7 +70,7 @@ final class MarketApiUtils {
     return AssetClass.STOCK;
   }
 
-  static String assetClassLabel(AssetClass assetClass, String stockIndustry) {
+  public static String assetClassLabel(AssetClass assetClass, String stockIndustry) {
     return switch (assetClass) {
       case CRYPTO -> "Crypto";
       case FOREX -> "Currency";
@@ -78,7 +78,7 @@ final class MarketApiUtils {
     };
   }
 
-  static String candlePath(String symbol) {
+  public static String candlePath(String symbol) {
     return switch (assetClass(symbol)) {
       case CRYPTO -> "/crypto/candle";
       case FOREX -> "/forex/candle";
@@ -86,7 +86,7 @@ final class MarketApiUtils {
     };
   }
 
-  static String toTwelveDataSymbol(String symbol) {
+  public static String toTwelveDataSymbol(String symbol) {
     String normalized = symbol == null ? "" : symbol.trim().toUpperCase();
     if (!StringUtils.hasText(normalized)) {
       return "";
@@ -101,7 +101,7 @@ final class MarketApiUtils {
         .replace("-", "/");
   }
 
-  static String toAlphaVantageSymbol(String symbol) {
+  public static String toAlphaVantageSymbol(String symbol) {
     String normalized = symbol == null ? "" : symbol.trim().toUpperCase();
     if (!StringUtils.hasText(normalized)) {
       return "";
@@ -113,23 +113,23 @@ final class MarketApiUtils {
     return normalized.replace("/", "").replace("-", "").replace("_", "");
   }
 
-  static String normalizeSearchText(String value) {
+  public static String normalizeSearchText(String value) {
     return (value == null ? "" : value)
         .toLowerCase()
         .replaceAll("[^a-z0-9]+", "");
   }
 
-  static BigDecimal positiveMetric(JsonNode node) {
+  public static BigDecimal positiveMetric(JsonNode node) {
     BigDecimal value = BigDecimal.valueOf(node.asDouble(0));
     return value.signum() > 0 ? value : null;
   }
 
-  static BigDecimal decimalMetric(JsonNode node) {
+  public static BigDecimal decimalMetric(JsonNode node) {
     double value = node.asDouble(Double.NaN);
     return Double.isFinite(value) ? BigDecimal.valueOf(value) : null;
   }
 
-  static BigDecimal positiveMetricFromText(JsonNode node) {
+  public static BigDecimal positiveMetricFromText(JsonNode node) {
     String text = node.asText("");
     if (!StringUtils.hasText(text) || "null".equalsIgnoreCase(text)) {
       return null;
@@ -143,7 +143,7 @@ final class MarketApiUtils {
     }
   }
 
-  static BigDecimal decimalMetricFromText(JsonNode node) {
+  public static BigDecimal decimalMetricFromText(JsonNode node) {
     String text = node.asText("");
     if (!StringUtils.hasText(text) || "null".equalsIgnoreCase(text)) {
       return null;
@@ -155,7 +155,7 @@ final class MarketApiUtils {
     }
   }
 
-  static String currencyFromSymbol(String displaySymbol, String symbol) {
+  public static String currencyFromSymbol(String displaySymbol, String symbol) {
     String candidate = StringUtils.hasText(displaySymbol) ? displaySymbol : symbol;
     int separator = Math.max(candidate.lastIndexOf('/'), Math.max(candidate.lastIndexOf('-'), candidate.lastIndexOf('_')));
     if (separator >= 0 && separator + 1 < candidate.length()) {
@@ -168,7 +168,7 @@ final class MarketApiUtils {
     return "";
   }
 
-  static String cryptoDescription(String symbol, String displaySymbol, String description) {
+  public static String cryptoDescription(String symbol, String displaySymbol, String description) {
     String base = baseCryptoSymbol(displaySymbol, symbol);
     String cryptoName = CRYPTO_NAMES.get(base);
     if (!StringUtils.hasText(cryptoName)) {
@@ -188,7 +188,7 @@ final class MarketApiUtils {
     return cryptoName;
   }
 
-  static String baseCryptoSymbol(String displaySymbol, String symbol) {
+  public static String baseCryptoSymbol(String displaySymbol, String symbol) {
     String candidate = StringUtils.hasText(displaySymbol) ? displaySymbol : symbol;
     int exchangeSeparator = candidate.indexOf(':');
     if (exchangeSeparator >= 0 && exchangeSeparator + 1 < candidate.length()) {
@@ -209,7 +209,7 @@ final class MarketApiUtils {
     return normalized;
   }
 
-  static int firstPairSeparator(String value) {
+  public static int firstPairSeparator(String value) {
     int separator = -1;
     for (char candidate : List.of('/', '-', '_')) {
       int index = value.indexOf(candidate);
@@ -220,11 +220,11 @@ final class MarketApiUtils {
     return separator;
   }
 
-  static String resolveName(String name, String symbol) {
+  public static String resolveName(String name, String symbol) {
     return StringUtils.hasText(name) ? name : symbol;
   }
 
-  static LocalDate parseDate(String value) {
+  public static LocalDate parseDate(String value) {
     if (!StringUtils.hasText(value)) {
       return null;
     }
@@ -252,7 +252,7 @@ final class MarketApiUtils {
     }
   }
 
-  static Instant parseInstant(String value) {
+  public static Instant parseInstant(String value) {
     if (!StringUtils.hasText(value)) {
       return null;
     }
@@ -284,7 +284,7 @@ final class MarketApiUtils {
     }
   }
 
-  static <T> List<T> sample(List<T> points, int maxPoints, Function<T, Object> timestampAccessor) {
+  public static <T> List<T> sample(List<T> points, int maxPoints, Function<T, Object> timestampAccessor) {
     if (points.size() <= maxPoints) {
       return points;
     }

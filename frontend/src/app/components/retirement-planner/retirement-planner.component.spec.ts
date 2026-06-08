@@ -56,10 +56,45 @@ describe('RetirementPlannerComponent', () => {
     expect(summary).toContain('Holdings:1');
     expect(summary).toContain('Initial Deposit:$100');
     expect(summary).toContain('Total Invested:$2K');
-    expect(summary).toContain('Total P&L: $0');
-    expect(summary).toContain('Total P&L %: 0.0%');
+    expect(summaryItemText(element, 'Today:')).toContain('$0 (0.0%)');
+    expect(summary).not.toContain('Total P&L %:');
     expect(summary).toContain('Annualized Return %: 0.0%');
     expect(summary).toContain('Return Since:2024-01-01');
+  });
+
+  it('formats total daily change and total P&L with portfolio-level percentages', async () => {
+    const element = await render(createState({
+      stocks: [
+        stock({
+          marketValue: 1200,
+          costBasis: 1000,
+          dayGainLoss: 20,
+          unrealizedGainLoss: 200,
+        }),
+        stock({
+          id: 2,
+          symbol: 'MSFT',
+          marketValue: 800,
+          costBasis: 500,
+          dayGainLoss: -5,
+          unrealizedGainLoss: 300,
+        }),
+        stock({
+          id: 3,
+          symbol: 'WATCH',
+          watchOnly: true,
+          marketValue: 9999,
+          costBasis: 999,
+          dayGainLoss: 999,
+          unrealizedGainLoss: 999,
+        }),
+      ],
+    }));
+
+    expect(summaryItemText(element, 'Today:')).toContain('+$15 (+0.76%)');
+    expect(summaryItemText(element, 'Total P&L:')).toContain('+$500 (+33.33%)');
+    expect(normalizedText(element.querySelector('.current-assets-card'))).not.toContain('Total P&L %:');
+    expect(normalizedText(element.querySelector('.current-assets-card'))).toContain('$2K');
   });
 
   it('does not mask retirement content for unrelated dashboard loading', async () => {
@@ -133,8 +168,31 @@ describe('RetirementPlannerComponent', () => {
     expect(summary).toContain('Annualized Return %: 0.0%');
   });
 
+  it('shows an info note when the current portfolio value is zero', async () => {
+    const element = await render(createState({
+      stocks: [stock({ marketValue: 0, costBasis: 0, unrealizedGainLoss: 0 })],
+    }));
+    const note = element.querySelector('.portfolio-empty-note');
+
+    expect(note).not.toBeNull();
+    expect(normalizedText(note)).toContain('Add your positions to see your portfolio value.');
+    expect(note?.querySelector('.portfolio-empty-note-icon')?.textContent?.trim()).toBe('i');
+  });
+
+  it('does not show the empty portfolio note when the current portfolio value is positive', async () => {
+    const element = await render(createState());
+
+    expect(element.querySelector('.portfolio-empty-note')).toBeNull();
+  });
+
   function normalizedText(element: Element | null): string {
     return (element?.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function summaryItemText(element: HTMLElement, label: string): string {
+    const item = Array.from(element.querySelectorAll('.current-assets-card .subtext-item'))
+      .find((candidate) => normalizedText(candidate).startsWith(label));
+    return normalizedText(item || null);
   }
 
   function stock(overrides: Partial<StockAlert> = {}): StockAlert {

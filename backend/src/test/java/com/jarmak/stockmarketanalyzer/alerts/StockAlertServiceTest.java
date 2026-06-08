@@ -2,6 +2,8 @@ package com.jarmak.stockmarketanalyzer.alerts;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
@@ -81,6 +83,39 @@ class StockAlertServiceTest {
     assertThat(alert.dayGainLossPercent()).isEqualByComparingTo("3.4");
     assertThat(alert.unrealizedGainLoss()).isNull();
     assertThat(alert.unrealizedGainLossPercent()).isNull();
+  }
+
+  @Test
+  void pricePreviewUsesLightweightSnapshotWithoutFullHistoryEvaluation() {
+    AppProperties properties = mock(AppProperties.class);
+    FinnhubClient finnhubClient = mock(FinnhubClient.class);
+    PortfolioService portfolioService = mock(PortfolioService.class);
+    StockAlertService service = new StockAlertService(properties, finnhubClient, portfolioService);
+    when(finnhubClient.companyPriceSnapshot("AAPL")).thenReturn(Optional.of(new CompanySnapshot(
+        "AAPL",
+        "Apple Inc.",
+        "Technology",
+        BigDecimal.valueOf(3_000_000_000_000L),
+        null,
+        null,
+        null,
+        null,
+        BigDecimal.valueOf(110),
+        BigDecimal.valueOf(106),
+        null
+    )));
+
+    var preview = service.pricePreview("AAPL", "Apple Inc.");
+
+    assertThat(preview.latestPrice()).isEqualByComparingTo("110.00");
+    assertThat(preview.marketCap()).isEqualByComparingTo("3000000000000");
+    assertThat(preview.dayGainLoss()).isEqualByComparingTo("4.00");
+    assertThat(preview.dayGainLossPercent()).isEqualByComparingTo("3.8");
+    assertThat(preview.fearScore()).isNull();
+    assertThat(preview.thirtyDayChangePercent()).isNull();
+    verify(finnhubClient).companyPriceSnapshot("AAPL");
+    verify(finnhubClient, never()).companySnapshot("AAPL");
+    verify(finnhubClient, never()).dailyCloses("AAPL");
   }
 
   private AppProperties properties() {

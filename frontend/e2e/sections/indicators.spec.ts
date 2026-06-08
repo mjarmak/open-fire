@@ -149,7 +149,7 @@ test.describe('Indicators Section', () => {
     await expect(creditChart).toBeVisible();
     await expect(portfolioBoard.locator('.global-risk-chart-heading')).toHaveCount(2);
     await expect(vixChart.locator('.global-risk-chart-heading')).toContainText('Fear Index / VIX');
-    await expect(vixChart.locator('.chart-range-options button')).toHaveCount(8);
+    await expect(vixChart.locator('.chart-range-options button')).toHaveCount(5);
     await expect(vixChart.locator('.chart-range-options button.active')).toHaveText('1m');
 
     await vixChart.locator('.chart-range-options button', { hasText: '10y' }).click();
