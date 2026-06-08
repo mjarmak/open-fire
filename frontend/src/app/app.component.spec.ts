@@ -267,6 +267,149 @@ describe('AppComponent', () => {
     expect(app.showSymbolDropdown).toBeFalse();
   });
 
+  it('adds a saved position to the local dashboard without refreshing the full dashboard', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    const refreshSpy = spyOn(app, 'refreshDashboard');
+    const savedHolding = {
+      id: 42,
+      symbol: 'AAPL',
+      companyName: 'Apple Inc.',
+      quantity: 2,
+      averageCost: 80,
+      watchOnly: false,
+    };
+    marketDashboardService.saveHolding.and.returnValue(of(savedHolding));
+
+    app.username = 'user';
+    app.password = 'password123';
+    app.selectedSymbol = {
+      symbol: 'AAPL',
+      name: 'Apple Inc.',
+      region: 'US',
+      currency: 'USD',
+      indicators: stockLookupRisk({
+        latestPrice: 100,
+        dayGainLoss: 3,
+        dayGainLossPercent: 3.1,
+        quantity: 1,
+        watchOnly: true,
+      }),
+    };
+    app.holdingForm = { ...savedHolding, id: null };
+
+    app.saveHolding();
+
+    expect(refreshSpy).not.toHaveBeenCalled();
+    expect(app.dashboard.portfolio).toEqual([savedHolding]);
+    expect(app.dashboard.stocks.length).toBe(1);
+    expect(app.dashboard.stocks[0]).toEqual(jasmine.objectContaining({
+      id: 42,
+      symbol: 'AAPL',
+      companyName: 'Apple Inc.',
+      quantity: 2,
+      averageCost: 80,
+      latestPrice: 100,
+      marketValue: 200,
+      costBasis: 160,
+      dayGainLoss: 6,
+      dayGainLossPercent: 3.1,
+      unrealizedGainLoss: 40,
+      unrealizedGainLossPercent: 25,
+      watchOnly: false,
+    }));
+    expect(app.addDialogOpen).toBeFalse();
+  });
+
+  it('updates an edited position locally without refreshing the full dashboard', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    const refreshSpy = spyOn(app, 'refreshDashboard');
+    const existingStock = stockLookupRisk({
+      id: 7,
+      symbol: 'MSFT',
+      companyName: 'Microsoft',
+      quantity: 4,
+      averageCost: 20,
+      latestPrice: 30,
+      marketValue: 120,
+      costBasis: 80,
+      dayGainLoss: 8,
+      dayGainLossPercent: 7.1,
+      unrealizedGainLoss: 40,
+      unrealizedGainLossPercent: 50,
+      watchOnly: false,
+    });
+    const savedHolding = {
+      id: 7,
+      symbol: 'MSFT',
+      companyName: 'Microsoft',
+      quantity: 6,
+      averageCost: 25,
+      watchOnly: false,
+    };
+    marketDashboardService.updateHolding.and.returnValue(of(savedHolding));
+    app.dashboard = {
+      ...app.dashboard,
+      portfolio: [{ id: 7, symbol: 'MSFT', companyName: 'Microsoft', quantity: 4, averageCost: 20, watchOnly: false }],
+      stocks: [existingStock],
+    };
+    app.username = 'user';
+    app.password = 'password123';
+    app.editDialogOpen = true;
+    app.editOriginalId = 7;
+    app.editOriginalSymbol = 'MSFT';
+    app.editForm = savedHolding;
+
+    app.saveEditedPosition();
+
+    expect(refreshSpy).not.toHaveBeenCalled();
+    expect(app.dashboard.portfolio).toEqual([savedHolding]);
+    expect(app.dashboard.stocks.length).toBe(1);
+    expect(app.dashboard.stocks[0]).toEqual(jasmine.objectContaining({
+      id: 7,
+      symbol: 'MSFT',
+      quantity: 6,
+      averageCost: 25,
+      latestPrice: 30,
+      marketValue: 180,
+      costBasis: 150,
+      dayGainLoss: 12,
+      dayGainLossPercent: 7.1,
+      unrealizedGainLoss: 30,
+      unrealizedGainLossPercent: 20,
+      watchOnly: false,
+    }));
+    expect(app.editDialogOpen).toBeFalse();
+  });
+
+  it('deletes a position locally without refreshing the full dashboard', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    const refreshSpy = spyOn(app, 'refreshDashboard');
+    marketDashboardService.deleteHolding.and.returnValue(of(void 0));
+    app.dashboard = {
+      ...app.dashboard,
+      portfolio: [
+        { id: 1, symbol: 'AAPL', companyName: 'Apple Inc.', quantity: 2, averageCost: 80, watchOnly: false },
+        { id: 2, symbol: 'MSFT', companyName: 'Microsoft', quantity: 3, averageCost: 100, watchOnly: false },
+      ],
+      stocks: [
+        stockLookupRisk({ id: 1, symbol: 'AAPL', companyName: 'Apple Inc.' }),
+        stockLookupRisk({ id: 2, symbol: 'MSFT', companyName: 'Microsoft' }),
+      ],
+    };
+    app.username = 'user';
+    app.password = 'password123';
+
+    app.deleteHolding(1, 'AAPL');
+
+    expect(refreshSpy).not.toHaveBeenCalled();
+    expect(app.dashboard.portfolio.map((holding) => holding.symbol)).toEqual(['MSFT']);
+    expect(app.dashboard.stocks.map((stock) => stock.symbol)).toEqual(['MSFT']);
+    expect(app.snackbarMessage).toContain('AAPL removed');
+  });
+
   it('focuses and selects the stock lookup input when the search dialog opens', fakeAsync(() => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;

@@ -1283,10 +1283,10 @@ export class AppComponent implements OnDestroy, OnInit {
     this.marketDashboardService.saveHolding(this.username, this.password, this.holdingForm)
       .pipe(finalize(() => (this.isSavingHolding = false)))
       .subscribe({
-        next: () => {
-          this.showSnackbar(`${this.holdingForm.symbol} saved to portfolio.`);
+        next: (savedHolding) => {
+          this.applyLocalHoldingUpsert(savedHolding, this.selectedSymbol?.indicators ?? null);
+          this.showSnackbar(`${savedHolding.symbol} saved to portfolio.`);
           this.closeAddPosition();
-          this.refreshDashboard();
         },
         error: () => {
           this.showSnackbar('Could not save holding. Check symbol, quantity, average cost, and backend auth.', 'error');
@@ -1309,8 +1309,8 @@ export class AppComponent implements OnDestroy, OnInit {
   deleteHolding(holdingId: number, symbol: string): void {
     this.marketDashboardService.deleteHolding(this.username, this.password, holdingId).subscribe({
       next: () => {
+        this.applyLocalHoldingDelete(holdingId);
         this.showSnackbar(`${symbol} removed from portfolio.`);
-        this.refreshDashboard();
       },
       error: () => this.showSnackbar(`Could not remove ${symbol}.`, 'error'),
     });
@@ -1461,17 +1461,139 @@ export class AppComponent implements OnDestroy, OnInit {
     this.marketDashboardService.updateHolding(this.username, this.password, originalId, this.editForm)
       .pipe(finalize(() => (this.isSavingHolding = false)))
       .subscribe({
-        next: () => {
+        next: (savedHolding) => {
+          this.applyLocalHoldingUpsert(savedHolding, this.selectedEditSymbol?.indicators ?? null, originalId);
           this.showSnackbar(symbolChanged
             ? `${originalSymbol} changed to ${nextSymbol}.`
             : `${nextSymbol} position updated.`);
           this.closeEditPosition();
-          this.refreshDashboard();
         },
         error: () => {
           this.showSnackbar('Could not update position. Check ticker, quantity, average cost, and backend auth.', 'error');
         },
       });
+  }
+
+  private applyLocalHoldingUpsert(
+    holding: PortfolioHolding,
+    indicatorSnapshot: StockAlert | null = null,
+    previousHoldingId: number | null = holding.id,
+  ): void {
+    const portfolio = this.upsertHolding(this.dashboard.portfolio, holding, previousHoldingId);
+    const previousStock = this.findExistingStockForHolding(holding, previousHoldingId);
+    const stock = this.stockAlertFromHolding(holding, indicatorSnapshot ?? previousStock ?? null);
+    const stocks = this.upsertStock(this.dashboard.stocks, stock, previousHoldingId);
+
+    this.dashboard = {
+      ...this.dashboard,
+      asOf: new Date().toISOString(),
+      portfolio,
+      stocks,
+      dailyReport: this.composeDailyReport(this.indicators, stocks),
+    };
+  }
+
+  private applyLocalHoldingDelete(holdingId: number): void {
+    const portfolio = this.dashboard.portfolio.filter((holding) => holding.id !== holdingId);
+    const stocks = this.dashboard.stocks.filter((stock) => stock.id !== holdingId);
+    this.dashboard = {
+      ...this.dashboard,
+      asOf: new Date().toISOString(),
+      portfolio,
+      stocks,
+      dailyReport: this.composeDailyReport(this.indicators, stocks),
+    };
+  }
+
+  private upsertHolding(
+    holdings: PortfolioHolding[],
+    nextHolding: PortfolioHolding,
+    previousHoldingId: number | null,
+  ): PortfolioHolding[] {
+    const filtered = holdings.filter((holding) =>
+      (previousHoldingId === null || holding.id !== previousHoldingId)
+        && (nextHolding.id === null || holding.id !== nextHolding.id),
+    );
+    return [...filtered, nextHolding];
+  }
+
+  private upsertStock(
+    stocks: StockAlert[],
+    nextStock: StockAlert,
+    previousHoldingId: number | null,
+  ): StockAlert[] {
+    const filtered = stocks.filter((stock) =>
+      (previousHoldingId === null || stock.id !== previousHoldingId)
+        && (nextStock.id === null || stock.id !== nextStock.id),
+    );
+    return [...filtered, nextStock];
+  }
+
+  private findExistingStockForHolding(holding: PortfolioHolding, previousHoldingId: number | null): StockAlert | null {
+    return this.dashboard.stocks.find((stock) => stock.id !== null && stock.id === previousHoldingId)
+      ?? this.dashboard.stocks.find((stock) => holding.id !== null && stock.id === holding.id)
+      ?? this.dashboard.stocks.find((stock) => stock.symbol.toUpperCase() === holding.symbol.toUpperCase())
+      ?? null;
+  }
+
+  private stockAlertFromHolding(holding: PortfolioHolding, source: StockAlert | null): StockAlert {
+    const latestPrice = source?.latestPrice ?? null;
+    const costBasis = holding.watchOnly ? null : this.roundMoney(holding.quantity * holding.averageCost);
+    const marketValue = holding.watchOnly || latestPrice === null ? null : this.roundMoney(holding.quantity * latestPrice);
+    const unrealizedGainLoss = marketValue === null || costBasis === null ? null : this.roundMoney(marketValue - costBasis);
+    const unrealizedGainLossPercent = unrealizedGainLoss === null || costBasis === null || costBasis === 0
+      ? null
+      : this.roundPercent((unrealizedGainLoss / costBasis) * 100);
+    const perShareDayGainLoss = this.perShareDayGainLoss(source);
+    const dayGainLoss = perShareDayGainLoss === null
+      ? null
+      : this.roundMoney(holding.watchOnly ? perShareDayGainLoss : perShareDayGainLoss * holding.quantity);
+
+    return {
+      id: holding.id,
+      symbol: holding.symbol,
+      companyName: holding.companyName,
+      positionType: source?.positionType ?? 'Unknown',
+      quantity: holding.quantity,
+      averageCost: holding.averageCost,
+      latestPrice,
+      marketCap: source?.marketCap ?? null,
+      peRatio: source?.peRatio ?? null,
+      beta: source?.beta ?? null,
+      realizedVolatilityPercent: source?.realizedVolatilityPercent ?? null,
+      drawdownPercent: source?.drawdownPercent ?? null,
+      fearScore: source?.fearScore ?? null,
+      marketValue,
+      costBasis,
+      dayGainLoss,
+      dayGainLossPercent: source?.dayGainLossPercent ?? null,
+      unrealizedGainLoss,
+      unrealizedGainLossPercent,
+      thirtyDayChangePercent: source?.thirtyDayChangePercent ?? null,
+      watchOnly: holding.watchOnly,
+      alert: source?.alert ?? false,
+      reason: source?.reason ?? 'No watched position alerts fired under current thresholds.',
+    };
+  }
+
+  private perShareDayGainLoss(source: StockAlert | null): number | null {
+    if (source?.dayGainLoss === null || source?.dayGainLoss === undefined) {
+      return null;
+    }
+
+    if (source.watchOnly || source.quantity === 0) {
+      return source.dayGainLoss;
+    }
+
+    return source.dayGainLoss / source.quantity;
+  }
+
+  private roundMoney(value: number): number {
+    return Math.round(value * 100) / 100;
+  }
+
+  private roundPercent(value: number): number {
+    return Math.round(value * 10) / 10;
   }
 
   exportPositions(): void {
