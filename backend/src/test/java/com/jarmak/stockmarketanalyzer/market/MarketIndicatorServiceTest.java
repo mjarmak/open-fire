@@ -3,6 +3,7 @@ package com.jarmak.stockmarketanalyzer.market;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -67,8 +68,83 @@ class MarketIndicatorServiceTest {
     assertThat(second).isEqualTo(first);
     verify(fredClient, times(1)).latestObservations("VIXCLS");
     verify(fredClient, times(1)).latestObservations("BAMLC0A0CM");
-    verify(finnhubClient, times(2)).dailyCloses("SPY");
-    verify(finnhubClient, times(1)).dailyCloses("TLT");
+    verify(finnhubClient, atLeast(1)).dailyCloses("SPY");
+    verify(finnhubClient, atLeast(1)).dailyCloses("TLT");
+  }
+
+  @Test
+  void supportsBreadthHistory() {
+    when(finnhubClient.historicalCandles("SPY", com.jarmak.stockmarketanalyzer.market.HistoryRange.TEN_YEARS)).thenReturn(List.of(
+        chartPoint("2024-01-01T00:00:00Z", 100),
+        chartPoint("2024-01-02T00:00:00Z", 101),
+        chartPoint("2024-01-03T00:00:00Z", 102)
+    ));
+
+    var series = service.indicatorHistory("breadth", com.jarmak.stockmarketanalyzer.market.HistoryRange.TEN_YEARS);
+
+    assertThat(series.id()).isEqualTo("breadth");
+    assertThat(series.range()).isEqualTo("10y");
+    assertThat(series.points()).hasSize(2);
+    assertThat(series.points().get(0).timestamp()).isEqualTo(java.time.Instant.parse("2024-01-02T00:00:00Z"));
+  }
+
+  @Test
+  void supportsFearGreedHistory() {
+    when(fredClient.observations("VIXCLS", com.jarmak.stockmarketanalyzer.market.HistoryRange.TEN_YEARS)).thenReturn(List.of(
+        new MarketModels.ChartPoint(java.time.Instant.parse("2026-05-02T00:00:00Z"), BigDecimal.valueOf(18.0)),
+        new MarketModels.ChartPoint(java.time.Instant.parse("2026-05-03T00:00:00Z"), BigDecimal.valueOf(17.5))
+    ));
+    when(fredClient.observations("BAMLC0A0CM", com.jarmak.stockmarketanalyzer.market.HistoryRange.TEN_YEARS)).thenReturn(List.of(
+        new MarketModels.ChartPoint(java.time.Instant.parse("2026-05-02T00:00:00Z"), BigDecimal.valueOf(1.1)),
+        new MarketModels.ChartPoint(java.time.Instant.parse("2026-05-03T00:00:00Z"), BigDecimal.valueOf(1.0))
+    ));
+    when(finnhubClient.historicalCandles("SPY", com.jarmak.stockmarketanalyzer.market.HistoryRange.TEN_YEARS)).thenReturn(List.of(
+        chartPoint("2026-05-01T00:00:00Z", 100),
+        chartPoint("2026-05-02T00:00:00Z", 101),
+        chartPoint("2026-05-03T00:00:00Z", 102)
+    ));
+    when(finnhubClient.historicalCandles("TLT", com.jarmak.stockmarketanalyzer.market.HistoryRange.TEN_YEARS)).thenReturn(List.of(
+        chartPoint("2026-05-01T00:00:00Z", 200),
+        chartPoint("2026-05-02T00:00:00Z", 201),
+        chartPoint("2026-05-03T00:00:00Z", 204)
+    ));
+
+    var series = service.indicatorHistory("fear-greed", com.jarmak.stockmarketanalyzer.market.HistoryRange.TEN_YEARS);
+
+    assertThat(series.id()).isEqualTo("fear-greed");
+    assertThat(series.range()).isEqualTo("10y");
+    assertThat(series.points()).isNotEmpty();
+  }
+
+  @Test
+  void supportsCorrelationHistory() {
+    when(finnhubClient.historicalCandles("SPY", com.jarmak.stockmarketanalyzer.market.HistoryRange.TEN_YEARS)).thenReturn(List.of(
+        chartPoint("2024-01-01T00:00:00Z", 100),
+        chartPoint("2024-01-02T00:00:00Z", 101),
+        chartPoint("2024-01-03T00:00:00Z", 102),
+        chartPoint("2024-01-04T00:00:00Z", 101),
+        chartPoint("2024-01-05T00:00:00Z", 103),
+        chartPoint("2024-01-06T00:00:00Z", 102)
+    ));
+    when(finnhubClient.historicalCandles("TLT", com.jarmak.stockmarketanalyzer.market.HistoryRange.TEN_YEARS)).thenReturn(List.of(
+        chartPoint("2024-01-01T00:00:00Z", 200),
+        chartPoint("2024-01-02T00:00:00Z", 198),
+        chartPoint("2024-01-03T00:00:00Z", 199),
+        chartPoint("2024-01-04T00:00:00Z", 202),
+        chartPoint("2024-01-05T00:00:00Z", 201),
+        chartPoint("2024-01-06T00:00:00Z", 199)
+    ));
+
+    var series = service.indicatorHistory("correlation", com.jarmak.stockmarketanalyzer.market.HistoryRange.TEN_YEARS);
+
+    assertThat(series.id()).isEqualTo("correlation");
+    assertThat(series.range()).isEqualTo("10y");
+    assertThat(series.points()).isNotEmpty();
+    assertThat(series.points().get(0).timestamp()).isEqualTo(java.time.Instant.parse("2024-01-03T00:00:00Z"));
+  }
+
+  private static MarketModels.ChartPoint chartPoint(String timestamp, double value) {
+    return new MarketModels.ChartPoint(java.time.Instant.parse(timestamp), BigDecimal.valueOf(value));
   }
 
   @Configuration

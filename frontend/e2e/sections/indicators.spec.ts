@@ -55,6 +55,76 @@ test.describe('Indicators Section', () => {
     await expect(page.getByRole('tooltip')).toContainText('Target Retirement Fund');
   });
 
+  test('keeps all compact gauge containers the same size', async ({ page }) => {
+    api.state.indicators = [
+      ...api.state.indicators,
+      {
+        id: 'fear-greed',
+        name: 'Fear & Greed Index',
+        category: 'COMPOSITE',
+        value: 48,
+        unit: '0 fear / 100 greed',
+        change: -1,
+        status: 'neutral',
+        source: 'Mock',
+        lastUpdated: new Date().toISOString(),
+        description: 'Composite risk appetite measure.',
+      },
+      {
+        id: 'breadth',
+        name: 'Market Breadth',
+        category: 'PARTICIPATION',
+        value: 56,
+        unit: '% advancing basket',
+        change: 0,
+        status: 'supportive',
+        source: 'Mock',
+        lastUpdated: new Date().toISOString(),
+        description: 'Market participation measure.',
+      },
+      {
+        id: 'correlation',
+        name: 'Cross-Asset Correlation',
+        category: 'RISK REGIME',
+        value: 0.64,
+        unit: 'avg abs corr',
+        change: 0,
+        status: 'watch',
+        source: 'Mock',
+        lastUpdated: new Date().toISOString(),
+        description: 'Cross-asset diversification stress measure.',
+      },
+    ];
+    await page.reload();
+    await expect(page.getByLabel('Macro market indicators')).toBeVisible();
+
+    const indicatorGrid = page.getByLabel('Macro market indicators');
+    const compactCards = indicatorGrid.locator('.compact-indicator');
+    await expect(compactCards).toHaveCount(6);
+
+    const cardSizes = await compactCards.evaluateAll((cards) =>
+      cards.map((card) => {
+        const box = card.getBoundingClientRect();
+        return { width: box.width, height: box.height };
+      }),
+    );
+    const speedometerSizes = await compactCards.locator('.mini-speedometer').evaluateAll((gauges) =>
+      gauges.map((gauge) => {
+        const box = gauge.getBoundingClientRect();
+        return { width: box.width, height: box.height };
+      }),
+    );
+    const [firstCard] = cardSizes;
+    const [firstSpeedometer] = speedometerSizes;
+
+    expect(cardSizes.every((size) =>
+      Math.abs(size.width - firstCard.width) <= 1 && Math.abs(size.height - firstCard.height) <= 1,
+    )).toBe(true);
+    expect(speedometerSizes.every((size) =>
+      Math.abs(size.width - firstSpeedometer.width) <= 1 && Math.abs(size.height - firstSpeedometer.height) <= 1,
+    )).toBe(true);
+  });
+
   test('shows both global risk charts below the pie chart with range controls', async ({ page }) => {
     await page.evaluate(() => localStorage.setItem('sma_theme', 'light'));
     await page.reload();

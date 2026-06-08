@@ -25,7 +25,7 @@ export class IndicatorGridComponent {
   }
 
   isCompactIndicator(indicator: IndicatorSnapshot): boolean {
-    return indicator.id === 'vix' || indicator.id === 'credit';
+    return ['vix', 'credit', 'fear-greed', 'breadth', 'correlation'].includes(indicator.id);
   }
 
   protected compactIndicatorTooltip(indicator: IndicatorSnapshot): string {
@@ -53,11 +53,11 @@ export class IndicatorGridComponent {
   }
 
   gaugeRiskStart(indicator: IndicatorSnapshot): number {
-    return this.gaugeThresholdSweep(indicator);
+    return this.isLowValueRiskIndicator(indicator) ? 0 : this.gaugeThresholdSweep(indicator);
   }
 
   gaugeRiskEnd(indicator: IndicatorSnapshot): number {
-    return 180;
+    return this.isLowValueRiskIndicator(indicator) ? this.gaugeThresholdSweep(indicator) : 180;
   }
 
   protected isCompactIndicatorOverThreshold(indicator: IndicatorSnapshot): boolean {
@@ -67,6 +67,15 @@ export class IndicatorGridComponent {
 
     const value = Number(indicator.value) || 0;
     const change = Number(indicator.change) || 0;
+    if (indicator.id === 'breadth') {
+      return value <= 45;
+    }
+    if (indicator.id === 'correlation') {
+      return value >= 0.7;
+    }
+    if (indicator.id === 'fear-greed') {
+      return value <= 35;
+    }
     return value >= this.gaugeThreshold(indicator) || change >= this.gaugeChangeThreshold(indicator);
   }
 
@@ -106,15 +115,37 @@ export class IndicatorGridComponent {
     if (indicator.id === 'credit') {
       return 'Risk threshold: 2.0 spread % or +0.15 daily change.';
     }
+    if (indicator.id === 'breadth') {
+      return 'Risk threshold: below 45 % advancing basket.';
+    }
+    if (indicator.id === 'correlation') {
+      return 'Risk threshold: 0.7 avg abs correlation or above.';
+    }
+    if (indicator.id === 'fear-greed') {
+      return 'Risk threshold: 35 or below.';
+    }
     return '';
   }
 
   private gaugeThreshold(indicator: IndicatorSnapshot): number {
+    if (indicator.id === 'breadth') {
+      return 45;
+    }
+    if (indicator.id === 'correlation') {
+      return 0.7;
+    }
+    if (indicator.id === 'fear-greed') {
+      return 35;
+    }
     return indicator.id === 'credit' ? 2 : 25;
   }
 
   private gaugeChangeThreshold(indicator: IndicatorSnapshot): number {
     return indicator.id === 'credit' ? 0.15 : 3;
+  }
+
+  private isLowValueRiskIndicator(indicator: IndicatorSnapshot): boolean {
+    return indicator.id === 'breadth' || indicator.id === 'fear-greed';
   }
 
   private roundGaugeAngle(value: number): number {

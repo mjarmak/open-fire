@@ -7,11 +7,19 @@ import com.jarmak.stockmarketanalyzer.market.MarketModels.IndicatorSnapshot;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -53,8 +61,21 @@ public class MarketIndicatorService {
     String seriesId = switch (normalizedId) {
       case "vix" -> "VIXCLS";
       case "credit" -> "BAMLC0A0CM";
+      case "breadth" -> null;
+      case "fear-greed" -> null;
+      case "correlation" -> null;
       default -> throw new IllegalArgumentException("Unsupported indicator history: " + indicatorId);
     };
+
+    if (seriesId == null) {
+      List<MarketModels.ChartPoint> points = switch (normalizedId) {
+        case "breadth" -> historicalBreadth(range);
+        case "fear-greed" -> historicalFearGreed(range);
+        case "correlation" -> historicalCorrelation(range);
+        default -> List.of();
+      };
+      return new ChartSeries(normalizedId, range.label(), points);
+    }
 
     return new ChartSeries(normalizedId, range.label(), fredClient.observations(seriesId, range));
   }
@@ -132,6 +153,93 @@ public class MarketIndicatorService {
     ));
   }
 
+  private List<MarketModels.ChartPoint> historicalBreadth(HistoryRange range) {
+    if (properties.market().breadthSymbols() == null || properties.market().breadthSymbols().isEmpty()) {
+      return List.of();
+    }
+
+    Map<LocalDate, int[]> countsByDate = new LinkedHashMap<>();
+    for (String symbol : properties.market().breadthSymbols()) {
+      List<TimeSeriesPoint> points = historicalCloses(symbol, range);
+      if (points.size() < 2) {
+        continue;
+      }
+
+      for (int index = 1; index < points.size(); index++) {
+        TimeSeriesPoint previous = points.get(index - 1);
+        TimeSeriesPoint current = points.get(index);
+        if (current.value() <= 0 || previous.value() <= 0) {
+          continue;
+        }
+
+        LocalDate date = current.date();
+        int[] counts = countsByDate.computeIfAbsent(date, ignored -> new int[2]);
+        counts[0]++; // total
+        if (current.value() > previous.value()) {
+          counts[1]++; // advancing
+        }
+      }
+    }
+
+    if (countsByDate.isEmpty()) {
+      return List.of();
+    }
+
+    List<MarketModels.ChartPoint> points = countsByDate.entrySet().stream()
+        .filter(entry -> entry.getValue()[0] > 0)
+        .sorted(Map.Entry.comparingByKey())
+        .map(entry -> {
+          int total = entry.getValue()[0];
+          double value = total == 0 ? 0 : (entry.getValue()[1] * 100.0) / total;
+          return new MarketModels.ChartPoint(
+              entry.getKey().atStartOfDay().toInstant(ZoneOffset.UTC),
+              rounded(value)
+          );
+        })
+        .toList();
+
+    return sample(points, 260);
+  }
+
+  private List<MarketModels.ChartPoint> historicalFearGreed(HistoryRange range) {
+    Map<LocalDate, Double> vix = chartPointsByDate(fredClient.observations("VIXCLS", range));
+    Map<LocalDate, Double> credit = chartPointsByDate(fredClient.observations("BAMLC0A0CM", range));
+    Map<LocalDate, Double> breadth = chartPointsByDate(historicalBreadth(range));
+
+    if (vix.isEmpty() || credit.isEmpty() || breadth.isEmpty()) {
+      return List.of();
+    }
+
+    Map<LocalDate, Double> correlation = chartPointsByDate(historicalCorrelation(range));
+    double fallbackCorrelation = crossAssetCorrelation()
+        .map(indicator -> indicator.value().doubleValue())
+        .orElse(0d);
+
+    List<MarketModels.ChartPoint> points = Stream.of(vix.keySet(), credit.keySet(), breadth.keySet())
+        .flatMap(Set::stream)
+        .collect(java.util.stream.Collectors.toCollection(java.util.TreeSet::new))
+        .stream()
+        .map((LocalDate date) -> {
+          Double vixValue = vix.get(date);
+          Double creditValue = credit.get(date);
+          Double breadthValue = breadth.get(date);
+          if (vixValue == null || creditValue == null || breadthValue == null) {
+            return null;
+          }
+
+          double correlationValue = correlation.getOrDefault(date, fallbackCorrelation);
+          double score = fearGreedScore(vixValue, creditValue, breadthValue, correlationValue);
+          return new MarketModels.ChartPoint(
+              date.atStartOfDay().toInstant(ZoneOffset.UTC),
+              rounded(score)
+          );
+        })
+        .filter(java.util.Objects::nonNull)
+        .toList();
+
+    return sample(points, 260);
+  }
+
   private Optional<IndicatorSnapshot> crossAssetCorrelation() {
     List<List<Double>> returns = properties.market().crossAssetSymbols().stream()
         .map(symbol -> {
@@ -162,6 +270,156 @@ public class MarketIndicatorService {
         Instant.now(),
         "Rising correlation can mean diversification is weakening during stress."
     ));
+  }
+
+  private List<MarketModels.ChartPoint> historicalCorrelation(HistoryRange range) {
+    List<Map<LocalDate, Double>> symbolReturns = properties.market().crossAssetSymbols().stream()
+        .map(symbol -> historicalDailyReturns(historicalCloses(symbol, range), range))
+        .filter(returns -> returns.size() >= 5)
+        .toList();
+
+    if (symbolReturns.size() < 2) {
+      return List.of();
+    }
+
+    Set<LocalDate> allDates = symbolReturns.stream()
+        .flatMap(symbol -> symbol.keySet().stream())
+        .collect(java.util.stream.Collectors.toCollection(java.util.TreeSet::new));
+    if (allDates.isEmpty()) {
+      return List.of();
+    }
+
+    List<MarketModels.ChartPoint> points = allDates.stream()
+        .map(date -> {
+          List<List<Double>> returns = symbolReturns.stream()
+              .map(symbol -> trailingValues(symbol, date, 30))
+              .filter(values -> values.size() >= 2)
+              .toList();
+          if (returns.size() < 2) {
+            return null;
+          }
+
+          double average = averageAbsoluteCorrelation(returns);
+          return new MarketModels.ChartPoint(
+              date.atStartOfDay().toInstant(ZoneOffset.UTC),
+              rounded(average)
+          );
+        })
+        .filter(java.util.Objects::nonNull)
+        .sorted(Comparator.comparing(MarketModels.ChartPoint::timestamp))
+        .toList();
+
+    return sample(points, 260);
+  }
+
+  private double fearGreedScore(double vixValue, double creditValue, double breadthValue, double correlationValue) {
+    double vixScore = clamp(100 - (vixValue - 12) * 4);
+    double creditScore = clamp(100 - (creditValue - 0.8) * 35);
+    double breadthScore = clamp(breadthValue);
+    double correlationScore = clamp(100 - correlationValue * 80);
+    return (vixScore + creditScore + breadthScore + correlationScore) / 4.0;
+  }
+
+  private Map<LocalDate, Double> chartPointsByDate(List<MarketModels.ChartPoint> points) {
+    Map<LocalDate, Double> values = new HashMap<>();
+    for (MarketModels.ChartPoint point : points) {
+      LocalDate date = point.timestamp().atZone(ZoneOffset.UTC).toLocalDate();
+      values.put(date, point.value().doubleValue());
+    }
+    return values;
+  }
+
+  private Map<LocalDate, Double> historicalDailyReturns(List<TimeSeriesPoint> points, HistoryRange range) {
+    List<TimeSeriesPoint> filtered = historicalWindow(points, range);
+    if (filtered.size() < 2) {
+      return Map.of();
+    }
+
+    Map<LocalDate, Double> returns = new LinkedHashMap<>();
+    for (int index = 1; index < filtered.size(); index++) {
+      TimeSeriesPoint previous = filtered.get(index - 1);
+      TimeSeriesPoint current = filtered.get(index);
+      if (previous.value() <= 0 || current.value() <= 0) {
+        continue;
+      }
+      returns.put(current.date(), (current.value() - previous.value()) / previous.value());
+    }
+    return returns;
+  }
+
+  private List<TimeSeriesPoint> historicalCloses(String symbol, HistoryRange range) {
+    if (range == HistoryRange.ONE_HOUR || range == HistoryRange.ONE_DAY || range == HistoryRange.FIVE_DAYS) {
+      return historicalWindow(finnhubClient.dailyCloses(symbol), range);
+    }
+
+    List<MarketModels.ChartPoint> history = finnhubClient.historicalCandles(symbol, range);
+    if (history.isEmpty()) {
+      return historicalWindow(finnhubClient.dailyCloses(symbol), range);
+    }
+
+    Map<LocalDate, TimeSeriesPoint> pointsByDate = new LinkedHashMap<>();
+    history.stream()
+        .filter(point -> point.value() != null && point.value().signum() > 0)
+        .sorted(Comparator.comparing(MarketModels.ChartPoint::timestamp))
+        .forEach(point -> {
+          LocalDate date = point.timestamp().atZone(ZoneOffset.UTC).toLocalDate();
+          pointsByDate.put(date, new TimeSeriesPoint(date, point.value().doubleValue()));
+        });
+    return pointsByDate.values().stream()
+        .sorted(Comparator.comparing(TimeSeriesPoint::date))
+        .toList();
+  }
+
+  private List<Double> trailingValues(Map<LocalDate, Double> valuesByDate, LocalDate date, int maxValues) {
+    List<Double> values = valuesByDate.entrySet().stream()
+        .filter(entry -> !entry.getKey().isAfter(date))
+        .map(Map.Entry::getValue)
+        .toList();
+
+    if (values.size() <= maxValues) {
+      return values;
+    }
+
+    return values.subList(values.size() - maxValues, values.size());
+  }
+
+  private List<TimeSeriesPoint> historicalWindow(List<TimeSeriesPoint> closes, HistoryRange range) {
+    List<TimeSeriesPoint> sorted = closes.stream()
+        .filter(point -> point.value() > 0)
+        .sorted(Comparator.comparing(TimeSeriesPoint::date))
+        .toList();
+
+    if (sorted.size() <= 1) {
+      return sorted;
+    }
+
+    int minimumRecentPoints = switch (range) {
+      case ONE_HOUR, ONE_DAY -> 2;
+      case FIVE_DAYS -> 5;
+      default -> 0;
+    };
+
+    if (minimumRecentPoints > 0) {
+      return sorted.subList(Math.max(0, sorted.size() - minimumRecentPoints), sorted.size());
+    }
+
+    if (range.allTime()) {
+      return sorted;
+    }
+
+    LocalDate cutoff = LocalDate.now(ZoneOffset.UTC).minusDays(range.lookback().toDays());
+    List<TimeSeriesPoint> filtered = sorted.stream()
+        .filter(point -> !point.date().isBefore(cutoff))
+        .toList();
+    if (filtered.size() > 1) {
+      return filtered;
+    }
+
+    return sorted.subList(Math.max(0, sorted.size() - 2), sorted.size());
+  }
+
+  private List<MarketModels.ChartPoint> sample(List<MarketModels.ChartPoint> points, int maxPoints) {
+    return MarketApiUtils.sample(points, maxPoints, MarketModels.ChartPoint::timestamp);
   }
 
   private Optional<IndicatorSnapshot> fearGreedComposite(

@@ -186,6 +186,23 @@ class DashboardControllerIntegrationTest {
   }
 
   @Test
+  void getsCorrelationIndicatorHistory() throws Exception {
+    when(marketIndicatorService.indicatorHistory("correlation", HistoryRange.TEN_YEARS))
+        .thenReturn(new ChartSeries(
+            "correlation",
+            "10y",
+            List.of(new ChartPoint(Instant.parse("2026-06-03T00:00:00Z"), BigDecimal.valueOf(0.64)))
+        ));
+
+    mockMvc.perform(get("/api/indicators/correlation/history").param("range", "10y"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value("correlation"))
+        .andExpect(jsonPath("$.range").value("10y"))
+        .andExpect(jsonPath("$.points[0].timestamp").value("2026-06-03T00:00:00Z"))
+        .andExpect(jsonPath("$.points[0].value").value(0.64));
+  }
+
+  @Test
   void getsNotificationStatus() throws Exception {
     when(dashboardService.notificationStatus()).thenReturn(new NotificationStatus(true, true, "Telegram"));
 

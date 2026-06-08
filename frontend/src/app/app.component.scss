@@ -727,6 +727,7 @@ button:disabled:not(.icon-btn)::after {
 
 .indicator-card.compact-indicator {
   --compact-indicator-width: 112px;
+  --compact-indicator-height: 126px;
   position: relative;
   flex: 0 0 var(--compact-indicator-width);
   justify-self: start;
@@ -734,7 +735,8 @@ button:disabled:not(.icon-btn)::after {
   justify-items: center;
   gap: 5px;
   width: var(--compact-indicator-width);
-  min-height: 116px;
+  min-height: var(--compact-indicator-height);
+  height: var(--compact-indicator-height);
   padding: 10px;
   text-align: center;
 }
@@ -751,6 +753,8 @@ button:disabled:not(.icon-btn)::after {
 .compact-indicator-copy {
   display: grid;
   gap: 1px;
+  align-content: start;
+  width: 100%;
   min-width: 0;
 }
 
@@ -774,6 +778,10 @@ button:disabled:not(.icon-btn)::after {
   font-size: 0.66rem;
   font-weight: 800;
   line-height: 1.1;
+  min-height: 1.45rem;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .indicator-card.compact-indicator .compact-indicator-copy strong {
@@ -786,6 +794,7 @@ button:disabled:not(.icon-btn)::after {
   color: var(--muted-strong);
   font-size: 0.62rem;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .mini-speedometer {

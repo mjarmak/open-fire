@@ -69,6 +69,24 @@ describe('PortfolioBoardComponent', () => {
             { timestamp: '2026-06-01T00:00:00Z', value: 15.32 },
           ];
         }
+        if (indicatorId === 'fear-greed') {
+          return [
+            { timestamp: '2026-05-01T00:00:00Z', value: 42 },
+            { timestamp: '2026-06-01T00:00:00Z', value: 48 },
+          ];
+        }
+        if (indicatorId === 'breadth') {
+          return [
+            { timestamp: '2026-05-01T00:00:00Z', value: 56 },
+            { timestamp: '2026-06-01T00:00:00Z', value: 52 },
+          ];
+        }
+        if (indicatorId === 'correlation') {
+          return [
+            { timestamp: '2026-05-01T00:00:00Z', value: 0.62 },
+            { timestamp: '2026-06-01T00:00:00Z', value: 0.68 },
+          ];
+        }
         return [
           { timestamp: '2026-05-01T00:00:00Z', value: 0.82 },
           { timestamp: '2026-06-01T00:00:00Z', value: 0.74 },
@@ -171,6 +189,9 @@ describe('PortfolioBoardComponent', () => {
     const state = createState({
       stocks: [stock()],
       indicators: [
+        indicator({ id: 'breadth', name: 'Market Breadth', category: 'Participation', value: 52, unit: '% advancing basket' }),
+        indicator({ id: 'fear-greed', name: 'Fear & Greed Index', category: 'Composite', value: 48, unit: '0 fear / 100 greed', change: -1 }),
+        indicator({ id: 'correlation', name: 'Cross-Asset Correlation', category: 'Risk regime', value: 0.68, unit: 'avg abs corr' }),
         indicator({ id: 'vix', name: 'Fear Index / VIX', category: 'Volatility', value: 15.32, unit: 'index points' }),
         indicator(),
       ],
@@ -180,12 +201,18 @@ describe('PortfolioBoardComponent', () => {
     const globalCharts = Array.from(element.querySelectorAll<HTMLElement>('.global-risk-chart-panel'));
     const vixChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Fear Index / VIX'));
     const creditChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Credit Market'));
+    const breadthChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Market Breadth'));
+    const fearGreedChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Fear & Greed Index'));
+    const correlationChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Cross-Asset Correlation'));
     const stockTable = element.querySelector<HTMLElement>('.stock-table');
 
     expect(piePanel).not.toBeNull();
-    expect(globalCharts.length).toBe(2);
+    expect(globalCharts.length).toBe(5);
     expect(vixChart).not.toBeNull();
     expect(creditChart).not.toBeNull();
+    expect(breadthChart).not.toBeNull();
+    expect(fearGreedChart).not.toBeNull();
+    expect(correlationChart).not.toBeNull();
     expect(vixChart!.querySelector('.global-risk-chart-heading')).not.toBeNull();
     expect(textContent(vixChart!.querySelector('.global-risk-chart-heading'))).toContain('Fear Index / VIX');
     expect(stockTable).not.toBeNull();
@@ -193,17 +220,27 @@ describe('PortfolioBoardComponent', () => {
     expect(Boolean(globalCharts[1].compareDocumentPosition(stockTable!) & Node.DOCUMENT_POSITION_FOLLOWING)).toBeTrue();
     expect(vixChart!.getAttribute('aria-label')).toContain('15.32 index points');
     expect(creditChart!.getAttribute('aria-label')).toContain('0.74 spread %');
+    expect(fearGreedChart?.getAttribute('aria-label')).toContain('48');
     expect(vixChart!.classList.contains('chart-flat')).toBeTrue();
     expect(vixChart!.classList.contains('chart-down')).toBeFalse();
     expect(creditChart!.classList.contains('chart-flat')).toBeTrue();
+    expect(breadthChart?.classList.contains('chart-flat')).toBeTrue();
+    expect(fearGreedChart?.classList.contains('chart-flat')).toBeTrue();
+    expect(correlationChart?.classList.contains('chart-flat')).toBeTrue();
     expect(vixChart!.querySelector('.trend-threshold-line')).not.toBeNull();
     expect(creditChart!.querySelector('.trend-threshold-line')).not.toBeNull();
     expect(textContent(creditChart!.querySelector('.chart-range-options button.active'))).toBe('1m');
     expect(creditChart!.querySelector('.range-trend-svg .trend-line')?.getAttribute('d')).toContain('L');
     expect(state.ensureGlobalIndicatorChart).toHaveBeenCalledWith('vix');
     expect(state.ensureGlobalIndicatorChart).toHaveBeenCalledWith('credit');
+    expect(state.ensureGlobalIndicatorChart).toHaveBeenCalledWith('fear-greed');
+    expect(state.ensureGlobalIndicatorChart).toHaveBeenCalledWith('breadth');
+    expect(state.ensureGlobalIndicatorChart).toHaveBeenCalledWith('correlation');
     expect(state.globalIndicatorChartPoints).toHaveBeenCalledWith('vix');
     expect(state.globalIndicatorChartPoints).toHaveBeenCalledWith('credit');
+    expect(state.globalIndicatorChartPoints).toHaveBeenCalledWith('fear-greed');
+    expect(state.globalIndicatorChartPoints).toHaveBeenCalledWith('breadth');
+    expect(state.globalIndicatorChartPoints).toHaveBeenCalledWith('correlation');
 
     Array.from(creditChart!.querySelectorAll<HTMLButtonElement>('.chart-range-options button'))
       .find((button) => textContent(button) === '10y')
@@ -218,17 +255,29 @@ describe('PortfolioBoardComponent', () => {
       indicators: [
         indicator({ id: 'vix', name: 'Fear Index / VIX', category: 'Volatility', value: 18, unit: 'index points', change: 3 }),
         indicator({ value: 2.1, change: -0.15 }),
+        indicator({ id: 'fear-greed', name: 'Fear & Greed Index', category: 'Composite', value: 34, change: -1 }),
+        indicator({ id: 'breadth', name: 'Market Breadth', category: 'Participation', value: 44, change: 0 }),
+        indicator({ id: 'correlation', name: 'Cross-Asset Correlation', category: 'Risk regime', value: 0.76, change: 0 }),
       ],
     });
     const { element } = await render(state);
     const globalCharts = Array.from(element.querySelectorAll<HTMLElement>('.global-risk-chart-panel'));
     const vixChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Fear Index / VIX'));
     const creditChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Credit Market'));
+    const fearGreedChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Fear & Greed Index'));
+    const breadthChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Market Breadth'));
+    const correlationChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Cross-Asset Correlation'));
 
     expect(vixChart?.classList.contains('chart-down')).toBeTrue();
     expect(vixChart?.classList.contains('chart-flat')).toBeFalse();
     expect(creditChart?.classList.contains('chart-down')).toBeTrue();
     expect(creditChart?.classList.contains('chart-flat')).toBeFalse();
+    expect(fearGreedChart?.classList.contains('chart-down')).toBeTrue();
+    expect(fearGreedChart?.classList.contains('chart-flat')).toBeFalse();
+    expect(breadthChart?.classList.contains('chart-down')).toBeTrue();
+    expect(breadthChart?.classList.contains('chart-flat')).toBeFalse();
+    expect(correlationChart?.classList.contains('chart-down')).toBeTrue();
+    expect(correlationChart?.classList.contains('chart-flat')).toBeFalse();
   });
 
   it('uses row clicks for columns and the graph button for chart rows', async () => {

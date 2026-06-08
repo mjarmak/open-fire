@@ -359,6 +359,15 @@ export class PortfolioBoardComponent implements OnInit {
     if (indicator.id === 'credit') {
       return 2;
     }
+    if (indicator.id === 'breadth') {
+      return 45;
+    }
+    if (indicator.id === 'correlation') {
+      return 0.7;
+    }
+    if (indicator.id === 'fear-greed') {
+      return 35;
+    }
     return null;
   }
 
@@ -659,18 +668,33 @@ export class PortfolioBoardComponent implements OnInit {
   }
 
   private isGlobalRiskIndicator(indicator: IndicatorSnapshot): boolean {
-    return indicator.id === 'vix' || indicator.id === 'credit';
+    return indicator.id === 'vix' || indicator.id === 'credit' || indicator.id === 'fear-greed' || indicator.id === 'breadth' || indicator.id === 'correlation';
   }
 
   private globalRiskSortOrder(indicatorId: string): number {
     if (indicatorId === 'vix') return 0;
-    if (indicatorId === 'credit') return 1;
+    if (indicatorId === 'fear-greed') return 1;
+    if (indicatorId === 'credit') return 2;
+    if (indicatorId === 'breadth') return 3;
+    if (indicatorId === 'correlation') return 4;
     return 2;
   }
 
   private isGlobalRiskIndicatorOverThreshold(indicator: IndicatorSnapshot): boolean {
     const value = Number(indicator.value) || 0;
     const change = Number(indicator.change) || 0;
+    if (indicator.id === 'fear-greed') {
+      return value <= this.globalRiskValueThreshold(indicator);
+    }
+
+    if (indicator.id === 'breadth') {
+      return value < this.globalRiskValueThreshold(indicator);
+    }
+
+    if (indicator.id === 'correlation') {
+      return value >= this.globalRiskValueThreshold(indicator);
+    }
+
     return value >= this.globalRiskValueThreshold(indicator) || change >= this.globalRiskChangeThreshold(indicator);
   }
 
@@ -679,6 +703,12 @@ export class PortfolioBoardComponent implements OnInit {
   }
 
   private globalRiskChangeThreshold(indicator: IndicatorSnapshot): number {
+    if (indicator.id === 'breadth') {
+      return 0;
+    }
+    if (indicator.id === 'correlation') {
+      return 0;
+    }
     return indicator.id === 'credit' ? 0.15 : 3;
   }
 

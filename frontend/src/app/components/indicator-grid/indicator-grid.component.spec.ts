@@ -51,6 +51,10 @@ describe('IndicatorGridComponent', () => {
     return fixture.nativeElement as HTMLElement;
   }
 
+  function textContent(element: Element | null): string {
+    return element?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+  }
+
   afterEach(() => {
     TestBed.resetTestingModule();
   });
@@ -114,6 +118,87 @@ describe('IndicatorGridComponent', () => {
     expect(speedometer?.style.getPropertyValue('--gauge-risk-start')).toBe('60deg');
     expect(speedometer?.style.getPropertyValue('--gauge-risk-end')).toBe('180deg');
     expect(speedometer?.style.getPropertyValue('--gauge-needle')).toBe('-150deg');
+  });
+
+  it('renders fear greed, breadth, and correlation as compact gauges', async () => {
+    const element = await render(createState({
+      indicators: [
+        indicator({
+          id: 'fear-greed',
+          name: 'Fear & Greed Index',
+          category: 'Composite',
+          value: 48,
+          unit: '0 fear / 100 greed',
+        }),
+        indicator({
+          id: 'breadth',
+          name: 'Market Breadth',
+          category: 'Participation',
+          value: 56,
+          unit: '% advancing basket',
+          status: 'supportive',
+        }),
+        indicator({
+          id: 'correlation',
+          name: 'Cross-Asset Correlation',
+          category: 'Risk regime',
+          value: 0.64,
+          unit: 'avg abs corr',
+          status: 'watch',
+        }),
+      ],
+    }));
+    const compactIndicators = Array.from(element.querySelectorAll<HTMLElement>('.compact-indicator:not(.retirement-progress-indicator)'));
+    const titles = compactIndicators.map((item) => textContent(item.querySelector('h2'))).sort();
+
+    expect(compactIndicators.length).toBe(3);
+    expect(titles).toEqual([
+      'Cross-Asset Correlation',
+      'Fear & Greed Index',
+      'Market Breadth',
+    ]);
+    expect(compactIndicators.find((item) => textContent(item.querySelector('h2')) === 'Fear & Greed Index')?.getAttribute('data-tooltip')).toContain('Risk threshold: 35 or below.');
+    expect(compactIndicators.find((item) => textContent(item.querySelector('h2')) === 'Market Breadth')?.getAttribute('data-tooltip')).toContain('Risk threshold: below 45 % advancing basket.');
+    expect(compactIndicators.find((item) => textContent(item.querySelector('h2')) === 'Cross-Asset Correlation')?.getAttribute('data-tooltip')).toContain('Risk threshold: 0.7 avg abs correlation or above.');
+  });
+
+  it('places gauge risk color bands on the side where each indicator becomes risky', async () => {
+    const element = await render(createState({
+      indicators: [
+        indicator({
+          id: 'fear-greed',
+          name: 'Fear & Greed Index',
+          category: 'Composite',
+          value: 48,
+          unit: '0 fear / 100 greed',
+        }),
+        indicator({
+          id: 'breadth',
+          name: 'Market Breadth',
+          category: 'Participation',
+          value: 56,
+          unit: '% advancing basket',
+        }),
+        indicator({
+          id: 'correlation',
+          name: 'Cross-Asset Correlation',
+          category: 'Risk regime',
+          value: 0.64,
+          unit: 'avg abs corr',
+        }),
+      ],
+    }));
+    const compactIndicators = Array.from(element.querySelectorAll<HTMLElement>('.compact-indicator:not(.retirement-progress-indicator)'));
+    const speedometerFor = (title: string) => compactIndicators
+      .find((item) => textContent(item.querySelector('h2')) === title)
+      ?.querySelector<HTMLElement>('.mini-speedometer');
+
+    expect(speedometerFor('Fear & Greed Index')?.style.getPropertyValue('--gauge-risk-start')).toBe('0deg');
+    expect(speedometerFor('Fear & Greed Index')?.style.getPropertyValue('--gauge-risk-end')).toBe('60deg');
+    expect(speedometerFor('Market Breadth')?.style.getPropertyValue('--gauge-risk-start')).toBe('0deg');
+    expect(speedometerFor('Market Breadth')?.style.getPropertyValue('--gauge-risk-end')).toBe('60deg');
+    expect(speedometerFor('Cross-Asset Correlation')?.style.getPropertyValue('--gauge-risk-start')).toBe('60deg');
+    expect(speedometerFor('Cross-Asset Correlation')?.style.getPropertyValue('--gauge-risk-end')).toBe('180deg');
   });
 
   it('colors compact macro gauge containers as risk when value or positive daily change crosses the threshold', async () => {
