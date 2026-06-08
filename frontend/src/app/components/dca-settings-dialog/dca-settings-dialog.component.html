@@ -6,7 +6,10 @@
           <p class="eyebrow">DCA Reminder</p>
           <h2 id="dca-settings-title">Configure</h2>
         </div>
-        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
+        <div class="dialog-heading-actions">
+          <button type="button" class="secondary" (click)="configureTelegram.emit()">Configure Telegram Alerts</button>
+          <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
+        </div>
       </div>
 
       <form class="edit-form" (ngSubmit)="save.emit()">

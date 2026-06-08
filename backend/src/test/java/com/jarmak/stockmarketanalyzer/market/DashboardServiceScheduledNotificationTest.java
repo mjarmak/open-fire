@@ -90,7 +90,10 @@ class DashboardServiceScheduledNotificationTest {
 
     ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
     verify(telegramNotificationService).sendToChat(org.mockito.ArgumentMatchers.eq("111"), messageCaptor.capture());
-    assertThat(messageCaptor.getValue()).contains("MSFT").doesNotContain("AAPL");
+    assertThat(messageCaptor.getValue())
+        .contains("MSFT")
+        .doesNotContain("AAPL")
+        .doesNotContain("<u>", "</u>");
     verify(portfolioService).markAlertsSentForUser(
         org.mockito.ArgumentMatchers.eq("alice"),
         org.mockito.ArgumentMatchers.argThat((Collection<String> symbols) -> symbols.size() == 1 && symbols.contains("MSFT")),

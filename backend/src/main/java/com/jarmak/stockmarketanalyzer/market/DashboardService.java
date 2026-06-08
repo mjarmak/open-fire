@@ -206,7 +206,7 @@ public class DashboardService {
         if (isImportant(token)) {
           sb.append("<b>").append(escapedToken).append("</b>");
         } else {
-          sb.append("<u>").append(escapedToken).append("</u>");
+          sb.append(escapedToken);
         }
       } else {
         sb.append(escapeHtml(token));

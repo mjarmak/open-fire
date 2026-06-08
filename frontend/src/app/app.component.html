@@ -132,12 +132,6 @@
   (configureTelegram)="openTelegramFromAlertsDialog()"
 />
 
-<app-telegram-dialog
-  (closeDialog)="closeTelegramDialog()"
-  (save)="saveTelegramChatId()"
-  (test)="sendTelegramTest()"
-/>
-
 <app-retirement-settings-dialog
   (closeDialog)="closeRetirementSettings()"
   (save)="saveRetirementSettings()"
@@ -145,10 +139,17 @@
 
 <app-dca-settings-dialog
   (closeDialog)="closeDcaDialog()"
+  (configureTelegram)="openTelegramFromAlertsDialog()"
   (save)="saveDcaSettings()"
   (openSuggestions)="openDcaSuggestionDialog()"
   (closeSuggestions)="closeDcaSuggestionDialog()"
   (copySuggestion)="copyDcaSuggestion($event)"
+/>
+
+<app-telegram-dialog
+  (closeDialog)="closeTelegramDialog()"
+  (save)="saveTelegramChatId()"
+  (test)="sendTelegramTest()"
 />
 
 @if (snackbarMessage) {
