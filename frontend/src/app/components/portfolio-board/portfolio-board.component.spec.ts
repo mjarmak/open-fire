@@ -276,6 +276,8 @@ describe('PortfolioBoardComponent', () => {
     expect(row.querySelector('.range-trend-svg .trend-line')?.getAttribute('d')).toContain('L');
     expect(row.querySelectorAll('.trend-x-axis-label').length).toBeGreaterThan(1);
     expect(row.querySelectorAll('.trend-y-axis-label').length).toBeGreaterThan(1);
+    expect(row.querySelector('.trend-threshold-line')).not.toBeNull();
+    expect(textContent(row.querySelector('.trend-threshold-label'))).toBe('Avg price');
     expect(fetchSpy).toHaveBeenCalledWith('demo', 'password123', 'AAPL', '1m');
 
     row.click();
@@ -314,7 +316,7 @@ describe('PortfolioBoardComponent', () => {
     expect(fetchSpy.calls.count()).toBe(2);
   });
 
-  it('keeps multiple position graphs open and reloads each open graph on range changes', async () => {
+  it('keeps multiple position charts open and changes only the selected chart range', async () => {
     const state = createState({
       stocks: [
         stock(),
@@ -344,10 +346,10 @@ describe('PortfolioBoardComponent', () => {
     expect(aaplRow.querySelector('.position-chart-row')).not.toBeNull();
     expect(msftRow.querySelector('.position-chart-row')).not.toBeNull();
     expect(textContent(aaplRow.querySelector('.chart-range-options button.active'))).toBe('10y');
-    expect(textContent(msftRow.querySelector('.chart-range-options button.active'))).toBe('10y');
-    expect(fetchSpy.calls.count()).toBe(4);
+    expect(textContent(msftRow.querySelector('.chart-range-options button.active'))).toBe('1m');
+    expect(fetchSpy.calls.count()).toBe(3);
     expect(fetchSpy.calls.allArgs()).toContain(['demo', 'password123', 'AAPL', '10y']);
-    expect(fetchSpy.calls.allArgs()).toContain(['demo', 'password123', 'MSFT', '10y']);
+    expect(fetchSpy.calls.allArgs()).not.toContain(['demo', 'password123', 'MSFT', '10y']);
 
     aaplRow.querySelector<HTMLButtonElement>('.graph-action')?.click();
     fixture.detectChanges();
@@ -381,7 +383,7 @@ describe('PortfolioBoardComponent', () => {
     fixture.detectChanges();
 
     expect(fetchSpy.calls.count()).toBe(1);
-    expect(textContent(row.querySelector('.trend-empty-label'))).toContain('No historical data');
+    expect(textContent(row.querySelector('.trend-empty-label'))).toContain('History unavailable. Try another range or try again later.');
 
     graphButton?.click();
     fixture.detectChanges();
@@ -541,6 +543,7 @@ describe('PortfolioBoardComponent', () => {
     fixture.detectChanges();
 
     expect(row.querySelector('.position-chart-row')).not.toBeNull();
+    expect(row.querySelector('.trend-threshold-line')).toBeNull();
     expect(textContent(row.querySelector('.watch-only-badge'))).toBe('Watch only');
 
     const todayMetric = row.querySelector('.position-title-inline-metric');

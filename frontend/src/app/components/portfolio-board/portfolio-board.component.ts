@@ -97,10 +97,10 @@ export class PortfolioBoardComponent implements OnInit {
   protected positionFilter: PositionFilter = 'all';
   protected actionDialogRowKey: string | null = null;
   protected chartRowKeys = new Set<string>();
-  protected selectedChartRange: TrendChartRange = '1m';
   protected readonly chartRanges: TrendChartRange[] = ['1h', '1d', '5d', '1m', '1y', '5y', '10y', 'all'];
   private readonly chartCache = new Map<string, TrendChartPoint[]>();
   private readonly loadingChartKeys = new Set<string>();
+  private readonly positionChartRanges = new Map<string, TrendChartRange>();
 
   ngOnInit(): void {
     this.loadCollapsedState();
@@ -302,16 +302,23 @@ export class PortfolioBoardComponent implements OnInit {
     }
   }
 
-  protected setChartRange(range: TrendChartRange): void {
-    if (this.selectedChartRange === range) {
+  protected selectedChartRange(stock: StockAlert): TrendChartRange {
+    return this.positionChartRanges.get(this.positionRowKey(stock)) ?? '1m';
+  }
+
+  protected setChartRange(rowKey: string, range: TrendChartRange): void {
+    if (this.positionChartRanges.get(rowKey) === range) {
       return;
     }
 
-    this.selectedChartRange = range;
-    for (const stock of this.displayedStocks) {
-      if (this.chartRowKeys.has(this.positionRowKey(stock))) {
-        this.loadPositionChart(stock);
-      }
+    this.positionChartRanges.set(rowKey, range);
+    if (!this.chartRowKeys.has(rowKey)) {
+      return;
+    }
+
+    const stock = this.displayedStocks.find((item) => this.positionRowKey(item) === rowKey);
+    if (stock) {
+      this.loadPositionChart(stock);
     }
   }
 
@@ -381,11 +388,20 @@ export class PortfolioBoardComponent implements OnInit {
   protected positionChartSummary(stock: StockAlert): string {
     const latest = stock.latestPrice ?? this.calculatePositionMarketValue(stock) ?? 0;
     const change = stock.dayGainLossPercent ?? stock.thirtyDayChangePercent ?? 0;
+    const range = this.selectedChartRange(stock);
     const formattedChange = new Intl.NumberFormat('en-US', {
       maximumFractionDigits: 2,
       signDisplay: 'exceptZero',
     }).format(change);
-    return `${stock.symbol} ${this.selectedChartRange} ${this.formatMoney(latest)} ${formattedChange}%`;
+    return `${stock.symbol} ${range} ${this.formatMoney(latest)} ${formattedChange}%`;
+  }
+
+  protected positionAveragePriceLine(stock: StockAlert): number | null {
+    if (stock.watchOnly || stock.averageCost === null || stock.averageCost === undefined) {
+      return null;
+    }
+
+    return Number.isFinite(stock.averageCost) && stock.averageCost > 0 ? stock.averageCost : null;
   }
 
   private isTooltipInteraction(event: Event): boolean {
@@ -639,7 +655,7 @@ export class PortfolioBoardComponent implements OnInit {
   }
 
   private positionChartCacheKey(stock: StockAlert): string {
-    return `${stock.symbol.toUpperCase()}|${this.selectedChartRange}`;
+    return `${stock.symbol.toUpperCase()}|${this.selectedChartRange(stock)}`;
   }
 
   private isGlobalRiskIndicator(indicator: IndicatorSnapshot): boolean {
@@ -681,12 +697,13 @@ export class PortfolioBoardComponent implements OnInit {
 
   private loadPositionChart(stock: StockAlert): void {
     const cacheKey = this.positionChartCacheKey(stock);
+    const range = this.selectedChartRange(stock);
     if (this.chartCache.has(cacheKey) || this.loadingChartKeys.has(cacheKey)) {
       return;
     }
 
     this.loadingChartKeys.add(cacheKey);
-    this.state.fetchStockHistory(this.state.username, this.state.password, stock.symbol, this.selectedChartRange)
+    this.state.fetchStockHistory(this.state.username, this.state.password, stock.symbol, range)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.loadingChartKeys.delete(cacheKey)),

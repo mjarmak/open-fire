@@ -153,7 +153,7 @@ export class RangeTrendChartComponent implements AfterViewInit, OnChanges, OnDes
   }
 
   get emptyMessage(): string {
-    return this.loading ? 'Loading real market history...' : 'No historical data for this range';
+    return this.loading ? 'Loading real market history...' : 'History unavailable. Try another range or try again later.';
   }
 
   get emptyLabelX(): number {

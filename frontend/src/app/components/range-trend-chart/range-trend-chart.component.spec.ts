@@ -99,6 +99,16 @@ describe('RangeTrendChartComponent', () => {
     expect(element.querySelector('.range-trend-loading-overlay')).toBeNull();
   });
 
+  it('shows an unavailable message when no chart points are available', async () => {
+    const { fixture, element } = await render();
+
+    fixture.componentRef.setInput('loading', false);
+    fixture.componentRef.setInput('points', []);
+    fixture.detectChanges();
+
+    expect(element.querySelector('.trend-empty-label')?.textContent?.trim()).toBe('History unavailable. Try another range or try again later.');
+  });
+
   it('shows the nearest point value in a hover tooltip', async () => {
     const { fixture, element } = await render();
     const container = element.querySelector<HTMLElement>('.range-trend-container');

@@ -89,6 +89,8 @@ class StockAlertServiceTest {
         new AppProperties.Market(
             "fred",
             "finnhub",
+            null,
+            null,
             List.of(),
             List.of(),
             BigDecimal.valueOf(2_000_000_000L),

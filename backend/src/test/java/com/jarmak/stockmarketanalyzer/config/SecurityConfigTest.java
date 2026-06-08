@@ -40,7 +40,7 @@ class SecurityConfigTest {
   private AppProperties properties(String allowedOriginPattern) {
     return new AppProperties(
         new AppProperties.Security("admin", "salt", "hash"),
-        new AppProperties.Market(null, null, List.of(), List.of(), null, null, null, null, null, null, null, null),
+        new AppProperties.Market(null, null, null, null, List.of(), List.of(), null, null, null, null, null, null, null, null),
         new AppProperties.Database("jdbc:postgresql://localhost/open_fire", "admin", "password"),
         new AppProperties.Telegram(false, "bot", "token"),
         new AppProperties.Cors(List.of(allowedOriginPattern))

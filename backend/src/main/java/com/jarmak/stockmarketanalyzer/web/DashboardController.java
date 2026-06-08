@@ -21,11 +21,11 @@ import com.jarmak.stockmarketanalyzer.security.UserAccountService.UserRegistrati
 import com.jarmak.stockmarketanalyzer.security.UserAccountService.UserTelegramSettings;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpHeaders;
@@ -238,15 +238,32 @@ public class DashboardController {
       return results;
     }
 
-    return results.stream()
-        .map(result -> new SymbolSearchResult(
-            result.symbol(),
-            result.name(),
-            result.region(),
-            result.currency(),
-            previewOrNull(result)
-        ))
-        .toList();
+    List<IndexedSymbolSearchResult> enriched = new ArrayList<>();
+    for (int i = 0; i < results.size(); i++) {
+      SymbolSearchResult result = results.get(i);
+      StockAlert indicators = previewOrNull(result);
+      enriched.add(new IndexedSymbolSearchResult(
+          i,
+          new SymbolSearchResult(
+              result.symbol(),
+              result.name(),
+              result.region(),
+              result.currency(),
+              indicators
+          )
+      ));
+    }
+
+    enriched.sort(
+        Comparator.comparing((IndexedSymbolSearchResult item) -> item.result().indicators() == null
+            || item.result().indicators().latestPrice() == null ? 1 : 0)
+            .thenComparingInt(IndexedSymbolSearchResult::index)
+    );
+
+    return enriched.stream().map(IndexedSymbolSearchResult::result).toList();
+  }
+
+  private record IndexedSymbolSearchResult(int index, SymbolSearchResult result) {
   }
 
   @PostMapping("/notifications/telegram")

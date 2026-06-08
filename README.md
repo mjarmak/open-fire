@@ -159,6 +159,34 @@ $env:FAST_RISE_PERCENT_THRESHOLD="35"
 
 See [docs/API_SOURCES.md](docs/API_SOURCES.md) for the exact external APIs, backend clients, and provider endpoints used by the app.
 
+## API Token Sources
+
+The backend reads provider credentials from environment variables:
+
+```powershell
+$env:FRED_API_KEY="your-fred-key"
+$env:FINNHUB_API_KEY="your-finnhub-key"
+$env:TWELVEDATA_API_KEY="your-twelvedata-key"     # optional fallback
+$env:ALPHA_VANTAGE_API_KEY="your-alpha-vantage-key" # optional fallback
+$env:LOGGING_LEVEL="INFO"                         # optional: DEBUG, INFO, WARN, ERROR
+$env:TELEGRAM_BOT_TOKEN="your-telegram-bot-token"
+```
+
+Where to get them:
+
+- **FRED_API_KEY**: create a free account at FRED and generate an API key.
+  https://fred.stlouisfed.org/docs/api/api_key.html
+- **FINNHUB_API_KEY**: create a free Finnhub account and add a new API key in the dashboard.
+  https://finnhub.io/register
+- **TWELVEDATA_API_KEY**: create a Twelve Data account and create a free/paid API token from the developer portal.
+  https://twelvedata.com
+- **ALPHA_VANTAGE_API_KEY**: create a free Alpha Vantage account and request your API key.
+  https://www.alphavantage.co/support/#api-key
+- **LOGGING_LEVEL**: controls backend app and HTTP client logging with one value. Defaults to `INFO`; use `DEBUG` while diagnosing provider/API calls.
+- **TELEGRAM_BOT_TOKEN**: message [@BotFather](https://t.me/botfather) in Telegram, run `/newbot`, and keep the token it returns.
+
+Only set the keys your deployment needs; the app will use Finnhub first, then fall back to Twelve Data, then Alpha Vantage for symbol search.
+
 ## Manual Portfolio
 
 Use the dashboard form to add portfolio holdings manually:

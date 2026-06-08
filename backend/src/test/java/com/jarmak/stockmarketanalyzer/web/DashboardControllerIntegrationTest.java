@@ -381,6 +381,27 @@ class DashboardControllerIntegrationTest {
   }
 
   @Test
+  void searchesSymbolsWithIndicatorsSortsResultsWithoutPriceToBottom() throws Exception {
+    when(finnhubClient.searchSymbols("app"))
+        .thenReturn(List.of(
+            new SymbolSearchResult("NODATA", "No Price", "US", "USD"),
+            new SymbolSearchResult("AAPL", "Apple Inc.", "US", "USD"),
+            new SymbolSearchResult("MISSING", "No Quote", "US", "USD")
+        ));
+    when(stockAlertService.preview("NODATA", "No Price")).thenReturn(stockWithoutLatestPrice());
+    when(stockAlertService.preview("AAPL", "Apple Inc.")).thenReturn(stock());
+    when(stockAlertService.preview("MISSING", "No Quote")).thenReturn(stockWithoutLatestPrice());
+
+    mockMvc.perform(get("/api/symbols/search")
+            .param("keywords", "app")
+            .param("includeIndicators", "true"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].symbol").value("AAPL"))
+        .andExpect(jsonPath("$[1].symbol").value("NODATA"))
+        .andExpect(jsonPath("$[2].symbol").value("MISSING"));
+  }
+
+  @Test
   void sendsTelegramNotification() throws Exception {
     when(telegramNotificationService.send("Hello"))
         .thenReturn(new TelegramNotificationService.NotificationResult(true, "Telegram message sent.", false));
@@ -502,6 +523,10 @@ class DashboardControllerIntegrationTest {
   }
 
   private StockAlert stock() {
+    return stock(BigDecimal.valueOf(110));
+  }
+
+  private StockAlert stock(BigDecimal latestPrice) {
     return new StockAlert(
         1L,
         "AAPL",
@@ -509,7 +534,7 @@ class DashboardControllerIntegrationTest {
         "Core",
         BigDecimal.valueOf(2),
         BigDecimal.valueOf(100),
-        BigDecimal.valueOf(110),
+        latestPrice,
         BigDecimal.valueOf(3000000000000L),
         BigDecimal.valueOf(30),
         BigDecimal.valueOf(1.2),
@@ -527,6 +552,10 @@ class DashboardControllerIntegrationTest {
         true,
         "Risk is elevated"
     );
+  }
+
+  private StockAlert stockWithoutLatestPrice() {
+    return stock(null);
   }
 
   private PortfolioHolding holding() {

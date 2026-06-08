@@ -83,13 +83,15 @@ class MarketIndicatorServiceTest {
     AppProperties properties() {
       return new AppProperties(
           null,
-          new AppProperties.Market(
-              "fred",
-              "finnhub",
-              List.of("SPY"),
-              List.of("SPY", "TLT"),
-              BigDecimal.valueOf(2_000_000_000L),
-              BigDecimal.valueOf(35),
+        new AppProperties.Market(
+            "fred",
+            "finnhub",
+            null,
+            null,
+            List.of("SPY"),
+            List.of("SPY", "TLT"),
+            BigDecimal.valueOf(2_000_000_000L),
+            BigDecimal.valueOf(35),
               BigDecimal.valueOf(25),
               BigDecimal.valueOf(25),
               BigDecimal.valueOf(1.5),

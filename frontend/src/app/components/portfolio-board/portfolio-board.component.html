@@ -340,12 +340,14 @@
             <app-range-trend-chart
               [points]="positionChartData(stock)"
               [ranges]="chartRanges"
-              [selectedRange]="selectedChartRange"
+              [selectedRange]="selectedChartRange(stock)"
               [tone]="positionChartTone(stock)"
               [label]="positionChartSummary(stock)"
               [loading]="isPositionChartLoading(stock)"
+              [thresholdValue]="positionAveragePriceLine(stock)"
+              thresholdLabel="Avg price"
               valueMode="currency"
-              (rangeChange)="setChartRange($event)"
+              (rangeChange)="setChartRange(positionRowKey(stock), $event)"
             ></app-range-trend-chart>
           </div>
         }

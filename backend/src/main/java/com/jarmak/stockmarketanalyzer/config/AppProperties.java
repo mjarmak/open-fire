@@ -18,6 +18,8 @@ public record AppProperties(
   public record Market(
       String fredApiKey,
       String finnhubApiKey,
+      String twelveDataApiKey,
+      String alphaVantageApiKey,
       List<String> breadthSymbols,
       List<String> crossAssetSymbols,
       BigDecimal lowMarketCapThreshold,

@@ -85,11 +85,9 @@ final class MarketRiskMetrics {
 
     return closes.stream()
         .filter(point -> point.value() > 0)
-        .filter(point -> !point.date().isAfter(targetDate))
-        .max(Comparator.comparing(TimeSeriesPoint::date))
-        .or(() -> closes.stream()
-            .filter(point -> point.value() > 0)
-            .min(Comparator.comparing(TimeSeriesPoint::date)))
+        .min(Comparator
+            .comparingLong((TimeSeriesPoint point) -> Math.abs(java.time.temporal.ChronoUnit.DAYS.between(point.date(), targetDate)))
+            .thenComparing(TimeSeriesPoint::date))
         .map(point -> BigDecimal.valueOf(point.value()))
         .orElse(null);
   }
