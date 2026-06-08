@@ -412,19 +412,21 @@ class DashboardControllerIntegrationTest {
         .andExpect(jsonPath("$[0].symbol").value("AAPL"))
         .andExpect(jsonPath("$[0].indicators.latestPrice").value(110))
         .andExpect(jsonPath("$[0].indicators.marketCap").value(3000000000000L))
-        .andExpect(jsonPath("$[0].indicators.dayGainLoss").value(4))
+        .andExpect(jsonPath("$[0].indicators.dayGainLoss").doesNotExist())
+        .andExpect(jsonPath("$[0].indicators.dayGainLossPercent").doesNotExist())
         .andExpect(jsonPath("$[0].indicators.fearScore").doesNotExist())
         .andExpect(jsonPath("$[0].indicators.thirtyDayChangePercent").doesNotExist());
 
     verify(stockAlertService).pricePreview("AAPL", "Apple Inc.");
     verify(stockAlertService, never()).preview(anyString(), anyString());
+    verifySearchDidNotUseHistoryBackedMarketData();
   }
 
   @Test
-  void searchesSymbolsWithIndicators() throws Exception {
+  void searchesSymbolsWithIndicatorsUsesLightweightPreviewOnly() throws Exception {
     when(finnhubClient.searchSymbols("app"))
         .thenReturn(List.of(new SymbolSearchResult("AAPL", "Apple Inc.", "US", "USD")));
-    when(stockAlertService.preview("AAPL", "Apple Inc.")).thenReturn(stock());
+    when(stockAlertService.pricePreview("AAPL", "Apple Inc.")).thenReturn(priceDetails());
 
     mockMvc.perform(get("/api/symbols/search")
             .param("keywords", "app")
@@ -432,8 +434,15 @@ class DashboardControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].symbol").value("AAPL"))
         .andExpect(jsonPath("$[0].indicators.latestPrice").value(110))
-        .andExpect(jsonPath("$[0].indicators.fearScore").value(40))
-        .andExpect(jsonPath("$[0].indicators.reason").value("Risk is elevated"));
+        .andExpect(jsonPath("$[0].indicators.marketCap").value(3000000000000L))
+        .andExpect(jsonPath("$[0].indicators.dayGainLoss").doesNotExist())
+        .andExpect(jsonPath("$[0].indicators.dayGainLossPercent").doesNotExist())
+        .andExpect(jsonPath("$[0].indicators.fearScore").doesNotExist())
+        .andExpect(jsonPath("$[0].indicators.thirtyDayChangePercent").doesNotExist());
+
+    verify(stockAlertService).pricePreview("AAPL", "Apple Inc.");
+    verify(stockAlertService, never()).preview(anyString(), anyString());
+    verifySearchDidNotUseHistoryBackedMarketData();
   }
 
   @Test
@@ -444,9 +453,9 @@ class DashboardControllerIntegrationTest {
             new SymbolSearchResult("AAPL", "Apple Inc.", "US", "USD"),
             new SymbolSearchResult("MISSING", "No Quote", "US", "USD")
         ));
-    when(stockAlertService.preview("NODATA", "No Price")).thenReturn(stockWithoutLatestPrice());
-    when(stockAlertService.preview("AAPL", "Apple Inc.")).thenReturn(stock());
-    when(stockAlertService.preview("MISSING", "No Quote")).thenReturn(stockWithoutLatestPrice());
+    when(stockAlertService.pricePreview("NODATA", "No Price")).thenReturn(stockWithoutLatestPrice());
+    when(stockAlertService.pricePreview("AAPL", "Apple Inc.")).thenReturn(priceDetails());
+    when(stockAlertService.pricePreview("MISSING", "No Quote")).thenReturn(stockWithoutLatestPrice());
 
     mockMvc.perform(get("/api/symbols/search")
             .param("keywords", "app")
@@ -455,6 +464,9 @@ class DashboardControllerIntegrationTest {
         .andExpect(jsonPath("$[0].symbol").value("AAPL"))
         .andExpect(jsonPath("$[1].symbol").value("NODATA"))
         .andExpect(jsonPath("$[2].symbol").value("MISSING"));
+
+    verify(stockAlertService, never()).preview(anyString(), anyString());
+    verifySearchDidNotUseHistoryBackedMarketData();
   }
 
   @Test
@@ -631,8 +643,8 @@ class DashboardControllerIntegrationTest {
         null,
         null,
         null,
-        BigDecimal.valueOf(4),
-        BigDecimal.valueOf(2),
+        null,
+        null,
         null,
         null,
         null,
@@ -640,6 +652,13 @@ class DashboardControllerIntegrationTest {
         false,
         "Price details loaded."
     );
+  }
+
+  private void verifySearchDidNotUseHistoryBackedMarketData() {
+    verify(finnhubClient, never()).companySnapshot(anyString());
+    verify(finnhubClient, never()).companyPriceSnapshot(anyString());
+    verify(finnhubClient, never()).dailyCloses(anyString());
+    verify(finnhubClient, never()).historicalCandles(anyString(), any(HistoryRange.class));
   }
 
   private PortfolioHolding holding() {

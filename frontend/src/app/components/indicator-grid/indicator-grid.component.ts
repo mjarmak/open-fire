@@ -16,6 +16,13 @@ export class IndicatorGridComponent {
     return `Current non-watch-only portfolio value (${this.formatCompactCurrency(this.currentRetirementValue)}) on a neutral scale from $0 to the Target Retirement Fund (${this.formatCompactCurrency(this.retirementTargetFund)}). There are no risk thresholds on this gauge.`;
   }
 
+  protected get showRetirementProgressIndicator(): boolean {
+    return this.state.hasLoadedRetirementSettings
+      && !this.state.isLoadingRetirement
+      && !this.state.isLoadingStocks
+      && !this.state.isLoadingPortfolio;
+  }
+
   statusClass(indicator: IndicatorSnapshot): string {
     if (this.isCompactIndicator(indicator)) {
       return this.isCompactIndicatorOverThreshold(indicator) ? 'status-risk' : 'status-primary';

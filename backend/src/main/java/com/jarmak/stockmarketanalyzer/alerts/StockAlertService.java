@@ -80,16 +80,6 @@ public class StockAlertService {
 
     CompanySnapshot snapshot = maybeSnapshot.get();
     BigDecimal latestPrice = snapshot.latestPrice().setScale(2, RoundingMode.HALF_UP);
-    BigDecimal previousClose = snapshot.previousClose() == null
-        ? null
-        : snapshot.previousClose().setScale(2, RoundingMode.HALF_UP);
-    BigDecimal stockDayChange = previousClose == null
-        ? null
-        : latestPrice.subtract(previousClose).setScale(2, RoundingMode.HALF_UP);
-    BigDecimal dayGainLossPercent = previousClose == null || previousClose.signum() == 0
-        ? null
-        : stockDayChange.divide(previousClose, 6, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(1, RoundingMode.HALF_UP);
-
     return new StockAlert(
         null,
         snapshot.symbol(),
@@ -106,8 +96,8 @@ public class StockAlertService {
         null,
         null,
         null,
-        stockDayChange,
-        dayGainLossPercent,
+        null,
+        null,
         null,
         null,
         null,

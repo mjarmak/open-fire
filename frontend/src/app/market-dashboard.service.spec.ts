@@ -1,6 +1,6 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { MarketDashboardService } from './market-dashboard.service';
 
 describe('MarketDashboardService', () => {
@@ -64,4 +64,37 @@ describe('MarketDashboardService', () => {
 
     request.flush([]);
   });
+
+  it('retries global risk chart history after an empty response', fakeAsync(() => {
+    service.username = 'user';
+    service.password = 'password123';
+    const expectVixHistoryRequest = () => http.expectOne((candidate) =>
+      candidate.url === '/api/indicators/vix/history'
+      && candidate.params.get('range') === '1m'
+    );
+
+    service.ensureGlobalIndicatorChart('vix');
+    const firstRequest = expectVixHistoryRequest();
+    expect(firstRequest.request.headers.get('Authorization')).toBe(`Basic ${btoa('user:password123')}`);
+    firstRequest.flush({ id: 'vix', range: '1m', points: [] });
+
+    expect(service.globalIndicatorChartPoints('vix')).toEqual([]);
+    service.ensureGlobalIndicatorChart('vix');
+    http.expectNone((candidate) => candidate.url === '/api/indicators/vix/history');
+
+    tick(10_000);
+    service.ensureGlobalIndicatorChart('vix');
+    const secondRequest = expectVixHistoryRequest();
+    secondRequest.flush({
+      id: 'vix',
+      range: '1m',
+      points: [{ timestamp: '2026-06-08T12:00:00Z', value: 18.5 }],
+    });
+
+    expect(service.globalIndicatorChartPoints('vix')).toEqual([
+      { timestamp: '2026-06-08T12:00:00Z', value: 18.5 },
+    ]);
+    service.ensureGlobalIndicatorChart('vix');
+    http.expectNone((candidate) => candidate.url === '/api/indicators/vix/history');
+  }));
 });

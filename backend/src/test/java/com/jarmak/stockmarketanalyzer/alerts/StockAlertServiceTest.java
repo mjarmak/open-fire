@@ -86,7 +86,7 @@ class StockAlertServiceTest {
   }
 
   @Test
-  void pricePreviewUsesLightweightSnapshotWithoutFullHistoryEvaluation() {
+  void pricePreviewUsesLightweightSnapshotWithoutDailyOrHistoryEvaluation() {
     AppProperties properties = mock(AppProperties.class);
     FinnhubClient finnhubClient = mock(FinnhubClient.class);
     PortfolioService portfolioService = mock(PortfolioService.class);
@@ -109,8 +109,8 @@ class StockAlertServiceTest {
 
     assertThat(preview.latestPrice()).isEqualByComparingTo("110.00");
     assertThat(preview.marketCap()).isEqualByComparingTo("3000000000000");
-    assertThat(preview.dayGainLoss()).isEqualByComparingTo("4.00");
-    assertThat(preview.dayGainLossPercent()).isEqualByComparingTo("3.8");
+    assertThat(preview.dayGainLoss()).isNull();
+    assertThat(preview.dayGainLossPercent()).isNull();
     assertThat(preview.fearScore()).isNull();
     assertThat(preview.thirtyDayChangePercent()).isNull();
     verify(finnhubClient).companyPriceSnapshot("AAPL");
@@ -124,6 +124,8 @@ class StockAlertServiceTest {
         new AppProperties.Market(
             "fred",
             "finnhub",
+            null,
+            null,
             null,
             null,
             List.of(),

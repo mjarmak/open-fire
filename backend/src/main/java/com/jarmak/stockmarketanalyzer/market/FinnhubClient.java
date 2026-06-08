@@ -2,6 +2,8 @@ package com.jarmak.stockmarketanalyzer.market;
 
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
 import com.jarmak.stockmarketanalyzer.market.client.AlphaVantageApiService;
+import com.jarmak.stockmarketanalyzer.market.client.EodHistoricalDataApiService;
+import com.jarmak.stockmarketanalyzer.market.client.FinancialModelingPrepApiService;
 import com.jarmak.stockmarketanalyzer.market.client.FinnhubApiService;
 import com.jarmak.stockmarketanalyzer.market.client.TwelveDataApiService;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
@@ -35,6 +37,8 @@ public class FinnhubClient {
 
   private final FinnhubApiService finnhubApiService;
   private final TwelveDataApiService twelveDataApiService;
+  private final FinancialModelingPrepApiService financialModelingPrepApiService;
+  private final EodHistoricalDataApiService eodHistoricalDataApiService;
   private final AlphaVantageApiService alphaVantageApiService;
   private final Map<String, CacheEntry<List<SymbolSearchResult>>> searchCache = new ConcurrentHashMap<>();
   private final Map<String, CacheEntry<Optional<CompanySnapshot>>> snapshotCache = new ConcurrentHashMap<>();
@@ -48,6 +52,8 @@ public class FinnhubClient {
     this(
         new FinnhubApiService(properties, restClient),
         new TwelveDataApiService(properties, restClient),
+        new FinancialModelingPrepApiService(properties, restClient),
+        new EodHistoricalDataApiService(properties, restClient),
         new AlphaVantageApiService(properties, restClient)
     );
   }
@@ -55,10 +61,14 @@ public class FinnhubClient {
   FinnhubClient(
       FinnhubApiService finnhubApiService,
       TwelveDataApiService twelveDataApiService,
+      FinancialModelingPrepApiService financialModelingPrepApiService,
+      EodHistoricalDataApiService eodHistoricalDataApiService,
       AlphaVantageApiService alphaVantageApiService
   ) {
     this.finnhubApiService = finnhubApiService;
     this.twelveDataApiService = twelveDataApiService;
+    this.financialModelingPrepApiService = financialModelingPrepApiService;
+    this.eodHistoricalDataApiService = eodHistoricalDataApiService;
     this.alphaVantageApiService = alphaVantageApiService;
   }
 
@@ -153,6 +163,8 @@ public class FinnhubClient {
     return firstPresent(
         () -> fromSnapshotCandidate(symbol, finnhubApiService.companySnapshot(symbol)),
         () -> fromSnapshotCandidate(symbol, twelveDataApiService.companySnapshot(symbol)),
+        () -> fromSnapshotCandidate(symbol, financialModelingPrepApiService.companySnapshot(symbol)),
+        () -> fromSnapshotCandidate(symbol, eodHistoricalDataApiService.companySnapshot(symbol)),
         () -> fromSnapshotCandidate(symbol, alphaVantageApiService.companySnapshot(symbol))
     );
   }
@@ -161,6 +173,8 @@ public class FinnhubClient {
     return firstPresent(
         () -> fromPriceSnapshotCandidate(symbol, finnhubApiService.companyPriceSnapshot(symbol)),
         () -> fromPriceSnapshotCandidate(symbol, twelveDataApiService.companyPriceSnapshot(symbol)),
+        () -> fromPriceSnapshotCandidate(symbol, financialModelingPrepApiService.companyPriceSnapshot(symbol)),
+        () -> fromPriceSnapshotCandidate(symbol, eodHistoricalDataApiService.companyPriceSnapshot(symbol)),
         () -> fromPriceSnapshotCandidate(symbol, alphaVantageApiService.companyPriceSnapshot(symbol))
     );
   }
@@ -188,6 +202,8 @@ public class FinnhubClient {
     return firstNonEmpty(
         () -> finnhubApiService.dailyCloses(symbol),
         () -> twelveDataApiService.dailyCloses(symbol),
+        () -> financialModelingPrepApiService.dailyCloses(symbol),
+        () -> eodHistoricalDataApiService.dailyCloses(symbol),
         () -> alphaVantageApiService.dailyCloses(symbol)
     );
   }
@@ -196,6 +212,8 @@ public class FinnhubClient {
     return firstNonEmpty(
         () -> finnhubApiService.historicalCandles(symbol, range),
         () -> twelveDataApiService.historicalCandles(symbol, range),
+        () -> financialModelingPrepApiService.historicalCandles(symbol, range),
+        () -> eodHistoricalDataApiService.historicalCandles(symbol, range),
         () -> alphaVantageApiService.historicalCandles(symbol, range)
     );
   }
@@ -211,6 +229,22 @@ public class FinnhubClient {
     }
     try {
       List<SymbolSearchResult> symbols = fetchSymbolsFromTwelveData(keywords);
+      if (!symbols.isEmpty()) {
+        return symbols;
+      }
+    } catch (RuntimeException ignored) {
+      // keep trying alternate providers
+    }
+    try {
+      List<SymbolSearchResult> symbols = fetchSymbolsFromFinancialModelingPrep(keywords);
+      if (!symbols.isEmpty()) {
+        return symbols;
+      }
+    } catch (RuntimeException ignored) {
+      // keep trying alternate providers
+    }
+    try {
+      List<SymbolSearchResult> symbols = fetchSymbolsFromEodHistoricalData(keywords);
       if (!symbols.isEmpty()) {
         return symbols;
       }
@@ -253,7 +287,10 @@ public class FinnhubClient {
   }
 
   private boolean hasSecondarySearchProvider() {
-    return twelveDataApiService.configured() || alphaVantageApiService.configured();
+    return twelveDataApiService.configured()
+        || financialModelingPrepApiService.configured()
+        || eodHistoricalDataApiService.configured()
+        || alphaVantageApiService.configured();
   }
 
   private List<SymbolSearchResult> fetchSymbolsFromTwelveData(String keywords) {
@@ -262,6 +299,14 @@ public class FinnhubClient {
 
   private List<SymbolSearchResult> fetchSymbolsFromAlphaVantage(String keywords) {
     return sortAndLimitSearchResults(alphaVantageApiService.searchSymbols(keywords), keywords);
+  }
+
+  private List<SymbolSearchResult> fetchSymbolsFromFinancialModelingPrep(String keywords) {
+    return sortAndLimitSearchResults(financialModelingPrepApiService.searchSymbols(keywords), keywords);
+  }
+
+  private List<SymbolSearchResult> fetchSymbolsFromEodHistoricalData(String keywords) {
+    return sortAndLimitSearchResults(eodHistoricalDataApiService.searchSymbols(keywords), keywords);
   }
 
   private List<SymbolSearchResult> matchingSymbols(String type, String keywords) {

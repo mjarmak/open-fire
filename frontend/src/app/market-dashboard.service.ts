@@ -75,6 +75,8 @@ export class MarketDashboardService {
   globalIndicatorChartRanges: Record<string, string> = {};
   private readonly globalIndicatorChartCache = new Map<string, ChartPoint[]>();
   private readonly globalIndicatorChartLoadingKeys = new Set<string>();
+  private readonly globalIndicatorChartRetryAfter = new Map<string, number>();
+  private readonly globalIndicatorChartRetryDelayMs = 10_000;
   alertsDialogOpen = false;
   telegramDialogOpen = false;
   telegramChatId = '';
@@ -492,14 +494,24 @@ export class MarketDashboardService {
     if (this.globalIndicatorChartCache.has(cacheKey) || this.globalIndicatorChartLoadingKeys.has(cacheKey)) {
       return;
     }
+    const retryAfter = this.globalIndicatorChartRetryAfter.get(cacheKey);
+    if (retryAfter !== undefined && Date.now() < retryAfter) {
+      return;
+    }
 
     this.globalIndicatorChartLoadingKeys.add(cacheKey);
     this.fetchIndicatorHistory(this.username, this.password, indicatorId, range).subscribe({
       next: (series) => {
-        this.globalIndicatorChartCache.set(cacheKey, series.points || []);
+        const points = series.points || [];
+        if (points.length) {
+          this.globalIndicatorChartCache.set(cacheKey, points);
+          this.globalIndicatorChartRetryAfter.delete(cacheKey);
+        } else {
+          this.globalIndicatorChartRetryAfter.set(cacheKey, Date.now() + this.globalIndicatorChartRetryDelayMs);
+        }
       },
       error: () => {
-        this.globalIndicatorChartCache.set(cacheKey, []);
+        this.globalIndicatorChartRetryAfter.set(cacheKey, Date.now() + this.globalIndicatorChartRetryDelayMs);
         this.globalIndicatorChartLoadingKeys.delete(cacheKey);
       },
       complete: () => {

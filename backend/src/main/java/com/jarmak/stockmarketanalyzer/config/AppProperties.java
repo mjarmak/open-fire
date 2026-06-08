@@ -20,6 +20,8 @@ public record AppProperties(
       String finnhubApiKey,
       String twelveDataApiKey,
       String alphaVantageApiKey,
+      String financialModelingPrepApiKey,
+      String eodHistoricalDataApiKey,
       List<String> breadthSymbols,
       List<String> crossAssetSymbols,
       BigDecimal lowMarketCapThreshold,

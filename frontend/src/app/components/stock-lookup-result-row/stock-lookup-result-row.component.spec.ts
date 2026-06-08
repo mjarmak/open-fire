@@ -50,7 +50,7 @@ describe('StockLookupResultRowComponent', () => {
     TestBed.resetTestingModule();
   });
 
-  it('renders lightweight price details without history-backed indicators', async () => {
+  it('renders lightweight price details without daily or history-backed indicators', async () => {
     const { element } = await render({
       symbol: 'AAPL',
       name: 'Apple Inc.',
@@ -65,11 +65,11 @@ describe('StockLookupResultRowComponent', () => {
     expect(element.textContent).toContain('Apple Inc.');
     expect(element.textContent).toContain('Price');
     expect(element.textContent).toContain('$198.20');
-    expect(element.textContent).toContain('Today');
-    expect(element.textContent).toContain('0.77%');
-    expect(element.textContent).toContain('$18.20');
     expect(element.textContent).toContain('Market Cap');
     expect(element.textContent).toContain('$2.9T');
+    expect(element.textContent).not.toContain('Today');
+    expect(element.textContent).not.toContain('0.77%');
+    expect(element.textContent).not.toContain('$18.20');
     expect(element.textContent).not.toContain('Fear');
     expect(element.textContent).not.toContain('30D');
     expect(element.textContent).not.toContain('P/E');

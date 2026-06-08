@@ -235,25 +235,14 @@ public class DashboardController {
       @RequestParam(defaultValue = "false") boolean includePriceDetails
   ) {
     List<SymbolSearchResult> results = finnhubClient.searchSymbols(keywords);
-    if (!includeIndicators) {
-      if (includePriceDetails) {
-        return results.stream()
-            .map(result -> new SymbolSearchResult(
-                result.symbol(),
-                result.name(),
-                result.region(),
-                result.currency(),
-                pricePreviewOrNull(result)
-            ))
-            .toList();
-      }
+    if (!includeIndicators && !includePriceDetails) {
       return results;
     }
 
     List<IndexedSymbolSearchResult> enriched = new ArrayList<>();
     for (int i = 0; i < results.size(); i++) {
       SymbolSearchResult result = results.get(i);
-      StockAlert indicators = previewOrNull(result);
+      StockAlert indicators = pricePreviewOrNull(result);
       enriched.add(new IndexedSymbolSearchResult(
           i,
           new SymbolSearchResult(
@@ -373,14 +362,6 @@ public class DashboardController {
       @DecimalMin(value = "0.0") BigDecimal averageCost,
       boolean watchOnly
   ) {
-  }
-
-  private StockAlert previewOrNull(SymbolSearchResult result) {
-    try {
-      return stockAlertService.preview(result.symbol(), result.name());
-    } catch (RuntimeException exception) {
-      return null;
-    }
   }
 
   private StockAlert pricePreviewOrNull(SymbolSearchResult result) {

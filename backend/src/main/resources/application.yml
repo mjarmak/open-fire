@@ -11,6 +11,8 @@ app:
     finnhub-api-key: ${FINNHUB_API_KEY}
     twelvedata-api-key: ${TWELVEDATA_API_KEY:}
     alphavantage-api-key: ${ALPHA_VANTAGE_API_KEY:}
+    financial-modeling-prep-api-key: ${FINANCIAL_MODELING_PREP_API_KEY:}
+    eod-historical-data-api-key: ${EODHD_API_KEY:}
     breadth-symbols: ${BREADTH_SYMBOLS:SPY,QQQ,IWM,DIA,XLF,XLK,XLE,XLV,XLY,XLP}
     cross-asset-symbols: ${CROSS_ASSET_SYMBOLS:SPY,TLT,GLD,UUP}
     low-market-cap-threshold: ${LOW_MARKET_CAP_THRESHOLD:2000000000}

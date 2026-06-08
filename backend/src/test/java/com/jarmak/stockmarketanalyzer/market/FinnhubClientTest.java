@@ -2,6 +2,11 @@ package com.jarmak.stockmarketanalyzer.market;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
@@ -13,12 +18,18 @@ import ch.qos.logback.core.read.ListAppender;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.SymbolSearchResult;
+import com.jarmak.stockmarketanalyzer.market.client.AlphaVantageApiService;
+import com.jarmak.stockmarketanalyzer.market.client.EodHistoricalDataApiService;
+import com.jarmak.stockmarketanalyzer.market.client.FinancialModelingPrepApiService;
+import com.jarmak.stockmarketanalyzer.market.client.FinnhubApiService;
+import com.jarmak.stockmarketanalyzer.market.client.TwelveDataApiService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -296,6 +307,58 @@ class FinnhubClientTest {
   }
 
   @Test
+  void historicalCandlesUsesFinancialModelingPrepBeforeEodhdAndAlphaVantageWhenConfigured() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties("finnhub", "twelve", "alpha", "fmp", "eodhd"), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/stock/candle")))
+        .andRespond(withSuccess("""
+            {"s":"no_data"}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/time_series")))
+        .andRespond(withSuccess("""
+            {"status":"error","message":"No data for symbol."}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/stable/historical-price-eod/full")))
+        .andRespond(withSuccess(currentDailyHistoryPayload("401", "405"), MediaType.APPLICATION_JSON));
+
+    List<ChartPoint> points = client.historicalCandles("AAPL", HistoryRange.ONE_MONTH);
+
+    assertThat(points).hasSize(2);
+    assertThat(points).extracting(ChartPoint::value)
+        .containsExactly(BigDecimal.valueOf(401), BigDecimal.valueOf(405));
+    server.verify();
+  }
+
+  @Test
+  void historicalCandlesUsesEodhdWhenFinancialModelingPrepIsUnavailable() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties("finnhub", "twelve", "alpha", "fmp", "eodhd"), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/stock/candle")))
+        .andRespond(withSuccess("""
+            {"s":"no_data"}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/time_series")))
+        .andRespond(withSuccess("""
+            {"status":"error","message":"No data for symbol."}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/stable/historical-price-eod/full")))
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/eod/AAPL.US")))
+        .andRespond(withSuccess(currentDailyHistoryPayload("501", "505"), MediaType.APPLICATION_JSON));
+
+    List<ChartPoint> points = client.historicalCandles("AAPL", HistoryRange.ONE_MONTH);
+
+    assertThat(points).hasSize(2);
+    assertThat(points).extracting(ChartPoint::value)
+        .containsExactly(BigDecimal.valueOf(501), BigDecimal.valueOf(505));
+    server.verify();
+  }
+
+  @Test
   void historicalCandlesPreservesDottedSymbolWhenCallingTwelveData() {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
@@ -476,6 +539,55 @@ class FinnhubClientTest {
   }
 
   @Test
+  void companyPriceSnapshotDoesNotUseHistoryBackedProviderClientMethods() {
+    FinnhubApiService finnhubApiService = mock(FinnhubApiService.class);
+    TwelveDataApiService twelveDataApiService = mock(TwelveDataApiService.class);
+    FinancialModelingPrepApiService financialModelingPrepApiService = mock(FinancialModelingPrepApiService.class);
+    EodHistoricalDataApiService eodHistoricalDataApiService = mock(EodHistoricalDataApiService.class);
+    AlphaVantageApiService alphaVantageApiService = mock(AlphaVantageApiService.class);
+    FinnhubClient client = new FinnhubClient(
+        finnhubApiService,
+        twelveDataApiService,
+        financialModelingPrepApiService,
+        eodHistoricalDataApiService,
+        alphaVantageApiService
+    );
+
+    when(finnhubApiService.companyPriceSnapshot("AAPL")).thenReturn(Optional.of(new MarketSnapshotCandidate(
+        "Apple Inc",
+        "Technology",
+        BigDecimal.valueOf(3_000_000_000_000L),
+        null,
+        null,
+        BigDecimal.valueOf(190),
+        BigDecimal.valueOf(188),
+        BigDecimal.valueOf(191),
+        BigDecimal.valueOf(186),
+        null
+    )));
+
+    CompanySnapshot snapshot = client.companyPriceSnapshot("AAPL").orElseThrow();
+
+    assertThat(snapshot.latestPrice()).isEqualByComparingTo("190");
+    verify(finnhubApiService).companyPriceSnapshot("AAPL");
+    verify(finnhubApiService, never()).companySnapshot(anyString());
+    verify(finnhubApiService, never()).dailyCloses(anyString());
+    verify(finnhubApiService, never()).historicalCandles(anyString(), org.mockito.ArgumentMatchers.any(HistoryRange.class));
+    verify(twelveDataApiService, never()).companySnapshot(anyString());
+    verify(twelveDataApiService, never()).dailyCloses(anyString());
+    verify(twelveDataApiService, never()).historicalCandles(anyString(), org.mockito.ArgumentMatchers.any(HistoryRange.class));
+    verify(financialModelingPrepApiService, never()).companySnapshot(anyString());
+    verify(financialModelingPrepApiService, never()).dailyCloses(anyString());
+    verify(financialModelingPrepApiService, never()).historicalCandles(anyString(), org.mockito.ArgumentMatchers.any(HistoryRange.class));
+    verify(eodHistoricalDataApiService, never()).companySnapshot(anyString());
+    verify(eodHistoricalDataApiService, never()).dailyCloses(anyString());
+    verify(eodHistoricalDataApiService, never()).historicalCandles(anyString(), org.mockito.ArgumentMatchers.any(HistoryRange.class));
+    verify(alphaVantageApiService, never()).companySnapshot(anyString());
+    verify(alphaVantageApiService, never()).dailyCloses(anyString());
+    verify(alphaVantageApiService, never()).historicalCandles(anyString(), org.mockito.ArgumentMatchers.any(HistoryRange.class));
+  }
+
+  @Test
   void companyPriceSnapshotUsesTwelveDataPriceDetailsWithoutIndicatorFields() {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
@@ -640,6 +752,16 @@ class FinnhubClientTest {
   }
 
   private AppProperties properties(String finnhubApiKey, String twelveDataApiKey, String alphaVantageApiKey) {
+    return properties(finnhubApiKey, twelveDataApiKey, alphaVantageApiKey, null, null);
+  }
+
+  private AppProperties properties(
+      String finnhubApiKey,
+      String twelveDataApiKey,
+      String alphaVantageApiKey,
+      String financialModelingPrepApiKey,
+      String eodHistoricalDataApiKey
+  ) {
     return new AppProperties(
         null,
         new AppProperties.Market(
@@ -647,6 +769,8 @@ class FinnhubClientTest {
             finnhubApiKey,
             twelveDataApiKey,
             alphaVantageApiKey,
+            financialModelingPrepApiKey,
+            eodHistoricalDataApiKey,
             List.of(),
             List.of(),
             BigDecimal.valueOf(2_000_000_000L),
@@ -661,6 +785,21 @@ class FinnhubClientTest {
         null,
         null,
         null
+    );
+  }
+
+  private String currentDailyHistoryPayload(String firstClose, String secondClose) {
+    LocalDate latest = LocalDate.now(ZoneOffset.UTC).minusDays(1);
+    return """
+        [
+          {"date":"%s","close":"%s"},
+          {"date":"%s","close":"%s"}
+        ]
+        """.formatted(
+        latest.minusDays(1).format(DateTimeFormatter.ISO_DATE),
+        firstClose,
+        latest.format(DateTimeFormatter.ISO_DATE),
+        secondClose
     );
   }
 

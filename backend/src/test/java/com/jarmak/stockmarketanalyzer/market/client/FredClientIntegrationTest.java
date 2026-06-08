@@ -46,6 +46,8 @@ class FredClientIntegrationTest {
             "finnhub",
             null,
             null,
+            null,
+            null,
             List.of(),
             List.of(),
             BigDecimal.valueOf(2_000_000_000L),

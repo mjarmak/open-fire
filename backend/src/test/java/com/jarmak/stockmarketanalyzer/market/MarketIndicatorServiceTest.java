@@ -194,6 +194,8 @@ class MarketIndicatorServiceTest {
             "finnhub",
             null,
             null,
+            null,
+            null,
             breadthSymbols,
             crossAssetSymbols,
             BigDecimal.valueOf(2_000_000_000L),

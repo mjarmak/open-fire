@@ -46,25 +46,27 @@
         }
       </article>
     }
-    <article
-      class="indicator-card compact-indicator retirement-progress-indicator app-tooltip"
-      [attr.data-tooltip]="retirementProgressTooltip"
-      [attr.aria-label]="retirementProgressTooltip"
-      tabindex="0"
-    >
-      <div
-        class="mini-speedometer retirement-speedometer"
-        [style.--gauge-needle]="retirementProgressNeedleRotation + 'deg'"
-        aria-hidden="true"
+    @if (showRetirementProgressIndicator) {
+      <article
+        class="indicator-card compact-indicator retirement-progress-indicator app-tooltip"
+        [attr.data-tooltip]="retirementProgressTooltip"
+        [attr.aria-label]="retirementProgressTooltip"
+        tabindex="0"
       >
-        <span class="speedometer-needle"></span>
-      </div>
-      <div class="compact-indicator-copy">
-        <p>Retirement</p>
-        <h2>Progress</h2>
-        <strong>{{ retirementProgressPercent | number: '1.0-1' }}%</strong>
-        <span>of {{ formatCompactCurrency(retirementTargetFund) }}</span>
-      </div>
-    </article>
+        <div
+          class="mini-speedometer retirement-speedometer"
+          [style.--gauge-needle]="retirementProgressNeedleRotation + 'deg'"
+          aria-hidden="true"
+        >
+          <span class="speedometer-needle"></span>
+        </div>
+        <div class="compact-indicator-copy">
+          <p>Retirement</p>
+          <h2>Progress</h2>
+          <strong>{{ retirementProgressPercent | number: '1.0-1' }}%</strong>
+          <span>of {{ formatCompactCurrency(retirementTargetFund) }}</span>
+        </div>
+      </article>
+    }
   }
 </section>

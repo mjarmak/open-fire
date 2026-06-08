@@ -47,6 +47,20 @@ abstract class MarketApiClientIntegrationSupport {
     assertThat(Math.abs(requestedDays - range.lookback().toDays())).isLessThanOrEqualTo(1);
   }
 
+  protected void assertFromToDateRequestRange(MultiValueMap<String, String> params, HistoryRange range) {
+    LocalDate startDate = LocalDate.parse(params.getFirst("from"));
+    LocalDate endDate = LocalDate.parse(params.getFirst("to"));
+
+    if (range.allTime()) {
+      assertThat(startDate).isEqualTo(LocalDate.of(1970, 1, 1));
+      assertThat(Math.abs(ChronoUnit.DAYS.between(endDate, LocalDate.now(ZoneOffset.UTC)))).isLessThanOrEqualTo(1);
+      return;
+    }
+
+    long requestedDays = ChronoUnit.DAYS.between(startDate, endDate);
+    assertThat(Math.abs(requestedDays - range.lookback().toDays())).isLessThanOrEqualTo(1);
+  }
+
   protected void assertReturnedRange(List<ChartPoint> points, HistoryRange range) {
     assertThat(points).hasSize(2);
     assertThat(points).extracting(ChartPoint::value)
@@ -128,9 +142,41 @@ abstract class MarketApiClientIntegrationSupport {
         """.formatted(key, providerDateTime(end), providerDateTime(start));
   }
 
+  protected String financialModelingPrepHistoryPayload(Instant start, Instant end) {
+    return """
+        [
+          {"date":"%s","close":100},
+          {"date":"%s","close":110}
+        ]
+        """.formatted(providerDateTime(start), providerDateTime(end));
+  }
+
+  protected String eodHistoricalDataHistoryPayload(HistoryRange range, Instant start, Instant end) {
+    if (range == HistoryRange.ONE_HOUR || range == HistoryRange.ONE_DAY) {
+      return """
+          [
+            {"datetime":"%s","close":100},
+            {"datetime":"%s","close":110}
+          ]
+          """.formatted(providerDateTime(start), providerDateTime(end));
+    }
+
+    return """
+        [
+          {"date":"%s","close":100},
+          {"date":"%s","close":110}
+        ]
+        """.formatted(providerDate(start), providerDate(end));
+  }
+
   protected String providerDateTime(Instant instant) {
     return LocalDateTime.ofInstant(instant, ZoneOffset.UTC)
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+  }
+
+  protected String providerDate(Instant instant) {
+    return LocalDateTime.ofInstant(instant, ZoneOffset.UTC).toLocalDate()
+        .format(DateTimeFormatter.ISO_DATE);
   }
 
   protected String twelveDataInterval(HistoryRange range) {
@@ -186,6 +232,16 @@ abstract class MarketApiClientIntegrationSupport {
   }
 
   protected AppProperties properties(String finnhubApiKey, String twelveDataApiKey, String alphaVantageApiKey) {
+    return properties(finnhubApiKey, twelveDataApiKey, alphaVantageApiKey, null, null);
+  }
+
+  protected AppProperties properties(
+      String finnhubApiKey,
+      String twelveDataApiKey,
+      String alphaVantageApiKey,
+      String financialModelingPrepApiKey,
+      String eodHistoricalDataApiKey
+  ) {
     return new AppProperties(
         null,
         new AppProperties.Market(
@@ -193,6 +249,8 @@ abstract class MarketApiClientIntegrationSupport {
             finnhubApiKey,
             twelveDataApiKey,
             alphaVantageApiKey,
+            financialModelingPrepApiKey,
+            eodHistoricalDataApiKey,
             List.of(),
             List.of(),
             BigDecimal.valueOf(2_000_000_000L),

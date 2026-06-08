@@ -377,11 +377,11 @@ describe('AppComponent', () => {
     expect(metrics).not.toBeNull();
     expect(metrics?.textContent).toContain('Price');
     expect(metrics?.textContent).toContain('$195.50');
-    expect(metrics?.textContent).toContain('Today');
-    expect(metrics?.textContent).toContain('1.21%');
-    expect(metrics?.textContent).toContain('$2.34');
     expect(metrics?.textContent).toContain('Market Cap');
     expect(metrics?.textContent).toContain('$3T');
+    expect(metrics?.textContent).not.toContain('Today');
+    expect(metrics?.textContent).not.toContain('1.21%');
+    expect(metrics?.textContent).not.toContain('$2.34');
     expect(fixture.nativeElement.querySelector('.stock-lookup-result-row .position-title-inline-metric')).toBeNull();
   });
 
@@ -488,8 +488,8 @@ describe('AppComponent', () => {
     expect(row?.querySelector('.position-title-inline-metric')).toBeNull();
     expect(row?.querySelector('.ticker-metrics')).not.toBeNull();
     expect(row?.textContent).toContain('Price');
-    expect(row?.textContent).toContain('Today');
     expect(row?.textContent).toContain('Market Cap');
+    expect(row?.textContent).not.toContain('Today');
     expect(row?.textContent).not.toContain('Fear');
     expect(row?.textContent).not.toContain('30D');
     expect(row?.textContent).not.toContain('P/E');

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { StockAlert, SymbolSearchResult } from '../../market-dashboard.models';
+import { SymbolSearchResult } from '../../market-dashboard.models';
 
 @Component({
   selector: 'app-stock-lookup-result-row',
@@ -44,28 +44,4 @@ export class StockLookupResultRowComponent {
     }).format(value);
   }
 
-  protected formatToday(stock: StockAlert | null | undefined): string {
-    if (!stock) {
-      return '-';
-    }
-
-    const values: string[] = [];
-    if (stock.dayGainLossPercent !== null && stock.dayGainLossPercent !== undefined) {
-      values.push(`${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(stock.dayGainLossPercent)}%`);
-    }
-    if (stock.dayGainLoss !== null && stock.dayGainLoss !== undefined) {
-      values.push(this.formatPrice(stock.dayGainLoss));
-    }
-    return values.length ? values.join(' ') : '-';
-  }
-
-  protected isTodayPositive(stock: StockAlert | null | undefined): boolean {
-    const percent = stock?.dayGainLossPercent;
-    return percent !== null && percent !== undefined && percent > 0;
-  }
-
-  protected isTodayNegative(stock: StockAlert | null | undefined): boolean {
-    const percent = stock?.dayGainLossPercent;
-    return percent !== null && percent !== undefined && percent < 0;
-  }
 }

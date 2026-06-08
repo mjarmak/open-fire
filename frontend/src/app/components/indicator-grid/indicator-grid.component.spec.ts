@@ -25,6 +25,10 @@ describe('IndicatorGridComponent', () => {
     return {
       isLoading: false,
       isLoadingIndicators: false,
+      isLoadingRetirement: false,
+      isLoadingStocks: false,
+      isLoadingPortfolio: false,
+      hasLoadedRetirementSettings: true,
       isLoggedIn: true,
       username: 'demo',
       password: 'password123',
@@ -84,6 +88,17 @@ describe('IndicatorGridComponent', () => {
     expect(element.textContent).toContain('Progress');
     expect(element.textContent).toContain('of $900K');
     expect(speedometer?.style.getPropertyValue('--gauge-sweep')).toBe('');
+  });
+
+  it('keeps retirement progress hidden until retirement and portfolio data are fetched', async () => {
+    const element = await render(createState({
+      hasLoadedRetirementSettings: false,
+      isLoadingRetirement: true,
+      isLoadingStocks: true,
+      isLoadingPortfolio: true,
+    }));
+
+    expect(element.querySelector('.retirement-progress-indicator')).toBeNull();
   });
 
   it('maps retirement progress from zero to target across the left-to-right gauge arc', async () => {

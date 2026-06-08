@@ -7,12 +7,6 @@
 </div>
 <div class="ticker-metrics stock-lookup-price-metrics">
   <span><small>Price</small>{{ formatPrice(result.indicators?.latestPrice) }}</span>
-  <span
-    [class.value-pos]="isTodayPositive(result.indicators)"
-    [class.value-neg]="isTodayNegative(result.indicators)"
-  >
-    <small>Today</small>{{ formatToday(result.indicators) }}
-  </span>
   <span><small>Market Cap</small>{{ formatMarketCap(result.indicators?.marketCap) }}</span>
 </div>
 <button type="button" class="stock-lookup-add-button" (click)="addResult()">Add</button>
