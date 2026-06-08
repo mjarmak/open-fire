@@ -126,8 +126,9 @@ describe('RangeTrendChartComponent', () => {
       toJSON: () => ({}),
     } as DOMRect);
 
-    container?.dispatchEvent(new MouseEvent('mousemove', {
+    container?.dispatchEvent(new PointerEvent('pointermove', {
       bubbles: true,
+      pointerType: 'mouse',
       clientX: 200,
       clientY: 55,
     }));
@@ -139,9 +140,62 @@ describe('RangeTrendChartComponent', () => {
     expect(tooltip?.textContent).toContain('$25');
     expect(element.querySelector('.trend-hover-dot')).not.toBeNull();
 
-    container?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
+    container?.dispatchEvent(new PointerEvent('pointerleave', { bubbles: true, pointerType: 'mouse' }));
     fixture.detectChanges();
 
     expect(element.querySelector('.range-trend-tooltip')).toBeNull();
+  });
+
+  it('updates the tooltip while touch dragging across the graph', async () => {
+    const { fixture, element } = await render();
+    const container = element.querySelector<HTMLElement>('.range-trend-container');
+    expect(container).not.toBeNull();
+
+    spyOn(container!, 'getBoundingClientRect').and.returnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 360,
+      bottom: 120,
+      width: 360,
+      height: 120,
+      toJSON: () => ({}),
+    } as DOMRect);
+    spyOn(container!, 'setPointerCapture');
+    spyOn(container!, 'releasePointerCapture');
+
+    container?.dispatchEvent(new PointerEvent('pointerdown', {
+      bubbles: true,
+      pointerId: 7,
+      pointerType: 'touch',
+      clientX: 16,
+      clientY: 50,
+    }));
+    fixture.detectChanges();
+
+    expect(element.querySelector('.range-trend-tooltip')?.textContent).toContain('May 1, 2026');
+
+    container?.dispatchEvent(new PointerEvent('pointermove', {
+      bubbles: true,
+      pointerId: 7,
+      pointerType: 'touch',
+      clientX: 344,
+      clientY: 50,
+    }));
+    fixture.detectChanges();
+
+    expect(element.querySelector('.range-trend-tooltip')?.textContent).toContain('Jul 1, 2026');
+
+    container?.dispatchEvent(new PointerEvent('pointerup', {
+      bubbles: true,
+      pointerId: 7,
+      pointerType: 'touch',
+      clientX: 344,
+      clientY: 50,
+    }));
+
+    expect(container!.setPointerCapture).toHaveBeenCalledWith(7);
+    expect(container!.releasePointerCapture).toHaveBeenCalledWith(7);
   });
 });

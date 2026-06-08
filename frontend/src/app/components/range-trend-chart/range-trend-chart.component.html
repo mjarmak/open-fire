@@ -17,7 +17,15 @@
     }
   </div>
 
-  <div #chartContainer class="chart-container range-trend-container" (mousemove)="onChartMouseMove($event)" (mouseleave)="onChartMouseLeave()">
+  <div
+    #chartContainer
+    class="chart-container range-trend-container"
+    (pointerdown)="onChartPointerDown($event)"
+    (pointermove)="onChartPointerMove($event)"
+    (pointerup)="onChartPointerEnd($event)"
+    (pointercancel)="onChartPointerEnd($event)"
+    (pointerleave)="onChartPointerLeave($event)"
+  >
     @if (loading) {
       <div class="range-trend-loading-overlay" role="status" aria-live="polite">
         <div class="loading-spinner" aria-hidden="true"></div>

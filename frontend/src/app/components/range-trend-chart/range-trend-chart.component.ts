@@ -57,6 +57,7 @@ export class RangeTrendChartComponent implements AfterViewInit, OnChanges, OnDes
   protected hoverTooltipLeft = 0;
   protected hoverTooltipTop = 0;
   private destroyed = false;
+  private activePointerId: number | null = null;
 
   protected get startX(): number {
     return this.viewBoxWidth < 420 ? 48 : 58;
@@ -178,7 +179,39 @@ export class RangeTrendChartComponent implements AfterViewInit, OnChanges, OnDes
     this.rangeChange.emit(range);
   }
 
-  protected onChartMouseMove(event: MouseEvent): void {
+  protected onChartPointerDown(event: PointerEvent): void {
+    this.activePointerId = event.pointerId;
+    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+    this.updateHoveredPoint(event);
+    event.preventDefault();
+  }
+
+  protected onChartPointerMove(event: PointerEvent): void {
+    if (event.pointerType !== 'mouse' && this.activePointerId !== event.pointerId) {
+      return;
+    }
+    this.updateHoveredPoint(event);
+    if (this.activePointerId === event.pointerId) {
+      event.preventDefault();
+    }
+  }
+
+  protected onChartPointerEnd(event: PointerEvent): void {
+    if (this.activePointerId !== event.pointerId) {
+      return;
+    }
+    (event.currentTarget as HTMLElement).releasePointerCapture?.(event.pointerId);
+    this.activePointerId = null;
+  }
+
+  protected onChartPointerLeave(event: PointerEvent): void {
+    if (this.activePointerId === event.pointerId) {
+      return;
+    }
+    this.hoveredPoint = null;
+  }
+
+  private updateHoveredPoint(event: PointerEvent): void {
     if (this.loading) {
       this.hoveredPoint = null;
       return;
@@ -192,8 +225,8 @@ export class RangeTrendChartComponent implements AfterViewInit, OnChanges, OnDes
 
     const container = event.currentTarget as HTMLElement;
     const rect = container.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const svgX = this.clamp((mouseX / Math.max(1, rect.width)) * this.viewBoxWidth, this.startX, this.endX);
+    const pointerX = event.clientX - rect.left;
+    const svgX = this.clamp((pointerX / Math.max(1, rect.width)) * this.viewBoxWidth, this.startX, this.endX);
     const nearest = points.reduce((closest, point) =>
       Math.abs(point.x - svgX) < Math.abs(closest.x - svgX) ? point : closest,
     );
@@ -203,10 +236,6 @@ export class RangeTrendChartComponent implements AfterViewInit, OnChanges, OnDes
     this.hoveredPoint = nearest;
     this.hoverTooltipLeft = this.clamp(pointLeft + 12, 8, Math.max(8, rect.width - 178));
     this.hoverTooltipTop = this.clamp(pointTop - 44, 8, Math.max(8, rect.height - 72));
-  }
-
-  protected onChartMouseLeave(): void {
-    this.hoveredPoint = null;
   }
 
   protected formatTooltipDate(date: Date): string {
