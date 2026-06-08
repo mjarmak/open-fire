@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 
 export type TrendChartRange = '5d' | '1m' | '1y' | '10y' | 'all';
+export const DEFAULT_TREND_CHART_RANGE: TrendChartRange = '1y';
 
 export type TrendChartPoint = {
   date: Date;
@@ -41,7 +42,7 @@ export class RangeTrendChartComponent implements AfterViewInit, OnChanges, OnDes
 
   @Input() points: TrendChartPoint[] = [];
   @Input() ranges: readonly TrendChartRange[] = ['5d', '1m', '1y', '10y', 'all'];
-  @Input() selectedRange: TrendChartRange = '1m';
+  @Input() selectedRange: TrendChartRange = DEFAULT_TREND_CHART_RANGE;
   @Input() tone: 'up' | 'down' | 'flat' = 'flat';
   @Input() label = 'Trend chart';
   @Input() valueMode: 'currency' | 'number' = 'currency';

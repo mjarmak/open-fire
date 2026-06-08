@@ -14,10 +14,19 @@ export interface TelegramSettingsResponse {
   alertDays: string[];
 }
 
+export interface FeedbackResponse {
+  id: number;
+  telegramSent: boolean;
+  message: string;
+}
+
+const DEFAULT_GLOBAL_INDICATOR_CHART_RANGE = '1y';
+
 @Injectable({ providedIn: 'root' })
 export class MarketDashboardService {
   private readonly apiBaseUrl = this.resolveApiBaseUrl();
   readonly dcaReminderMaxLength = 800;
+  readonly feedbackMaxLength = 512;
   readonly notificationDayOptions: ReadonlyArray<{ value: string; label: string }> = [
     { value: 'MON', label: 'Mon' },
     { value: 'TUE', label: 'Tue' },
@@ -84,6 +93,9 @@ export class MarketDashboardService {
   draftTelegramAlertDays = [...this.defaultTelegramAlertDays];
   isLoadingTelegram = false;
   isSavingTelegram = false;
+  feedbackDialogOpen = false;
+  feedbackMessage = '';
+  isSendingFeedback = false;
   dcaDialogOpen = false;
   dcaSuggestionDialogOpen = false;
   isLoadingDca = false;
@@ -327,7 +339,7 @@ export class MarketDashboardService {
   }
 
   getGlobalIndicatorChartRange(indicatorId: string): string {
-    return this.globalIndicatorChartRanges[indicatorId] ?? '1m';
+    return this.globalIndicatorChartRanges[indicatorId] ?? DEFAULT_GLOBAL_INDICATOR_CHART_RANGE;
   }
 
   setGlobalIndicatorChartRange(indicatorId: string, range: string): void {
@@ -365,6 +377,14 @@ export class MarketDashboardService {
   sendTelegram(username: string, password: string, message: string): Observable<TelegramSendResponse> {
     return this.http.post<TelegramSendResponse>(
       `${this.apiBaseUrl}/notifications/telegram`,
+      { message },
+      { headers: this.basicAuth(username, password) },
+    );
+  }
+
+  submitFeedback(username: string, password: string, message: string): Observable<FeedbackResponse> {
+    return this.http.post<FeedbackResponse>(
+      `${this.apiBaseUrl}/feedback`,
       { message },
       { headers: this.basicAuth(username, password) },
     );

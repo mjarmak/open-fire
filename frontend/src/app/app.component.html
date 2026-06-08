@@ -7,6 +7,7 @@
     (logout)="logout()"
     (openLogin)="openLoginDialog()"
     (openCreateUser)="openCreateUserDialog()"
+    (openFeedback)="openFeedbackDialog()"
   />
 
   @if (isLoggedIn) {
@@ -151,6 +152,47 @@
   (save)="saveTelegramChatId()"
   (test)="sendTelegramTest()"
 />
+
+@if (feedbackDialogOpen) {
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop>
+    <section class="edit-dialog feedback-dialog" role="dialog" aria-modal="true" aria-labelledby="feedback-title" @dialogPanel (click)="$event.stopPropagation()">
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">Feedback</p>
+          <h2 id="feedback-title">Send Feedback</h2>
+        </div>
+        <button type="button" class="icon-action" title="Close dialog" aria-label="Close feedback" (click)="closeFeedbackDialog()"></button>
+      </div>
+
+      <form class="edit-form" (ngSubmit)="sendFeedback()">
+        <fieldset class="dialog-fieldset" [disabled]="isSendingFeedback">
+          <label>
+            <span>Message</span>
+            <textarea
+              #feedbackMessageInput
+              name="feedbackMessage"
+              rows="7"
+              [attr.maxlength]="feedbackMaxLength"
+              [(ngModel)]="feedbackMessage"
+              placeholder="What should be improved?"
+            ></textarea>
+          </label>
+
+          <div class="dialog-actions dca-sample-actions">
+            <span>{{ feedbackMessage.length }}/{{ feedbackMaxLength }}</span>
+          </div>
+
+          <div class="dialog-actions">
+            <button type="button" class="secondary" (click)="closeFeedbackDialog()">Cancel</button>
+            <button type="submit" [disabled]="!feedbackMessage.trim() || feedbackMessage.length > feedbackMaxLength || isSendingFeedback">
+              {{ isSendingFeedback ? 'Sending' : 'Send' }}
+            </button>
+          </div>
+        </fieldset>
+      </form>
+    </section>
+  </div>
+}
 
 @if (snackbarMessage) {
   <div class="snackbar" [class.snackbar-error]="snackbarTone === 'error'" role="status" aria-live="polite">

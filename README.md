@@ -132,6 +132,7 @@ Optional Telegram variables:
 TELEGRAM_ENABLED=true
 TELEGRAM_BOT_USERNAME=sma3141_bot
 TELEGRAM_BOT_TOKEN=your-telegram-bot-token
+TELEGRAM_OWNER_CHAT_ID=your-owner-chat-id
 ```
 
 Useful deployment commands:
@@ -170,6 +171,7 @@ $env:TWELVEDATA_API_KEY="your-twelvedata-key"     # optional fallback
 $env:ALPHA_VANTAGE_API_KEY="your-alpha-vantage-key" # optional fallback
 $env:LOGGING_LEVEL="INFO"                         # optional: DEBUG, INFO, WARN, ERROR
 $env:TELEGRAM_BOT_TOKEN="your-telegram-bot-token"
+$env:TELEGRAM_OWNER_CHAT_ID="your-owner-chat-id"
 ```
 
 Where to get them:
@@ -184,6 +186,7 @@ Where to get them:
   https://www.alphavantage.co/support/#api-key
 - **LOGGING_LEVEL**: controls backend app and HTTP client logging with one value. Defaults to `INFO`; use `DEBUG` while diagnosing provider/API calls.
 - **TELEGRAM_BOT_TOKEN**: message [@BotFather](https://t.me/botfather) in Telegram, run `/newbot`, and keep the token it returns.
+- **TELEGRAM_OWNER_CHAT_ID**: the Telegram chat ID that receives user feedback messages. Start the bot from your owner account, call `getUpdates` with the bot token, and copy `message.chat.id`.
 
 Only set the keys your deployment needs; the app will use Finnhub first, then fall back to Twelve Data, then Alpha Vantage for symbol search.
 
@@ -231,9 +234,12 @@ The backend sends Telegram messages through the Telegram Bot API. Keep the bot t
 $env:TELEGRAM_ENABLED="true"
 $env:TELEGRAM_BOT_USERNAME="sma3141_bot"
 $env:TELEGRAM_BOT_TOKEN="your-telegram-bot-token"
+$env:TELEGRAM_OWNER_CHAT_ID="your-owner-chat-id"
 ```
 
 Chat IDs are stored per app user in PostgreSQL. Use the Telegram button in the dashboard to save or test your own chat ID. For a private chat, start the bot in Telegram, call `getUpdates` with the bot token, and copy the returned `message.chat.id` into the dashboard. For a channel or supergroup, Telegram can accept a target username such as `@channel_name` when the bot has permission to post there.
+
+Set `TELEGRAM_OWNER_CHAT_ID` to the owner chat ID that should receive feedback submitted from the app menu. Feedback is always saved in PostgreSQL; if `TELEGRAM_OWNER_CHAT_ID` is blank, feedback is stored but not forwarded to Telegram.
 
 ## Basic Auth Password Hash
 

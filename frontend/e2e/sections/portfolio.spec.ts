@@ -48,7 +48,7 @@ test.describe('Portfolio Section', () => {
     await nvdaRow.getByRole('button', { name: 'Position graph' }).click();
     await expect(nvdaRow.locator('.position-chart-row')).toBeVisible();
     await expect(nvdaRow.locator('.chart-range-options button')).toHaveCount(5);
-    await expect(nvdaRow.locator('.chart-range-options button.active')).toHaveText('1m');
+    await expect(nvdaRow.locator('.chart-range-options button.active')).toHaveText('1y');
     await expect(nvdaRow.locator('.ticker-metrics')).toHaveCount(0);
 
     await nvdaRow.locator('.position-expand-hint').click();
@@ -266,7 +266,7 @@ test.describe('Portfolio Section', () => {
     await expect(chartRow.locator('.chart-range-options button', { hasText: '10y' })).toBeVisible();
     await expect(chartRow.locator('.chart-range-options button', { hasText: '1d' })).toHaveCount(0);
     await expect(chartRow.locator('.chart-range-options button', { hasText: '5y' })).toHaveCount(0);
-    await expect(chartRow.locator('.chart-range-options button.active')).toHaveText('1m');
+    await expect(chartRow.locator('.chart-range-options button.active')).toHaveText('1y');
     await expect(chartRow.locator('.range-trend-svg .trend-line')).toHaveAttribute('d', /L/);
     await expect(chartRow.locator('.trend-x-axis-label')).toHaveCount(3);
     await expect(chartRow.locator('.trend-y-axis-label')).toHaveCount(5);
@@ -302,8 +302,8 @@ test.describe('Portfolio Section', () => {
     await expect(chartRow.locator('.chart-range-options button.active')).toHaveText('5d');
     await expect.poll(() => api.calls['GET /stocks/AAPL/history'] || 0).toBe(2);
 
-    await chartRow.locator('.chart-range-options button', { hasText: '1m' }).click();
-    await expect(chartRow.locator('.chart-range-options button.active')).toHaveText('1m');
+    await chartRow.locator('.chart-range-options button', { hasText: '1y' }).click();
+    await expect(chartRow.locator('.chart-range-options button.active')).toHaveText('1y');
     await page.waitForTimeout(100);
     expect(api.calls['GET /stocks/AAPL/history'] || 0).toBe(2);
 
@@ -338,7 +338,7 @@ test.describe('Portfolio Section', () => {
 
     await aaplRow.locator('.chart-range-options button', { hasText: '10y' }).click();
     await expect(aaplRow.locator('.chart-range-options button.active')).toHaveText('10y');
-    await expect(msftRow.locator('.chart-range-options button.active')).toHaveText('1m');
+    await expect(msftRow.locator('.chart-range-options button.active')).toHaveText('1y');
     await expect.poll(() => api.calls['GET /stocks/AAPL/history'] || 0).toBe(2);
     expect(api.calls['GET /stocks/MSFT/history'] || 0).toBe(1);
 

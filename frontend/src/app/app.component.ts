@@ -69,10 +69,13 @@ export class AppComponent implements OnDestroy, OnInit {
   private editSymbolSearchHandle?: ReturnType<typeof setTimeout>;
   private stockLookupSearchHandle?: ReturnType<typeof setTimeout>;
   private stockLookupInputSelectHandle?: ReturnType<typeof setTimeout>;
+  private feedbackInputSelectHandle?: ReturnType<typeof setTimeout>;
   private snackbarHandle?: ReturnType<typeof setTimeout>;
   private dashboardLoadToken = 0;
   private stockLookupInputElement?: ElementRef<HTMLInputElement>;
   private stockLookupInputSelectionPending = false;
+  private feedbackInputElement?: ElementRef<HTMLTextAreaElement>;
+  private feedbackInputSelectionPending = false;
 
   constructor(public readonly marketDashboardService: MarketDashboardService) {}
 
@@ -81,6 +84,14 @@ export class AppComponent implements OnDestroy, OnInit {
     this.stockLookupInputElement = input;
     if (input && this.marketDashboardService.stockLookupDialogOpen && this.stockLookupInputSelectionPending) {
       this.queueStockLookupInputSelection();
+    }
+  }
+
+  @ViewChild('feedbackMessageInput')
+  private set feedbackMessageInput(input: ElementRef<HTMLTextAreaElement> | undefined) {
+    this.feedbackInputElement = input;
+    if (input && this.feedbackDialogOpen && this.feedbackInputSelectionPending) {
+      this.queueFeedbackInputSelection();
     }
   }
 
@@ -157,6 +168,13 @@ export class AppComponent implements OnDestroy, OnInit {
   set isLoadingTelegram(value: boolean) { this.marketDashboardService.isLoadingTelegram = value; }
   get isSavingTelegram(): boolean { return this.marketDashboardService.isSavingTelegram; }
   set isSavingTelegram(value: boolean) { this.marketDashboardService.isSavingTelegram = value; }
+  get feedbackDialogOpen(): boolean { return this.marketDashboardService.feedbackDialogOpen; }
+  set feedbackDialogOpen(value: boolean) { this.marketDashboardService.feedbackDialogOpen = value; }
+  get feedbackMessage(): string { return this.marketDashboardService.feedbackMessage; }
+  set feedbackMessage(value: string) { this.marketDashboardService.feedbackMessage = value; }
+  get feedbackMaxLength(): number { return this.marketDashboardService.feedbackMaxLength; }
+  get isSendingFeedback(): boolean { return this.marketDashboardService.isSendingFeedback; }
+  set isSendingFeedback(value: boolean) { this.marketDashboardService.isSendingFeedback = value; }
   get dcaDialogOpen(): boolean { return this.marketDashboardService.dcaDialogOpen; }
   set dcaDialogOpen(value: boolean) { this.marketDashboardService.dcaDialogOpen = value; }
   get dcaSuggestionDialogOpen(): boolean { return this.marketDashboardService.dcaSuggestionDialogOpen; }
@@ -239,6 +257,9 @@ export class AppComponent implements OnDestroy, OnInit {
     }
     if (this.stockLookupInputSelectHandle) {
       clearTimeout(this.stockLookupInputSelectHandle);
+    }
+    if (this.feedbackInputSelectHandle) {
+      clearTimeout(this.feedbackInputSelectHandle);
     }
     if (this.snackbarHandle) {
       clearTimeout(this.snackbarHandle);
@@ -548,6 +569,9 @@ export class AppComponent implements OnDestroy, OnInit {
     this.dcaDialogOpen = false;
     this.dcaSuggestionDialogOpen = false;
     this.alertsDialogOpen = false;
+    this.feedbackDialogOpen = false;
+    this.feedbackMessage = '';
+    this.isSendingFeedback = false;
     this.dashboard = this.emptyDashboard();
   }
 
@@ -852,6 +876,85 @@ export class AppComponent implements OnDestroy, OnInit {
 
   closeTelegramDialog(): void {
     this.telegramDialogOpen = false;
+  }
+
+  openFeedbackDialog(): void {
+    if (!this.isLoggedIn) {
+      this.openLoginDialog();
+      this.showSnackbar('Login before sending feedback.', 'error');
+      return;
+    }
+
+    this.feedbackMessage = '';
+    this.feedbackDialogOpen = true;
+    this.requestFeedbackInputSelection();
+  }
+
+  closeFeedbackDialog(): void {
+    this.feedbackDialogOpen = false;
+    if (this.feedbackInputSelectHandle) {
+      clearTimeout(this.feedbackInputSelectHandle);
+      this.feedbackInputSelectHandle = undefined;
+    }
+    this.feedbackInputSelectionPending = false;
+  }
+
+  private requestFeedbackInputSelection(): void {
+    this.feedbackInputSelectionPending = true;
+    this.queueFeedbackInputSelection();
+  }
+
+  private queueFeedbackInputSelection(): void {
+    if (!this.feedbackInputSelectionPending) {
+      return;
+    }
+
+    if (this.feedbackInputSelectHandle) {
+      clearTimeout(this.feedbackInputSelectHandle);
+    }
+
+    this.feedbackInputSelectHandle = setTimeout(() => {
+      this.feedbackInputSelectHandle = undefined;
+      if (!this.feedbackDialogOpen || !this.feedbackInputSelectionPending) {
+        return;
+      }
+
+      const input = this.feedbackInputElement?.nativeElement;
+      if (!input) {
+        return;
+      }
+
+      this.feedbackInputSelectionPending = false;
+      input.focus();
+      input.select();
+    }, 0);
+  }
+
+  sendFeedback(): void {
+    if (!this.isLoggedIn) {
+      return;
+    }
+
+    const message = this.feedbackMessage.trim();
+    if (!message) {
+      this.showSnackbar('Enter a feedback message.', 'error');
+      return;
+    }
+    if (message.length > this.feedbackMaxLength) {
+      this.showSnackbar(`Feedback must be ${this.feedbackMaxLength} characters or less.`, 'error');
+      return;
+    }
+
+    this.isSendingFeedback = true;
+    this.marketDashboardService.submitFeedback(this.username, this.password, message)
+      .pipe(finalize(() => (this.isSendingFeedback = false)))
+      .subscribe({
+        next: (response) => {
+          this.showSnackbar(response.message);
+          this.closeFeedbackDialog();
+        },
+        error: () => this.showSnackbar('Could not send feedback.', 'error'),
+      });
   }
 
   openDcaDialog(): void {

@@ -576,6 +576,20 @@ button {
     transform 160ms ease;
 }
 
+a.top-menu-action {
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
 input {
   width: 100%;
   border: 1px solid var(--border-strong);
@@ -607,11 +621,21 @@ button:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
+a.top-menu-action:hover {
+  transform: translateY(-1px);
+}
+
 button:active:not(:disabled) {
   transform: translateY(0);
 }
 
-button.secondary {
+a.top-menu-action:active {
+  transform: translateY(0);
+}
+
+button.secondary,
+a.top-menu-action.secondary {
+  border: 1px solid var(--border-strong);
   color: var(--text);
   background: var(--secondary);
 }
@@ -2219,6 +2243,8 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
   width: 100%;
   min-height: 34px;
   padding: 0 12px;
+  color: inherit;
+  text-decoration: none;
   text-align: left;
 }
 
@@ -2235,6 +2261,10 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.github-menu-action {
+  border: 1px solid color-mix(in srgb, currentColor 38%, transparent);
 }
 
 .position-action-dialog-copy {
@@ -2514,6 +2544,10 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
 }
 
 .telegram-dialog {
+  width: min(560px, 100%);
+}
+
+.feedback-dialog {
   width: min(560px, 100%);
 }
 

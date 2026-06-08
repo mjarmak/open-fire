@@ -150,15 +150,15 @@ test.describe('Indicators Section', () => {
     await expect(portfolioBoard.locator('.global-risk-chart-heading')).toHaveCount(2);
     await expect(vixChart.locator('.global-risk-chart-heading')).toContainText('Fear Index / VIX');
     await expect(vixChart.locator('.chart-range-options button')).toHaveCount(5);
-    await expect(vixChart.locator('.chart-range-options button.active')).toHaveText('1m');
+    await expect(vixChart.locator('.chart-range-options button.active')).toHaveText('1y');
 
     await vixChart.locator('.chart-range-options button', { hasText: '10y' }).click();
     await expect(vixChart.locator('.chart-range-options button.active')).toHaveText('10y');
     await expect.poll(() => api.calls['GET /indicators/vix/history'] || 0).toBe(initialVixHistoryCalls + 1);
     expect(api.calls['GET /indicators/credit/history'] || 0).toBe(initialCreditHistoryCalls);
 
-    await vixChart.locator('.chart-range-options button', { hasText: '1m' }).click();
-    await expect(vixChart.locator('.chart-range-options button.active')).toHaveText('1m');
+    await vixChart.locator('.chart-range-options button', { hasText: '1y' }).click();
+    await expect(vixChart.locator('.chart-range-options button.active')).toHaveText('1y');
     await page.waitForTimeout(100);
     expect(api.calls['GET /indicators/vix/history'] || 0).toBe(initialVixHistoryCalls + 1);
 

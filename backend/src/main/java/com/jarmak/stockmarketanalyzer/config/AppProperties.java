@@ -45,7 +45,8 @@ public record AppProperties(
   public record Telegram(
       boolean enabled,
       String botUsername,
-      String botToken
+      String botToken,
+      String ownerChatId
   ) {
   }
 

@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jarmak.stockmarketanalyzer.alerts.StockAlertService;
+import com.jarmak.stockmarketanalyzer.feedback.FeedbackService;
 import com.jarmak.stockmarketanalyzer.market.DashboardService;
 import com.jarmak.stockmarketanalyzer.market.FinnhubClient;
 import com.jarmak.stockmarketanalyzer.market.HistoryRange;
@@ -82,6 +83,9 @@ class DashboardControllerIntegrationTest {
 
   @MockBean
   private StockAlertService stockAlertService;
+
+  @MockBean
+  private FeedbackService feedbackService;
 
   @Test
   void createsUser() throws Exception {
@@ -170,6 +174,19 @@ class DashboardControllerIntegrationTest {
   }
 
   @Test
+  void getsStockHistoryWithOneYearDefaultRange() throws Exception {
+    when(finnhubClient.historicalCandles("AAPL", HistoryRange.ONE_YEAR))
+        .thenReturn(List.of(new ChartPoint(Instant.parse("2026-06-03T10:00:00Z"), BigDecimal.valueOf(110.25))));
+
+    mockMvc.perform(get("/api/stocks/AAPL/history"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value("AAPL"))
+        .andExpect(jsonPath("$.range").value("1y"));
+
+    verify(finnhubClient).historicalCandles("AAPL", HistoryRange.ONE_YEAR);
+  }
+
+  @Test
   void getsIndicatorHistory() throws Exception {
     when(marketIndicatorService.indicatorHistory("vix", HistoryRange.TEN_YEARS))
         .thenReturn(new ChartSeries(
@@ -184,6 +201,23 @@ class DashboardControllerIntegrationTest {
         .andExpect(jsonPath("$.range").value("10y"))
         .andExpect(jsonPath("$.points[0].timestamp").value("2026-06-03T00:00:00Z"))
         .andExpect(jsonPath("$.points[0].value").value(18.5));
+  }
+
+  @Test
+  void getsIndicatorHistoryWithOneYearDefaultRange() throws Exception {
+    when(marketIndicatorService.indicatorHistory("vix", HistoryRange.ONE_YEAR))
+        .thenReturn(new ChartSeries(
+            "vix",
+            "1y",
+            List.of(new ChartPoint(Instant.parse("2026-06-03T00:00:00Z"), BigDecimal.valueOf(18.5)))
+        ));
+
+    mockMvc.perform(get("/api/indicators/vix/history"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value("vix"))
+        .andExpect(jsonPath("$.range").value("1y"));
+
+    verify(marketIndicatorService).indicatorHistory("vix", HistoryRange.ONE_YEAR);
   }
 
   @Test
@@ -481,6 +515,30 @@ class DashboardControllerIntegrationTest {
         .andExpect(jsonPath("$.sent").value(true))
         .andExpect(jsonPath("$.message").value("Telegram message sent."))
         .andExpect(jsonPath("$.missingChatId").value(false));
+  }
+
+  @Test
+  void submitsFeedback() throws Exception {
+    when(feedbackService.submit("This is useful."))
+        .thenReturn(new FeedbackService.FeedbackSubmission(42L, true, "Feedback sent. Thank you."));
+
+    mockMvc.perform(post("/api/feedback")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json(Map.of("message", "This is useful."))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(42))
+        .andExpect(jsonPath("$.telegramSent").value(true))
+        .andExpect(jsonPath("$.message").value("Feedback sent. Thank you."));
+  }
+
+  @Test
+  void rejectsFeedbackLongerThan512Characters() throws Exception {
+    mockMvc.perform(post("/api/feedback")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(json(Map.of("message", "x".repeat(513)))))
+        .andExpect(status().isBadRequest());
+
+    verify(feedbackService, never()).submit(anyString());
   }
 
   @Test

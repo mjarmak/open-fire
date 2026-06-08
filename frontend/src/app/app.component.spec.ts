@@ -51,6 +51,7 @@ describe('AppComponent', () => {
       'fetchPortfolio',
       'notificationStatus',
       'sendTelegram',
+      'submitFeedback',
       'telegramSettings',
       'saveTelegramSettings',
       'saveHolding',
@@ -87,8 +88,8 @@ describe('AppComponent', () => {
     });
     marketDashboardService.fetchIndicators.and.returnValue(of([]));
     marketDashboardService.fetchStocks.and.returnValue(of([]));
-    marketDashboardService.fetchStockHistory.and.returnValue(of({ id: 'AAPL', range: '1m', points: [] }));
-    marketDashboardService.fetchIndicatorHistory.and.returnValue(of({ id: 'vix', range: '1m', points: [] }));
+    marketDashboardService.fetchStockHistory.and.returnValue(of({ id: 'AAPL', range: '1y', points: [] }));
+    marketDashboardService.fetchIndicatorHistory.and.returnValue(of({ id: 'vix', range: '1y', points: [] }));
     marketDashboardService.fetchPortfolio.and.returnValue(of([]));
     marketDashboardService.notificationStatus.and.returnValue(of({
       enabled: false,
@@ -110,7 +111,12 @@ describe('AppComponent', () => {
       reminderDays: ['WED', 'FRI'],
     }));
     marketDashboardService.searchSymbols.and.returnValue(of([]));
-    marketDashboardService.getGlobalIndicatorChartRange.and.returnValue('1m');
+    marketDashboardService.submitFeedback.and.returnValue(of({
+      id: 1,
+      telegramSent: true,
+      message: 'Feedback sent. Thank you.',
+    }));
+    marketDashboardService.getGlobalIndicatorChartRange.and.returnValue('1y');
     marketDashboardService.globalIndicatorChartPoints.and.returnValue([]);
     marketDashboardService.isGlobalIndicatorChartLoading.and.returnValue(false);
     marketDashboardService.formatNotificationDays.and.callFake((days: string[]) => days.join(', '));
@@ -515,5 +521,48 @@ describe('AppComponent', () => {
     expect(fixture.nativeElement.querySelector('.stock-lookup-result-row .position-title-inline-metric')).toBeNull();
     expect(fixture.nativeElement.querySelector('.stock-lookup-result-row .ticker-metrics')).not.toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain('Could not load indicators.');
+  });
+
+  it('opens feedback dialog from the top menu with a selected 512 character input', fakeAsync(() => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.isLoggedIn = true;
+
+    fixture.detectChanges();
+
+    const root = fixture.nativeElement as HTMLElement;
+    const menuButton = root.querySelector('.top-menu-button') as HTMLButtonElement | null;
+    menuButton?.click();
+    fixture.detectChanges();
+
+    const feedbackButton = Array.from(root.querySelectorAll<HTMLButtonElement>('.top-menu-action'))
+      .find((button): button is HTMLButtonElement => button.textContent?.includes('Send Feedback') ?? false);
+    feedbackButton?.click();
+    fixture.detectChanges();
+    tick();
+
+    const textarea = root.querySelector('.feedback-dialog textarea') as HTMLTextAreaElement | null;
+    expect(app.feedbackDialogOpen).toBeTrue();
+    expect(textarea).not.toBeNull();
+    expect(textarea?.getAttribute('maxlength')).toBe('512');
+    expect(document.activeElement).toBe(textarea);
+    expect(textarea?.selectionStart).toBe(0);
+    expect(textarea?.selectionEnd).toBe(textarea?.value.length);
+  }));
+
+  it('submits trimmed feedback and closes the dialog', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.isLoggedIn = true;
+    app.username = 'user';
+    app.password = 'password123';
+    app.feedbackDialogOpen = true;
+    app.feedbackMessage = '  please add more charts  ';
+
+    app.sendFeedback();
+
+    expect(marketDashboardService.submitFeedback).toHaveBeenCalledOnceWith('user', 'password123', 'please add more charts');
+    expect(app.feedbackDialogOpen).toBeFalse();
+    expect(app.snackbarMessage).toBe('Feedback sent. Thank you.');
   });
 });

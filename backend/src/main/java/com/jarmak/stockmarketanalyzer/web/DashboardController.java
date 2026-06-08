@@ -1,6 +1,7 @@
 package com.jarmak.stockmarketanalyzer.web;
 
 import com.jarmak.stockmarketanalyzer.alerts.StockAlertService;
+import com.jarmak.stockmarketanalyzer.feedback.FeedbackService;
 import com.jarmak.stockmarketanalyzer.market.DashboardService;
 import com.jarmak.stockmarketanalyzer.market.FinnhubClient;
 import com.jarmak.stockmarketanalyzer.market.HistoryRange;
@@ -54,6 +55,7 @@ public class DashboardController {
   private final MarketIndicatorService marketIndicatorService;
   private final UserAccountService userAccountService;
   private final StockAlertService stockAlertService;
+  private final FeedbackService feedbackService;
 
   public DashboardController(
       DashboardService dashboardService,
@@ -62,7 +64,8 @@ public class DashboardController {
       FinnhubClient finnhubClient,
       MarketIndicatorService marketIndicatorService,
       UserAccountService userAccountService,
-      StockAlertService stockAlertService
+      StockAlertService stockAlertService,
+      FeedbackService feedbackService
   ) {
     this.dashboardService = dashboardService;
     this.telegramNotificationService = telegramNotificationService;
@@ -71,6 +74,7 @@ public class DashboardController {
     this.marketIndicatorService = marketIndicatorService;
     this.userAccountService = userAccountService;
     this.stockAlertService = stockAlertService;
+    this.feedbackService = feedbackService;
   }
 
   @PostMapping({"/users", "/users/"})
@@ -113,7 +117,7 @@ public class DashboardController {
   @GetMapping("/stocks/{symbol}/history")
   ChartSeries stockHistory(
       @PathVariable String symbol,
-      @RequestParam(defaultValue = "1m") String range
+      @RequestParam(defaultValue = "1y") String range
   ) {
     HistoryRange historyRange = parseHistoryRange(range);
     String normalizedSymbol = symbol == null ? "" : symbol.trim().toUpperCase();
@@ -123,7 +127,7 @@ public class DashboardController {
   @GetMapping("/indicators/{indicatorId}/history")
   ChartSeries indicatorHistory(
       @PathVariable String indicatorId,
-      @RequestParam(defaultValue = "1m") String range
+      @RequestParam(defaultValue = "1y") String range
   ) {
     try {
       return marketIndicatorService.indicatorHistory(indicatorId, parseHistoryRange(range));
@@ -273,6 +277,12 @@ public class DashboardController {
     return new TelegramSendResponse(result.sent(), result.message(), result.missingChatId());
   }
 
+  @PostMapping("/feedback")
+  FeedbackResponse sendFeedback(@Valid @RequestBody FeedbackRequest request) {
+    FeedbackService.FeedbackSubmission submission = feedbackService.submit(request.message());
+    return new FeedbackResponse(submission.id(), submission.telegramSent(), submission.message());
+  }
+
   @GetMapping("/users/me/telegram")
   TelegramSettingsResponse telegramSettings() {
     UserTelegramSettings settings = userAccountService.currentTelegramSettings();
@@ -321,6 +331,12 @@ public class DashboardController {
   }
 
   public record TelegramSendResponse(boolean sent, String message, boolean missingChatId) {
+  }
+
+  public record FeedbackRequest(@NotBlank @Size(max = FeedbackService.MAX_FEEDBACK_LENGTH) String message) {
+  }
+
+  public record FeedbackResponse(long id, boolean telegramSent, String message) {
   }
 
   public record TelegramSettingsRequest(@NotBlank String chatId, List<String> alertDays) {

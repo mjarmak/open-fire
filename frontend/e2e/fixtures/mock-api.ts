@@ -402,7 +402,7 @@ export async function registerMockApi(page: Page, initial?: Partial<MockApiState
       const stock = state.stocks.find((item) => item.symbol === symbol);
       await route.fulfill({
         status: 200,
-        json: buildHistorySeries(symbol, url.searchParams.get('range') || '1m', stock?.latestPrice ?? 100),
+        json: buildHistorySeries(symbol, url.searchParams.get('range') || '1y', stock?.latestPrice ?? 100),
       });
       return;
     }
@@ -411,7 +411,7 @@ export async function registerMockApi(page: Page, initial?: Partial<MockApiState
       const indicator = state.indicators.find((item) => item.id === indicatorId);
       await route.fulfill({
         status: 200,
-        json: buildHistorySeries(indicatorId, url.searchParams.get('range') || '1m', indicator?.value ?? 1),
+        json: buildHistorySeries(indicatorId, url.searchParams.get('range') || '1y', indicator?.value ?? 1),
       });
       return;
     }

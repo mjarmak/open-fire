@@ -5,7 +5,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { ChartPoint, IndicatorSnapshot, StockAlert } from '../../market-dashboard.models';
 import { MarketDashboardService } from '../../market-dashboard.service';
-import { RangeTrendChartComponent, TrendChartPoint, TrendChartRange } from '../range-trend-chart/range-trend-chart.component';
+import { DEFAULT_TREND_CHART_RANGE, RangeTrendChartComponent, TrendChartPoint, TrendChartRange } from '../range-trend-chart/range-trend-chart.component';
 
 type PositionTypeSlice = {
   label: string;
@@ -303,7 +303,7 @@ export class PortfolioBoardComponent implements OnInit {
   }
 
   protected selectedChartRange(stock: StockAlert): TrendChartRange {
-    return this.positionChartRanges.get(this.positionRowKey(stock)) ?? '1m';
+    return this.positionChartRanges.get(this.positionRowKey(stock)) ?? DEFAULT_TREND_CHART_RANGE;
   }
 
   protected setChartRange(rowKey: string, range: TrendChartRange): void {
@@ -713,7 +713,7 @@ export class PortfolioBoardComponent implements OnInit {
   }
 
   private asTrendChartRange(range: string): TrendChartRange {
-    return this.chartRanges.includes(range as TrendChartRange) ? range as TrendChartRange : '1m';
+    return this.chartRanges.includes(range as TrendChartRange) ? range as TrendChartRange : DEFAULT_TREND_CHART_RANGE;
   }
 
   private toTrendChartPoints(points: ChartPoint[]): TrendChartPoint[] {

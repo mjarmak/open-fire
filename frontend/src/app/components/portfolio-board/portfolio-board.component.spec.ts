@@ -61,7 +61,7 @@ describe('PortfolioBoardComponent', () => {
       stocks: [],
       indicators: [],
       ensureGlobalIndicatorChart: jasmine.createSpy('ensureGlobalIndicatorChart'),
-      getGlobalIndicatorChartRange: jasmine.createSpy('getGlobalIndicatorChartRange').and.returnValue('1m'),
+      getGlobalIndicatorChartRange: jasmine.createSpy('getGlobalIndicatorChartRange').and.returnValue('1y'),
       globalIndicatorChartPoints: jasmine.createSpy('globalIndicatorChartPoints').and.callFake((indicatorId: string) => {
         if (indicatorId === 'vix') {
           return [
@@ -96,7 +96,7 @@ describe('PortfolioBoardComponent', () => {
       setGlobalIndicatorChartRange: jasmine.createSpy('setGlobalIndicatorChartRange'),
       fetchStockHistory: jasmine.createSpy('fetchStockHistory').and.returnValue(of({
         id: 'AAPL',
-        range: '1m',
+        range: '1y',
         points: [
           { timestamp: '2026-05-01T00:00:00Z', value: 22 },
           { timestamp: '2026-06-01T00:00:00Z', value: 25 },
@@ -229,7 +229,7 @@ describe('PortfolioBoardComponent', () => {
     expect(correlationChart?.classList.contains('chart-flat')).toBeTrue();
     expect(vixChart!.querySelector('.trend-threshold-line')).not.toBeNull();
     expect(creditChart!.querySelector('.trend-threshold-line')).not.toBeNull();
-    expect(textContent(creditChart!.querySelector('.chart-range-options button.active'))).toBe('1m');
+    expect(textContent(creditChart!.querySelector('.chart-range-options button.active'))).toBe('1y');
     expect(creditChart!.querySelector('.range-trend-svg .trend-line')?.getAttribute('d')).toContain('L');
     expect(state.ensureGlobalIndicatorChart).toHaveBeenCalledWith('vix');
     expect(state.ensureGlobalIndicatorChart).toHaveBeenCalledWith('credit');
@@ -320,13 +320,13 @@ describe('PortfolioBoardComponent', () => {
     expect(row.querySelector('.position-chart-row')).not.toBeNull();
     const rangeButtons = Array.from(row.querySelectorAll('.chart-range-options button'));
     expect(rangeButtons.map(textContent)).toEqual(['5d', '1m', '1y', '10y', 'all']);
-    expect(textContent(row.querySelector('.chart-range-options button.active'))).toBe('1m');
+    expect(textContent(row.querySelector('.chart-range-options button.active'))).toBe('1y');
     expect(row.querySelector('.range-trend-svg .trend-line')?.getAttribute('d')).toContain('L');
     expect(row.querySelectorAll('.trend-x-axis-label').length).toBeGreaterThan(1);
     expect(row.querySelectorAll('.trend-y-axis-label').length).toBeGreaterThan(1);
     expect(row.querySelector('.trend-threshold-line')).not.toBeNull();
     expect(textContent(row.querySelector('.trend-threshold-label'))).toBe('Avg price');
-    expect(fetchSpy).toHaveBeenCalledWith('demo', 'password123', 'AAPL', '1m');
+    expect(fetchSpy).toHaveBeenCalledWith('demo', 'password123', 'AAPL', '1y');
 
     row.click();
     fixture.detectChanges();
@@ -346,18 +346,18 @@ describe('PortfolioBoardComponent', () => {
     fixture.detectChanges();
 
     expect(fetchSpy.calls.count()).toBe(1);
-    expect(fetchSpy.calls.mostRecent().args).toEqual(['demo', 'password123', 'AAPL', '1m']);
+    expect(fetchSpy.calls.mostRecent().args).toEqual(['demo', 'password123', 'AAPL', '1y']);
 
     Array.from(row.querySelectorAll<HTMLButtonElement>('.chart-range-options button'))
-      .find((button) => textContent(button) === '1y')
+      .find((button) => textContent(button) === '5d')
       ?.click();
     fixture.detectChanges();
 
     expect(fetchSpy.calls.count()).toBe(2);
-    expect(fetchSpy.calls.mostRecent().args).toEqual(['demo', 'password123', 'AAPL', '1y']);
+    expect(fetchSpy.calls.mostRecent().args).toEqual(['demo', 'password123', 'AAPL', '5d']);
 
     Array.from(row.querySelectorAll<HTMLButtonElement>('.chart-range-options button'))
-      .find((button) => textContent(button) === '1m')
+      .find((button) => textContent(button) === '1y')
       ?.click();
     fixture.detectChanges();
 
@@ -383,8 +383,8 @@ describe('PortfolioBoardComponent', () => {
     expect(aaplRow.querySelector('.position-chart-row')).not.toBeNull();
     expect(msftRow.querySelector('.position-chart-row')).not.toBeNull();
     expect(fetchSpy.calls.count()).toBe(2);
-    expect(fetchSpy.calls.allArgs()).toContain(['demo', 'password123', 'AAPL', '1m']);
-    expect(fetchSpy.calls.allArgs()).toContain(['demo', 'password123', 'MSFT', '1m']);
+    expect(fetchSpy.calls.allArgs()).toContain(['demo', 'password123', 'AAPL', '1y']);
+    expect(fetchSpy.calls.allArgs()).toContain(['demo', 'password123', 'MSFT', '1y']);
 
     Array.from(aaplRow.querySelectorAll<HTMLButtonElement>('.chart-range-options button'))
       .find((button) => textContent(button) === '10y')
@@ -394,7 +394,7 @@ describe('PortfolioBoardComponent', () => {
     expect(aaplRow.querySelector('.position-chart-row')).not.toBeNull();
     expect(msftRow.querySelector('.position-chart-row')).not.toBeNull();
     expect(textContent(aaplRow.querySelector('.chart-range-options button.active'))).toBe('10y');
-    expect(textContent(msftRow.querySelector('.chart-range-options button.active'))).toBe('1m');
+    expect(textContent(msftRow.querySelector('.chart-range-options button.active'))).toBe('1y');
     expect(fetchSpy.calls.count()).toBe(3);
     expect(fetchSpy.calls.allArgs()).toContain(['demo', 'password123', 'AAPL', '10y']);
     expect(fetchSpy.calls.allArgs()).not.toContain(['demo', 'password123', 'MSFT', '10y']);
@@ -410,10 +410,10 @@ describe('PortfolioBoardComponent', () => {
 
   it('does not cache an empty position history response', async () => {
     const fetchSpy = jasmine.createSpy('fetchStockHistory').and.returnValues(
-      of({ id: 'AAPL', range: '1m', points: [] }),
+      of({ id: 'AAPL', range: '1y', points: [] }),
       of({
         id: 'AAPL',
-        range: '1m',
+        range: '1y',
         points: [
           { timestamp: '2026-05-01T00:00:00Z', value: 22 },
           { timestamp: '2026-06-01T00:00:00Z', value: 25 },

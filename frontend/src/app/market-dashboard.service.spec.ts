@@ -70,13 +70,13 @@ describe('MarketDashboardService', () => {
     service.password = 'password123';
     const expectVixHistoryRequest = () => http.expectOne((candidate) =>
       candidate.url === '/api/indicators/vix/history'
-      && candidate.params.get('range') === '1m'
+      && candidate.params.get('range') === '1y'
     );
 
     service.ensureGlobalIndicatorChart('vix');
     const firstRequest = expectVixHistoryRequest();
     expect(firstRequest.request.headers.get('Authorization')).toBe(`Basic ${btoa('user:password123')}`);
-    firstRequest.flush({ id: 'vix', range: '1m', points: [] });
+    firstRequest.flush({ id: 'vix', range: '1y', points: [] });
 
     expect(service.globalIndicatorChartPoints('vix')).toEqual([]);
     service.ensureGlobalIndicatorChart('vix');
@@ -87,7 +87,7 @@ describe('MarketDashboardService', () => {
     const secondRequest = expectVixHistoryRequest();
     secondRequest.flush({
       id: 'vix',
-      range: '1m',
+      range: '1y',
       points: [{ timestamp: '2026-06-08T12:00:00Z', value: 18.5 }],
     });
 

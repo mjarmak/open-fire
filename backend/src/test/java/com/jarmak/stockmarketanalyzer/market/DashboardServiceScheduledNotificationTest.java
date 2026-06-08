@@ -152,7 +152,7 @@ class DashboardServiceScheduledNotificationTest {
         null,
         null,
         null,
-        new AppProperties.Telegram(telegramEnabled, "sma3141_bot", "test-token"),
+        new AppProperties.Telegram(telegramEnabled, "sma3141_bot", "test-token", ""),
         null
     );
     return new DashboardService(
