@@ -77,6 +77,7 @@ export class PortfolioBoardComponent implements OnInit {
     { value: 'watchlist', label: 'Watchlist' },
   ];
   private readonly collapsedStateStorageKey = 'sma_collapsed_positions';
+  private readonly collapsedGlobalRiskChartStorageKey = 'openfire.collapsedGlobalRiskCharts';
   private readonly typeColors = [
     '#2680eb',
     '#10b981',
@@ -94,6 +95,7 @@ export class PortfolioBoardComponent implements OnInit {
   @Output() editPosition = new EventEmitter<StockAlert>();
   @Output() deletePosition = new EventEmitter<StockAlert>();
   collapsedSymbols = new Set<string>();
+  protected collapsedGlobalRiskChartIds = new Set<string>();
   protected positionFilter: PositionFilter = 'all';
   protected actionDialogRowKey: string | null = null;
   protected chartRowKeys = new Set<string>();
@@ -104,6 +106,7 @@ export class PortfolioBoardComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCollapsedState();
+    this.loadCollapsedGlobalRiskChartState();
   }
 
   get displayedStocks(): StockAlert[] {
@@ -327,9 +330,26 @@ export class PortfolioBoardComponent implements OnInit {
       .filter((indicator) => this.isGlobalRiskIndicator(indicator))
       .sort((left, right) => this.globalRiskSortOrder(left.id) - this.globalRiskSortOrder(right.id));
     for (const indicator of indicators) {
-      this.state.ensureGlobalIndicatorChart(indicator.id);
+      if (!this.isGlobalRiskChartCollapsed(indicator)) {
+        this.state.ensureGlobalIndicatorChart(indicator.id);
+      }
     }
     return indicators;
+  }
+
+  protected isGlobalRiskChartCollapsed(indicator: IndicatorSnapshot): boolean {
+    return this.collapsedGlobalRiskChartIds.has(indicator.id);
+  }
+
+  protected toggleGlobalRiskChart(indicator: IndicatorSnapshot, event: Event): void {
+    event.stopPropagation();
+    if (this.isGlobalRiskChartCollapsed(indicator)) {
+      this.collapsedGlobalRiskChartIds.delete(indicator.id);
+      this.state.ensureGlobalIndicatorChart(indicator.id);
+    } else {
+      this.collapsedGlobalRiskChartIds.add(indicator.id);
+    }
+    this.persistCollapsedGlobalRiskChartState();
   }
 
   protected selectedGlobalRiskChartRange(indicator: IndicatorSnapshot): TrendChartRange {
@@ -661,6 +681,27 @@ export class PortfolioBoardComponent implements OnInit {
   private persistCollapsedState(): void {
     const collapsed = Array.from(this.collapsedSymbols.values());
     localStorage.setItem(this.collapsedStateStorageKey, JSON.stringify(collapsed));
+  }
+
+  private loadCollapsedGlobalRiskChartState(): void {
+    try {
+      const raw = localStorage.getItem(this.collapsedGlobalRiskChartStorageKey);
+      if (!raw) {
+        return;
+      }
+      const parsed = JSON.parse(raw) as string[];
+      if (!Array.isArray(parsed)) {
+        return;
+      }
+      this.collapsedGlobalRiskChartIds = new Set(parsed.map((value) => String(value)));
+    } catch {
+      this.collapsedGlobalRiskChartIds = new Set<string>();
+    }
+  }
+
+  private persistCollapsedGlobalRiskChartState(): void {
+    const collapsed = Array.from(this.collapsedGlobalRiskChartIds.values());
+    localStorage.setItem(this.collapsedGlobalRiskChartStorageKey, JSON.stringify(collapsed));
   }
 
   private positionChartCacheKey(stock: StockAlert): string {

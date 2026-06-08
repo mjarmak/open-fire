@@ -74,16 +74,30 @@
           [class.chart-up]="globalRiskChartTone(indicator) === 'up'"
           [class.chart-down]="globalRiskChartTone(indicator) === 'down'"
           [class.chart-flat]="globalRiskChartTone(indicator) === 'flat'"
+          [class.global-risk-chart-collapsed]="isGlobalRiskChartCollapsed(indicator)"
           [attr.aria-label]="globalRiskChartSummary(indicator)"
+          [attr.aria-expanded]="!isGlobalRiskChartCollapsed(indicator)"
         >
           <div class="global-risk-chart-heading">
             <span class="position-type-dot" aria-hidden="true"></span>
             <div>
               <p>{{ indicator.category }}</p>
               <strong>{{ indicator.name }}</strong>
-              <span>{{ indicator.value }} {{ indicator.unit }}</span>
+              <span class="global-risk-chart-current-value">{{ indicator.value }} {{ indicator.unit }}</span>
             </div>
+            <button
+              type="button"
+              class="secondary global-risk-chart-toggle"
+              [attr.aria-label]="isGlobalRiskChartCollapsed(indicator) ? 'Expand ' + indicator.name + ' risk graph' : 'Collapse ' + indicator.name + ' risk graph'"
+              [attr.aria-expanded]="!isGlobalRiskChartCollapsed(indicator)"
+              (click)="toggleGlobalRiskChart(indicator, $event)"
+            >
+              <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.7" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path [attr.d]="isGlobalRiskChartCollapsed(indicator) ? 'M6 9l6 6 6-6' : 'M18 15l-6-6-6 6'" />
+              </svg>
+            </button>
           </div>
+          @if (!isGlobalRiskChartCollapsed(indicator)) {
           <app-range-trend-chart
             [points]="globalRiskChartData(indicator)"
             [ranges]="chartRanges"
@@ -96,6 +110,7 @@
             [unit]="indicator.unit"
             (rangeChange)="setGlobalRiskChartRange(indicator, $event)"
           ></app-range-trend-chart>
+          }
         </article>
       }
     </section>

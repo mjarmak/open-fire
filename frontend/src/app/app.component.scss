@@ -1780,7 +1780,7 @@ button:disabled:not(.icon-btn)::after {
 
 .global-risk-chart-heading {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 6px;
   align-items: center;
   color: var(--muted-strong);
@@ -1822,6 +1822,30 @@ button:disabled:not(.icon-btn)::after {
 .global-risk-chart-heading span:not(.position-type-dot) {
   color: var(--muted-strong);
   font-size: 0.68rem;
+}
+
+.global-risk-chart-heading .global-risk-chart-current-value {
+  color: var(--primary-light);
+  font-weight: 800;
+}
+
+app-root.light-theme .global-risk-chart-heading .global-risk-chart-current-value {
+  color: var(--primary);
+}
+
+.global-risk-chart-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  color: var(--text);
+}
+
+.global-risk-chart-toggle svg {
+  pointer-events: none;
 }
 
 .chart-up {

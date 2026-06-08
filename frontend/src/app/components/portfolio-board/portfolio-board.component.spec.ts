@@ -6,6 +6,10 @@ import { MarketDashboardService } from '../../market-dashboard.service';
 import { PortfolioBoardComponent } from './portfolio-board.component';
 
 describe('PortfolioBoardComponent', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   function stock(overrides: Partial<StockAlert> = {}): StockAlert {
     return {
       id: 1,
@@ -247,6 +251,40 @@ describe('PortfolioBoardComponent', () => {
       ?.click();
 
     expect(state.setGlobalIndicatorChartRange).toHaveBeenCalledOnceWith('credit', '10y');
+  });
+
+  it('persists collapsed global risk graphs and does not fetch their history until expanded', async () => {
+    localStorage.setItem('openfire.collapsedGlobalRiskCharts', JSON.stringify(['credit']));
+    const state = createState({
+      stocks: [stock()],
+      indicators: [
+        indicator({ id: 'vix', name: 'Fear Index / VIX', category: 'Volatility', value: 15.32, unit: 'index points' }),
+        indicator(),
+      ],
+    });
+    const ensureSpy = state.ensureGlobalIndicatorChart as jasmine.Spy;
+    const pointsSpy = state.globalIndicatorChartPoints as jasmine.Spy;
+
+    const { fixture, element } = await render(state);
+    const globalCharts = Array.from(element.querySelectorAll<HTMLElement>('.global-risk-chart-panel'));
+    const vixChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Fear Index / VIX'));
+    const creditChart = globalCharts.find((chart) => chart.getAttribute('aria-label')?.includes('Credit Market'));
+
+    expect(vixChart?.querySelector('app-range-trend-chart')).not.toBeNull();
+    expect(creditChart?.classList.contains('global-risk-chart-collapsed')).toBeTrue();
+    expect(creditChart?.querySelector('app-range-trend-chart')).toBeNull();
+    expect(creditChart?.getAttribute('aria-expanded')).toBe('false');
+    expect(ensureSpy.calls.allArgs().some(([indicatorId]) => indicatorId === 'vix')).toBeTrue();
+    expect(ensureSpy.calls.allArgs().some(([indicatorId]) => indicatorId === 'credit')).toBeFalse();
+    expect(pointsSpy.calls.allArgs().some(([indicatorId]) => indicatorId === 'credit')).toBeFalse();
+
+    creditChart?.querySelector<HTMLButtonElement>('.global-risk-chart-toggle')?.click();
+    fixture.detectChanges();
+
+    expect(creditChart?.classList.contains('global-risk-chart-collapsed')).toBeFalse();
+    expect(creditChart?.querySelector('app-range-trend-chart')).not.toBeNull();
+    expect(ensureSpy.calls.allArgs().some(([indicatorId]) => indicatorId === 'credit')).toBeTrue();
+    expect(localStorage.getItem('openfire.collapsedGlobalRiskCharts')).toBe('[]');
   });
 
   it('colors global risk charts as risk only when value or positive daily change crosses the threshold', async () => {
