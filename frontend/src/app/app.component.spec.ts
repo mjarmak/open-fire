@@ -79,6 +79,7 @@ describe('AppComponent', () => {
       'saveMarketApiTokenDraftsToBrowser',
       'draftMarketApiToken',
       'hasDraftMarketApiToken',
+      'hasAnyDraftMarketApiToken',
       'setDraftMarketApiToken',
       'isMarketApiTokenVisible',
       'toggleMarketApiTokenVisibility',
@@ -166,6 +167,9 @@ describe('AppComponent', () => {
       marketDashboardService.draftMarketApiTokens[providerId] ?? '');
     marketDashboardService.hasDraftMarketApiToken.and.callFake((providerId: string) =>
       (marketDashboardService.draftMarketApiTokens[providerId] ?? '').trim().length > 0);
+    marketDashboardService.hasAnyDraftMarketApiToken.and.callFake(() =>
+      marketDashboardService.marketApiProviders.some((provider) =>
+        (marketDashboardService.draftMarketApiTokens[provider.id] ?? '').trim().length > 0));
     marketDashboardService.setDraftMarketApiToken.and.callFake((providerId: string, token: string) => {
       marketDashboardService.draftMarketApiTokens = {
         ...marketDashboardService.draftMarketApiTokens,
@@ -804,11 +808,20 @@ describe('AppComponent', () => {
     expect(finnhubProvider?.querySelector<HTMLInputElement>('input[placeholder="Use developer token"]')?.type).toBe('text');
     expect(finnhubProvider?.querySelector<HTMLButtonElement>('.api-token-visibility-button')?.getAttribute('aria-pressed')).toBe('true');
 
+    let downloadButton = root.querySelector<HTMLButtonElement>('.api-token-download-button');
+    expect(downloadButton?.disabled).toBeTrue();
+
     let testButton = finnhubProvider?.querySelector<HTMLButtonElement>('.api-token-test-button');
     expect(testButton?.disabled).toBeTrue();
 
     app.marketDashboardService.draftMarketApiTokens = { finnhub: 'browser-only-token' };
     fixture.detectChanges();
+    downloadButton = root.querySelector<HTMLButtonElement>('.api-token-download-button');
+    expect(downloadButton?.disabled).toBeFalse();
+    const downloadSpy = spyOn(app, 'downloadApiTokens');
+    downloadButton?.click();
+    expect(downloadSpy).toHaveBeenCalled();
+
     testButton = finnhubProvider?.querySelector<HTMLButtonElement>('.api-token-test-button');
     expect(testButton?.disabled).toBeFalse();
     testButton?.click();
@@ -822,6 +835,38 @@ describe('AppComponent', () => {
 
     expect(marketDashboardService.saveMarketApiTokenDraftsToBrowser).toHaveBeenCalled();
     expect(app.marketDashboardService.apiTokenDialogOpen).toBeFalse();
+  });
+
+  it('downloads non-empty API token drafts as JSON', async () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.isLoggedIn = true;
+    app.marketDashboardService.draftMarketApiTokens = {
+      finnhub: '  finnhub-token  ',
+      twelvedata: '',
+      eodhd: 'eodhd-token',
+    };
+    const createObjectUrlSpy = spyOn(URL, 'createObjectURL').and.returnValue('blob:openfire-api-tokens');
+    const revokeObjectUrlSpy = spyOn(URL, 'revokeObjectURL').and.stub();
+    const clickSpy = spyOn(HTMLAnchorElement.prototype, 'click').and.stub();
+
+    app.downloadApiTokens();
+
+    expect(createObjectUrlSpy).toHaveBeenCalled();
+    const blob = createObjectUrlSpy.calls.mostRecent().args[0] as Blob;
+    const exported = JSON.parse(await blob.text()) as {
+      exportedAt: string;
+      tokens: Array<{ provider: string; name: string; token: string }>;
+    };
+    expect(exported.exportedAt).toEqual(jasmine.any(String));
+    expect(exported.tokens).toEqual([
+      { provider: 'finnhub', name: 'Finnhub', token: 'finnhub-token' },
+      { provider: 'eodhd', name: 'EODHD', token: 'eodhd-token' },
+    ]);
+    const clickedLink = clickSpy.calls.mostRecent().object as HTMLAnchorElement;
+    expect(clickedLink.download).toMatch(/^openfire-api-tokens-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(revokeObjectUrlSpy).toHaveBeenCalledOnceWith('blob:openfire-api-tokens');
+    expect(app.snackbarMessage).toBe('2 API tokens downloaded.');
   });
 
   it('opens feedback dialog from the top menu with a selected 512 character input', fakeAsync(() => {

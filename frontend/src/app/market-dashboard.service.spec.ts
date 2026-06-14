@@ -122,6 +122,11 @@ describe('MarketDashboardService', () => {
 
     expect(service.hasDraftMarketApiToken('finnhub')).toBeFalse();
     expect(service.hasDraftMarketApiToken('twelvedata')).toBeTrue();
+    expect(service.hasAnyDraftMarketApiToken()).toBeTrue();
+
+    service.setDraftMarketApiToken('twelvedata', '');
+
+    expect(service.hasAnyDraftMarketApiToken()).toBeFalse();
   });
 
   it('clears a token test result when the draft token changes', () => {

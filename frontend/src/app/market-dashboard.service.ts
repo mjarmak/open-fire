@@ -391,6 +391,10 @@ export class MarketDashboardService {
     return this.draftMarketApiToken(providerId).trim().length > 0;
   }
 
+  hasAnyDraftMarketApiToken(): boolean {
+    return this.marketApiProviders.some((provider) => this.hasDraftMarketApiToken(provider.id));
+  }
+
   setDraftMarketApiToken(providerId: string, token: string): void {
     this.draftMarketApiTokens = {
       ...this.draftMarketApiTokens,

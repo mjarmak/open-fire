@@ -2643,6 +2643,10 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
   font-weight: 700;
 }
 
+.api-token-download-button {
+  margin-right: auto;
+}
+
 .api-token-test-success {
   color: var(--positive-text);
 }
@@ -2671,6 +2675,11 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
   .api-token-test-button {
     grid-column: 1 / -1;
     width: fit-content;
+  }
+
+  .api-token-download-button {
+    width: 100%;
+    margin-right: 0;
   }
 }
 

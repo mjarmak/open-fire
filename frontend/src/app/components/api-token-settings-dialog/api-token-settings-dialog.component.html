@@ -88,6 +88,14 @@
           </div>
 
           <div class="dialog-actions">
+            <button
+              type="button"
+              class="secondary api-token-download-button"
+              [disabled]="!state.hasAnyDraftMarketApiToken() || state.isSavingApiTokens"
+              (click)="downloadTokens.emit()"
+            >
+              Download all
+            </button>
             <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
             <button type="submit">
               {{ state.isSavingApiTokens ? 'Saving' : 'Save' }}

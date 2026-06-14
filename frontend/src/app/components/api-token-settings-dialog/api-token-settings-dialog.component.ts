@@ -17,4 +17,5 @@ export class ApiTokenSettingsDialogComponent {
   @Output() closeDialog = new EventEmitter<void>();
   @Output() save = new EventEmitter<void>();
   @Output() testToken = new EventEmitter<string>();
+  @Output() downloadTokens = new EventEmitter<void>();
 }

@@ -995,6 +995,42 @@ export class AppComponent implements OnDestroy, OnInit {
     this.refreshDashboard();
   }
 
+  downloadApiTokens(): void {
+    if (!this.isLoggedIn) {
+      this.openLoginDialog();
+      this.showSnackbar('Login before downloading API tokens.', 'error');
+      return;
+    }
+
+    const tokens = this.marketDashboardService.marketApiProviders
+      .map((provider) => ({
+        provider: provider.id,
+        name: provider.name,
+        token: this.marketDashboardService.draftMarketApiToken(provider.id).trim(),
+      }))
+      .filter((entry) => entry.token.length > 0);
+
+    if (!tokens.length) {
+      this.showSnackbar('Enter at least one API token before downloading.', 'error');
+      return;
+    }
+
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      tokens,
+    };
+    const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `openfire-api-tokens-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    this.showSnackbar(`${tokens.length} API token${tokens.length === 1 ? '' : 's'} downloaded.`);
+  }
+
   testApiToken(providerId: string): void {
     if (!this.isLoggedIn) {
       this.openLoginDialog();
