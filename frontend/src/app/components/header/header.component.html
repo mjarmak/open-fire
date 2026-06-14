@@ -46,10 +46,23 @@
         }
       </button>
     } @else {
-      <button type="button" (click)="openLogin.emit()" [disabled]="state.isLoading">
+      <button
+        type="button"
+        (click)="openLogin.emit()"
+        [disabled]="state.isLoading"
+        [class.button-loading]="state.isLoading"
+        [attr.aria-busy]="state.isLoading ? 'true' : null"
+      >
         Login
       </button>
-      <button type="button" class="secondary" (click)="openCreateUser.emit()" [disabled]="state.isLoading">
+      <button
+        type="button"
+        class="secondary"
+        (click)="openCreateUser.emit()"
+        [disabled]="state.isLoading"
+        [class.button-loading]="state.isLoading"
+        [attr.aria-busy]="state.isLoading ? 'true' : null"
+      >
         Create user
       </button>
     }
@@ -124,7 +137,14 @@
             <span>API Tokens</span>
           </button>
 
-          <button type="button" class="secondary top-menu-action" (click)="selectRefresh()" [disabled]="state.isLoading">
+          <button
+            type="button"
+            class="secondary top-menu-action"
+            (click)="selectRefresh()"
+            [disabled]="state.isLoading"
+            [class.button-loading]="state.isLoading"
+            [attr.aria-busy]="state.isLoading ? 'true' : null"
+          >
             @if (state.isLoading) {
               <svg class="spinner-svg" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" stroke-dasharray="30 10" />

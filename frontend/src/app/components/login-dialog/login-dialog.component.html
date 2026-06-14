@@ -25,7 +25,14 @@
 
         <div class="dialog-actions">
           <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
-          <button type="submit" [disabled]="!state.canSubmitAuth">{{ state.authSubmitLabel }}</button>
+          <button
+            type="submit"
+            [disabled]="!state.canSubmitAuth"
+            [class.button-loading]="state.isLoading"
+            [attr.aria-busy]="state.isLoading ? 'true' : null"
+          >
+            {{ state.authSubmitLabel }}
+          </button>
         </div>
       </form>
     </section>

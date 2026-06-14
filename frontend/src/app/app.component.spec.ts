@@ -810,9 +810,13 @@ describe('AppComponent', () => {
 
     let downloadButton = root.querySelector<HTMLButtonElement>('.api-token-download-button');
     expect(downloadButton?.disabled).toBeTrue();
+    expect(downloadButton?.classList.contains('button-loading')).toBeFalse();
+    expect(downloadButton?.getAttribute('aria-busy')).toBeNull();
 
     let testButton = finnhubProvider?.querySelector<HTMLButtonElement>('.api-token-test-button');
     expect(testButton?.disabled).toBeTrue();
+    expect(testButton?.classList.contains('button-loading')).toBeFalse();
+    expect(testButton?.getAttribute('aria-busy')).toBeNull();
 
     app.marketDashboardService.draftMarketApiTokens = { finnhub: 'browser-only-token' };
     fixture.detectChanges();
@@ -822,6 +826,15 @@ describe('AppComponent', () => {
     downloadButton?.click();
     expect(downloadSpy).toHaveBeenCalled();
 
+    app.marketDashboardService.marketApiTokenTestStatuses = { finnhub: 'testing' };
+    fixture.detectChanges();
+    testButton = finnhubProvider?.querySelector<HTMLButtonElement>('.api-token-test-button');
+    expect(testButton?.disabled).toBeTrue();
+    expect(testButton?.classList.contains('button-loading')).toBeTrue();
+    expect(testButton?.getAttribute('aria-busy')).toBe('true');
+
+    app.marketDashboardService.marketApiTokenTestStatuses = {};
+    fixture.detectChanges();
     testButton = finnhubProvider?.querySelector<HTMLButtonElement>('.api-token-test-button');
     expect(testButton?.disabled).toBeFalse();
     testButton?.click();

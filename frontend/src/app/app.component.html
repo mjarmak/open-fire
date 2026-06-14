@@ -88,7 +88,12 @@
             placeholder="Search AAPL, Bitcoin, or EUR/USD"
             aria-label="Search symbols"
           />
-          <button type="submit" [disabled]="marketDashboardService.isSearchingStockLookup || marketDashboardService.stockLookupQuery.trim().length < 2">
+          <button
+            type="submit"
+            [disabled]="marketDashboardService.isSearchingStockLookup || marketDashboardService.stockLookupQuery.trim().length < 2"
+            [class.button-loading]="marketDashboardService.isSearchingStockLookup"
+            [attr.aria-busy]="marketDashboardService.isSearchingStockLookup ? 'true' : null"
+          >
             @if (marketDashboardService.isSearchingStockLookup) {
               Searching
             } @else {
@@ -192,7 +197,12 @@
 
           <div class="dialog-actions">
             <button type="button" class="secondary" (click)="closeFeedbackDialog()">Cancel</button>
-            <button type="submit" [disabled]="!feedbackMessage.trim() || feedbackMessage.length > feedbackMaxLength || isSendingFeedback">
+            <button
+              type="submit"
+              [disabled]="!feedbackMessage.trim() || feedbackMessage.length > feedbackMaxLength || isSendingFeedback"
+              [class.button-loading]="isSendingFeedback"
+              [attr.aria-busy]="isSendingFeedback ? 'true' : null"
+            >
               {{ isSendingFeedback ? 'Sending' : 'Send' }}
             </button>
           </div>

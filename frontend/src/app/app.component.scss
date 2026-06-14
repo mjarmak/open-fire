@@ -641,11 +641,18 @@ a.top-menu-action.secondary {
 }
 
 button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+button.button-loading:disabled,
+button[aria-busy="true"]:disabled {
   cursor: wait;
   opacity: 0.7;
 }
 
-button:disabled:not(.icon-btn)::after {
+button.button-loading:disabled:not(.icon-btn)::after,
+button[aria-busy="true"]:disabled:not(.icon-btn)::after {
   content: "";
   position: absolute;
   inset: 0;

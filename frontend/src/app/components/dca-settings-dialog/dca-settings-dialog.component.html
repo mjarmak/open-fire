@@ -56,7 +56,11 @@
 
           <div class="dialog-actions">
             <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
-            <button type="submit">
+            <button
+              type="submit"
+              [class.button-loading]="state.isSavingDca || state.isLoadingDca"
+              [attr.aria-busy]="state.isSavingDca || state.isLoadingDca ? 'true' : null"
+            >
               {{ state.isSavingDca ? 'Saving' : state.isLoadingDca ? 'Loading' : 'Save' }}
             </button>
           </div>

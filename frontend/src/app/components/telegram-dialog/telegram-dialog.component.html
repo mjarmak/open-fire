@@ -46,10 +46,21 @@
 
           <div class="dialog-actions">
             <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
-            <button type="button" class="secondary" (click)="test.emit()">
+            <button
+              type="button"
+              class="secondary"
+              [class.button-loading]="state.isSavingTelegram"
+              [attr.aria-busy]="state.isSavingTelegram ? 'true' : null"
+              (click)="test.emit()"
+            >
               {{ state.isSavingTelegram ? 'Working' : 'Test' }}
             </button>
-            <button type="submit" [disabled]="!state.telegramChatId.trim()">
+            <button
+              type="submit"
+              [disabled]="!state.telegramChatId.trim()"
+              [class.button-loading]="state.isSavingTelegram || state.isLoadingTelegram"
+              [attr.aria-busy]="state.isSavingTelegram || state.isLoadingTelegram ? 'true' : null"
+            >
               {{ state.isSavingTelegram ? 'Saving' : state.isLoadingTelegram ? 'Loading' : 'Save' }}
             </button>
           </div>

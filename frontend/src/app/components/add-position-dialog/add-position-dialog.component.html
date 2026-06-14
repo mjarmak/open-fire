@@ -76,7 +76,14 @@
 
         <div class="dialog-actions">
           <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
-          <button type="submit" [disabled]="!state.canSaveHolding">{{ state.isSavingHolding ? 'Saving' : 'Add' }}</button>
+          <button
+            type="submit"
+            [disabled]="!state.canSaveHolding"
+            [class.button-loading]="state.isSavingHolding"
+            [attr.aria-busy]="state.isSavingHolding ? 'true' : null"
+          >
+            {{ state.isSavingHolding ? 'Saving' : 'Add' }}
+          </button>
         </div>
       </form>
     </section>

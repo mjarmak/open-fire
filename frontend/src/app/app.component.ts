@@ -427,7 +427,7 @@ export class AppComponent implements OnDestroy, OnInit {
         this.loadDcaSettingsSilently();
       }
     };
-    const handleLoadError = (error: HttpErrorResponse) => {
+    const handleLoadError = (section: string) => (error: HttpErrorResponse) => {
       if (loadToken !== this.dashboardLoadToken) {
         return;
       }
@@ -435,9 +435,10 @@ export class AppComponent implements OnDestroy, OnInit {
         unauthorizedCalls++;
         return;
       }
+      console.error(`Dashboard ${section} failed to load.`, error);
       if (!reportedError) {
         reportedError = true;
-        this.showSnackbar('Some dashboard data could not load. The rest of the page will continue updating.', 'error');
+        this.showSnackbar(`Some dashboard ${section} data could not load. The rest of the page will continue updating.`, 'error');
       }
     };
 
@@ -452,7 +453,7 @@ export class AppComponent implements OnDestroy, OnInit {
             dailyReport: this.composeDailyReport(indicators, this.stocks),
           };
         },
-        error: handleLoadError,
+        error: handleLoadError('indicator'),
       });
 
     this.marketDashboardService.fetchStocks(this.username, this.password)
@@ -466,7 +467,7 @@ export class AppComponent implements OnDestroy, OnInit {
             dailyReport: this.composeDailyReport(this.indicators, stocks),
           };
         },
-        error: handleLoadError,
+        error: handleLoadError('position'),
       });
 
     this.marketDashboardService.fetchPortfolio(this.username, this.password)
@@ -479,7 +480,7 @@ export class AppComponent implements OnDestroy, OnInit {
             portfolio,
           };
         },
-        error: handleLoadError,
+        error: handleLoadError('portfolio'),
       });
 
     this.marketDashboardService.notificationStatus(this.username, this.password)
@@ -492,7 +493,7 @@ export class AppComponent implements OnDestroy, OnInit {
             notification,
           };
         },
-        error: handleLoadError,
+        error: handleLoadError('notification'),
       });
   }
 
