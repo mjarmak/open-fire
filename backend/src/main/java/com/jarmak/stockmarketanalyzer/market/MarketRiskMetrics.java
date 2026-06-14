@@ -83,11 +83,21 @@ final class MarketRiskMetrics {
       return null;
     }
 
-    return closes.stream()
+    List<TimeSeriesPoint> positiveCloses = closes.stream()
         .filter(point -> point.value() > 0)
-        .min(Comparator
-            .comparingLong((TimeSeriesPoint point) -> Math.abs(java.time.temporal.ChronoUnit.DAYS.between(point.date(), targetDate)))
-            .thenComparing(TimeSeriesPoint::date))
+        .toList();
+
+    BigDecimal firstCloseInsideWindow = positiveCloses.stream()
+        .filter(point -> !point.date().isBefore(targetDate))
+        .min(Comparator.comparing(TimeSeriesPoint::date))
+        .map(point -> BigDecimal.valueOf(point.value()))
+        .orElse(null);
+    if (firstCloseInsideWindow != null) {
+      return firstCloseInsideWindow;
+    }
+
+    return positiveCloses.stream()
+        .max(Comparator.comparing(TimeSeriesPoint::date))
         .map(point -> BigDecimal.valueOf(point.value()))
         .orElse(null);
   }

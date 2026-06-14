@@ -19,6 +19,101 @@ import org.junit.jupiter.api.Test;
 
 class StockAlertServiceTest {
   @Test
+  void calculatesHighRiskPositionIndicatorsAndReasons() {
+    FinnhubClient finnhubClient = mock(FinnhubClient.class);
+    PortfolioService portfolioService = mock(PortfolioService.class);
+    StockAlertService service = new StockAlertService(properties(), finnhubClient, portfolioService);
+
+    when(portfolioService.holdings()).thenReturn(List.of(
+        new PortfolioHolding(1L, "RISK", "Risk Corp", BigDecimal.valueOf(3), BigDecimal.valueOf(90), false)
+    ));
+    when(finnhubClient.companySnapshot("RISK")).thenReturn(Optional.of(new CompanySnapshot(
+        "RISK",
+        "Risk Corp",
+        "Technology",
+        BigDecimal.valueOf(1_000_000_000L),
+        BigDecimal.valueOf(50),
+        BigDecimal.valueOf(2),
+        BigDecimal.valueOf(50),
+        BigDecimal.valueOf(30),
+        BigDecimal.valueOf(120),
+        BigDecimal.valueOf(100),
+        BigDecimal.valueOf(80)
+    )));
+
+    StockAlert alert = service.evaluateWatchedStocks(BigDecimal.valueOf(40)).get(0);
+
+    assertThat(alert.symbol()).isEqualTo("RISK");
+    assertThat(alert.positionType()).isEqualTo("Technology");
+    assertThat(alert.latestPrice()).isEqualByComparingTo("120.00");
+    assertThat(alert.marketCap()).isEqualByComparingTo("1000000000");
+    assertThat(alert.peRatio()).isEqualByComparingTo("50.0");
+    assertThat(alert.beta()).isEqualByComparingTo("2.00");
+    assertThat(alert.realizedVolatilityPercent()).isEqualByComparingTo("50.0");
+    assertThat(alert.drawdownPercent()).isEqualByComparingTo("30.0");
+    assertThat(alert.fearScore()).isEqualByComparingTo("93");
+    assertThat(alert.marketValue()).isEqualByComparingTo("360.00");
+    assertThat(alert.costBasis()).isEqualByComparingTo("270.00");
+    assertThat(alert.dayGainLoss()).isEqualByComparingTo("60.00");
+    assertThat(alert.dayGainLossPercent()).isEqualByComparingTo("20.0");
+    assertThat(alert.unrealizedGainLoss()).isEqualByComparingTo("90.00");
+    assertThat(alert.unrealizedGainLossPercent()).isEqualByComparingTo("33.3");
+    assertThat(alert.thirtyDayChangePercent()).isEqualByComparingTo("50.0");
+    assertThat(alert.alert()).isTrue();
+    assertThat(alert.reason())
+        .contains("global VIX is above 25 at 40")
+        .contains("stock fear score is 93/100")
+        .contains("P/E is 50")
+        .contains("beta is 2")
+        .contains("realized volatility is 50%")
+        .contains("30-day drawdown is 30%")
+        .contains("up 50% over roughly 30 calendar days")
+        .contains("market cap is below 2000000000");
+  }
+
+  @Test
+  void calculatesCalmPositionIndicatorsWithoutTriggeringAlert() {
+    FinnhubClient finnhubClient = mock(FinnhubClient.class);
+    PortfolioService portfolioService = mock(PortfolioService.class);
+    StockAlertService service = new StockAlertService(properties(), finnhubClient, portfolioService);
+
+    when(portfolioService.holdings()).thenReturn(List.of(
+        new PortfolioHolding(1L, "CALM", "Calm Corp", BigDecimal.valueOf(2), BigDecimal.valueOf(100), false)
+    ));
+    when(finnhubClient.companySnapshot("CALM")).thenReturn(Optional.of(new CompanySnapshot(
+        "CALM",
+        "Calm Corp",
+        "Technology",
+        BigDecimal.valueOf(3_000_000_000_000L),
+        BigDecimal.valueOf(10),
+        BigDecimal.ONE,
+        BigDecimal.valueOf(10),
+        BigDecimal.valueOf(2),
+        BigDecimal.valueOf(105),
+        BigDecimal.valueOf(100),
+        BigDecimal.valueOf(100)
+    )));
+
+    StockAlert alert = service.evaluateWatchedStocks(BigDecimal.valueOf(18)).get(0);
+
+    assertThat(alert.latestPrice()).isEqualByComparingTo("105.00");
+    assertThat(alert.peRatio()).isEqualByComparingTo("10.0");
+    assertThat(alert.beta()).isEqualByComparingTo("1.00");
+    assertThat(alert.realizedVolatilityPercent()).isEqualByComparingTo("10.0");
+    assertThat(alert.drawdownPercent()).isEqualByComparingTo("2.0");
+    assertThat(alert.fearScore()).isEqualByComparingTo("16");
+    assertThat(alert.marketValue()).isEqualByComparingTo("210.00");
+    assertThat(alert.costBasis()).isEqualByComparingTo("200.00");
+    assertThat(alert.dayGainLoss()).isEqualByComparingTo("10.00");
+    assertThat(alert.dayGainLossPercent()).isEqualByComparingTo("5.0");
+    assertThat(alert.unrealizedGainLoss()).isEqualByComparingTo("10.00");
+    assertThat(alert.unrealizedGainLossPercent()).isEqualByComparingTo("5.0");
+    assertThat(alert.thirtyDayChangePercent()).isEqualByComparingTo("5.0");
+    assertThat(alert.alert()).isFalse();
+    assertThat(alert.reason()).isEqualTo("No watched stock alerts fired under current thresholds.");
+  }
+
+  @Test
   void includesRoundedVolatilityAndDrawdownInStockAlerts() {
     FinnhubClient finnhubClient = mock(FinnhubClient.class);
     PortfolioService portfolioService = mock(PortfolioService.class);

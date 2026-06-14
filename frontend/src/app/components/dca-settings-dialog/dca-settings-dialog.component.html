@@ -22,6 +22,7 @@
 
           <div class="weekday-field" role="group" aria-label="DCA reminder days">
             <span>Reminder days</span>
+            <small class="field-hint">DCA reminders are sent at {{ state.telegramDcaScheduleLabel }} on the selected days.</small>
             <div class="weekday-picker">
               @for (day of state.notificationDayOptions; track day.value) {
                 <label class="weekday-option" [class.selected]="state.isDraftDcaReminderDaySelected(day.value)">

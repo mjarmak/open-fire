@@ -1,6 +1,7 @@
 package com.jarmak.stockmarketanalyzer.web;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -480,7 +481,7 @@ class DashboardControllerIntegrationTest {
   }
 
   @Test
-  void searchesSymbolsWithIndicatorsSortsResultsWithoutPriceToBottom() throws Exception {
+  void searchesSymbolsWithPriceDetailsFiltersResultsWithoutPrices() throws Exception {
     when(finnhubClient.searchSymbols("app"))
         .thenReturn(List.of(
             new SymbolSearchResult("NODATA", "No Price", "US", "USD"),
@@ -493,11 +494,10 @@ class DashboardControllerIntegrationTest {
 
     mockMvc.perform(get("/api/symbols/search")
             .param("keywords", "app")
-            .param("includeIndicators", "true"))
+            .param("includePriceDetails", "true"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].symbol").value("AAPL"))
-        .andExpect(jsonPath("$[1].symbol").value("NODATA"))
-        .andExpect(jsonPath("$[2].symbol").value("MISSING"));
+        .andExpect(jsonPath("$", hasSize(1)))
+        .andExpect(jsonPath("$[0].symbol").value("AAPL"));
 
     verify(stockAlertService, never()).preview(anyString(), anyString());
     verifySearchDidNotUseHistoryBackedMarketData();

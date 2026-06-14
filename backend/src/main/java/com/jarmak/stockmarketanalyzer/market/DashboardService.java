@@ -306,7 +306,7 @@ public class DashboardService {
     sendScheduledTelegramMessage("DCA reminder", username -> new ScheduledTelegramMessage(generateDcaReminderForUser(username), List.of()));
   }
 
-  @Scheduled(cron = "0 0 16,23 * * *", zone = BELGIUM_TIME_ZONE)
+  @Scheduled(cron = "0 0 23 * * *", zone = BELGIUM_TIME_ZONE)
   public void sendDailyBriefing() {
     sendScheduledTelegramMessage("11 PM Belgium time risk and alert briefing", this::buildBriefingForUser);
   }

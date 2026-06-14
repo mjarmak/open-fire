@@ -27,6 +27,8 @@ export class MarketDashboardService {
   private readonly apiBaseUrl = this.resolveApiBaseUrl();
   readonly dcaReminderMaxLength = 800;
   readonly feedbackMaxLength = 512;
+  readonly telegramAlertScheduleLabel = '21:00 UTC';
+  readonly telegramDcaScheduleLabel = '14:00 UTC';
   readonly notificationDayOptions: ReadonlyArray<{ value: string; label: string }> = [
     { value: 'MON', label: 'Mon' },
     { value: 'TUE', label: 'Tue' },

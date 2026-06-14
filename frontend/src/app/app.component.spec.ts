@@ -70,6 +70,10 @@ describe('AppComponent', () => {
       'globalIndicatorChartPoints',
       'isGlobalIndicatorChartLoading',
       'formatNotificationDays',
+      'isDraftTelegramAlertDaySelected',
+      'setDraftTelegramAlertDay',
+      'isDraftDcaReminderDaySelected',
+      'setDraftDcaReminderDay',
     ]);
     Object.assign(marketDashboardService, new MarketDashboardService({} as never));
     Object.defineProperties(marketDashboardService, {
@@ -120,6 +124,20 @@ describe('AppComponent', () => {
     marketDashboardService.globalIndicatorChartPoints.and.returnValue([]);
     marketDashboardService.isGlobalIndicatorChartLoading.and.returnValue(false);
     marketDashboardService.formatNotificationDays.and.callFake((days: string[]) => days.join(', '));
+    marketDashboardService.isDraftTelegramAlertDaySelected.and.callFake((day: string) =>
+      marketDashboardService.draftTelegramAlertDays.includes(day));
+    marketDashboardService.setDraftTelegramAlertDay.and.callFake((day: string, selected: boolean) => {
+      marketDashboardService.draftTelegramAlertDays = selected
+        ? [...new Set([...marketDashboardService.draftTelegramAlertDays, day])]
+        : marketDashboardService.draftTelegramAlertDays.filter((value) => value !== day);
+    });
+    marketDashboardService.isDraftDcaReminderDaySelected.and.callFake((day: string) =>
+      marketDashboardService.draftDcaReminderDays.includes(day));
+    marketDashboardService.setDraftDcaReminderDay.and.callFake((day: string, selected: boolean) => {
+      marketDashboardService.draftDcaReminderDays = selected
+        ? [...new Set([...marketDashboardService.draftDcaReminderDays, day])]
+        : marketDashboardService.draftDcaReminderDays.filter((value) => value !== day);
+    });
 
     await TestBed.configureTestingModule({
       imports: [AppComponent],
@@ -664,6 +682,20 @@ describe('AppComponent', () => {
     expect(fixture.nativeElement.querySelector('.stock-lookup-result-row .position-title-inline-metric')).toBeNull();
     expect(fixture.nativeElement.querySelector('.stock-lookup-result-row .ticker-metrics')).not.toBeNull();
     expect(fixture.nativeElement.textContent).not.toContain('Could not load indicators.');
+  });
+
+  it('states when Telegram alerts and DCA reminders are sent in settings dialogs', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.marketDashboardService.telegramDialogOpen = true;
+    app.marketDashboardService.dcaDialogOpen = true;
+
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Alert briefings are sent once daily at 21:00 UTC on the selected days.');
+    expect(text).toContain('DCA reminders are sent at 14:00 UTC on their selected reminder days when enabled.');
+    expect(text).toContain('DCA reminders are sent at 14:00 UTC on the selected days.');
   });
 
   it('opens feedback dialog from the top menu with a selected 512 character input', fakeAsync(() => {

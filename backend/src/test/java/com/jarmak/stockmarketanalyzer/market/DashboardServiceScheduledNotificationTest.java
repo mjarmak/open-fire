@@ -143,6 +143,15 @@ class DashboardServiceScheduledNotificationTest {
     assertThat(scheduled.zone()).isEqualTo("Europe/Brussels");
   }
 
+  @Test
+  void schedulesDailyBriefingOnceAtElevenPmBelgiumTime() throws NoSuchMethodException {
+    Method method = DashboardService.class.getMethod("sendDailyBriefing");
+    Scheduled scheduled = method.getAnnotation(Scheduled.class);
+
+    assertThat(scheduled.cron()).isEqualTo("0 0 23 * * *");
+    assertThat(scheduled.zone()).isEqualTo("Europe/Brussels");
+  }
+
   private UserAccountService.UserTelegramSchedule everyDaySchedule(String chatId) {
     return new UserAccountService.UserTelegramSchedule(chatId, UserAccountService.DEFAULT_TELEGRAM_ALERT_DAYS);
   }
