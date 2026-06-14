@@ -21,6 +21,25 @@ export interface FeedbackResponse {
 }
 
 const DEFAULT_GLOBAL_INDICATOR_CHART_RANGE = '1y';
+type MarketApiProviderId = 'finnhub' | 'twelvedata' | 'fmp' | 'alphavantage' | 'eodhd';
+
+export interface MarketApiProviderOption {
+  id: MarketApiProviderId;
+  name: string;
+  tokenLabel: string;
+  limit: string;
+  signupUrl: string;
+  tokenHeader: string;
+  storageKey: string;
+}
+
+export interface MarketApiTokenTestResponse {
+  provider: string;
+  success: boolean;
+  message: string;
+}
+
+type MarketApiTokenTestStatus = 'idle' | 'testing' | 'success' | 'error';
 
 @Injectable({ providedIn: 'root' })
 export class MarketDashboardService {
@@ -29,6 +48,53 @@ export class MarketDashboardService {
   readonly feedbackMaxLength = 512;
   readonly telegramAlertScheduleLabel = '21:00 UTC';
   readonly telegramDcaScheduleLabel = '14:00 UTC';
+  readonly marketApiProviders: ReadonlyArray<MarketApiProviderOption> = [
+    {
+      id: 'finnhub',
+      name: 'Finnhub',
+      tokenLabel: 'Finnhub API token',
+      limit: 'Free plan: 60 API calls per minute.',
+      signupUrl: 'https://finnhub.io/register',
+      tokenHeader: 'X-OpenFire-Api-Token-Finnhub',
+      storageKey: 'openfire_market_api_token_finnhub',
+    },
+    {
+      id: 'twelvedata',
+      name: 'Twelve Data',
+      tokenLabel: 'Twelve Data API key',
+      limit: 'Free plan: 8 API credits per minute, 800 per day.',
+      signupUrl: 'https://twelvedata.com/pricing',
+      tokenHeader: 'X-OpenFire-Api-Token-TwelveData',
+      storageKey: 'openfire_market_api_token_twelvedata',
+    },
+    {
+      id: 'fmp',
+      name: 'Financial Modeling Prep',
+      tokenLabel: 'FMP API key',
+      limit: 'Free plan: 250 API calls per day.',
+      signupUrl: 'https://site.financialmodelingprep.com/developer/docs/pricing',
+      tokenHeader: 'X-OpenFire-Api-Token-Fmp',
+      storageKey: 'openfire_market_api_token_fmp',
+    },
+    {
+      id: 'alphavantage',
+      name: 'Alpha Vantage',
+      tokenLabel: 'Alpha Vantage API key',
+      limit: 'Free plan: 25 API requests per day.',
+      signupUrl: 'https://www.alphavantage.co/support/#api-key',
+      tokenHeader: 'X-OpenFire-Api-Token-AlphaVantage',
+      storageKey: 'openfire_market_api_token_alphavantage',
+    },
+    {
+      id: 'eodhd',
+      name: 'EODHD',
+      tokenLabel: 'EODHD API token',
+      limit: 'Free plan: 20 API calls per day.',
+      signupUrl: 'https://eodhd.com/pricing',
+      tokenHeader: 'X-OpenFire-Api-Token-Eodhd',
+      storageKey: 'openfire_market_api_token_eodhd',
+    },
+  ];
   readonly notificationDayOptions: ReadonlyArray<{ value: string; label: string }> = [
     { value: 'MON', label: 'Mon' },
     { value: 'TUE', label: 'Tue' },
@@ -98,6 +164,12 @@ export class MarketDashboardService {
   feedbackDialogOpen = false;
   feedbackMessage = '';
   isSendingFeedback = false;
+  apiTokenDialogOpen = false;
+  isSavingApiTokens = false;
+  draftMarketApiTokens: Record<string, string> = {};
+  marketApiTokenVisibleProviders: Record<string, boolean> = {};
+  marketApiTokenTestStatuses: Record<string, MarketApiTokenTestStatus> = {};
+  marketApiTokenTestMessages: Record<string, string> = {};
   dcaDialogOpen = false;
   dcaSuggestionDialogOpen = false;
   isLoadingDca = false;
@@ -280,6 +352,100 @@ export class MarketDashboardService {
     this.draftDcaReminderDays = this.updateDaySelection(this.draftDcaReminderDays, day, selected);
   }
 
+  loadMarketApiTokenDraftsFromBrowser(): void {
+    const storage = this.browserStorage();
+    this.draftMarketApiTokens = Object.fromEntries(
+      this.marketApiProviders.map((provider) => [provider.id, storage?.getItem(provider.storageKey) ?? '']),
+    );
+  }
+
+  saveMarketApiTokenDraftsToBrowser(): void {
+    const storage = this.browserStorage();
+    if (!storage) {
+      return;
+    }
+
+    for (const provider of this.marketApiProviders) {
+      const token = (this.draftMarketApiTokens[provider.id] ?? '').trim();
+      if (token) {
+        storage.setItem(provider.storageKey, token);
+      } else {
+        storage.removeItem(provider.storageKey);
+      }
+    }
+  }
+
+  marketApiToken(providerId: string): string {
+    const provider = this.marketApiProviders.find((option) => option.id === providerId);
+    if (!provider) {
+      return '';
+    }
+    return this.browserStorage()?.getItem(provider.storageKey) ?? '';
+  }
+
+  draftMarketApiToken(providerId: string): string {
+    return this.draftMarketApiTokens[providerId] ?? '';
+  }
+
+  hasDraftMarketApiToken(providerId: string): boolean {
+    return this.draftMarketApiToken(providerId).trim().length > 0;
+  }
+
+  setDraftMarketApiToken(providerId: string, token: string): void {
+    this.draftMarketApiTokens = {
+      ...this.draftMarketApiTokens,
+      [providerId]: token,
+    };
+    this.setMarketApiTokenTestState(providerId, 'idle');
+  }
+
+  isMarketApiTokenVisible(providerId: string): boolean {
+    return Boolean(this.marketApiTokenVisibleProviders[providerId]);
+  }
+
+  toggleMarketApiTokenVisibility(providerId: string): void {
+    this.marketApiTokenVisibleProviders = {
+      ...this.marketApiTokenVisibleProviders,
+      [providerId]: !this.isMarketApiTokenVisible(providerId),
+    };
+  }
+
+  clearMarketApiTokenVisibility(): void {
+    this.marketApiTokenVisibleProviders = {};
+  }
+
+  setMarketApiTokenTestState(providerId: string, status: MarketApiTokenTestStatus, message = ''): void {
+    this.marketApiTokenTestStatuses = {
+      ...this.marketApiTokenTestStatuses,
+      [providerId]: status,
+    };
+    this.marketApiTokenTestMessages = {
+      ...this.marketApiTokenTestMessages,
+      [providerId]: message,
+    };
+  }
+
+  clearMarketApiTokenTestStates(): void {
+    this.marketApiTokenTestStatuses = {};
+    this.marketApiTokenTestMessages = {};
+  }
+
+  isTestingMarketApiToken(providerId: string): boolean {
+    return this.marketApiTokenTestStatuses[providerId] === 'testing';
+  }
+
+  marketApiTokenTestSucceeded(providerId: string): boolean {
+    return this.marketApiTokenTestStatuses[providerId] === 'success';
+  }
+
+  marketApiTokenTestFailed(providerId: string): boolean {
+    return this.marketApiTokenTestStatuses[providerId] === 'error';
+  }
+
+  marketApiTokenTestMessage(providerId: string): string {
+    return this.marketApiTokenTestMessages[providerId] ?? '';
+  }
+
   formatNotificationDays(days: string[]): string {
     if (!days.length) {
       return 'No days selected';
@@ -299,39 +465,39 @@ export class MarketDashboardService {
 
   fetchDashboard(username: string, password: string): Observable<DashboardResponse> {
     return this.http.get<DashboardResponse>(`${this.apiBaseUrl}/dashboard`, {
-      headers: this.basicAuth(username, password),
+      headers: this.marketAuth(username, password),
     });
   }
 
   fetchIndicators(username: string, password: string): Observable<IndicatorSnapshot[]> {
     return this.http.get<IndicatorSnapshot[]>(`${this.apiBaseUrl}/indicators`, {
-      headers: this.basicAuth(username, password),
+      headers: this.marketAuth(username, password),
     });
   }
 
   fetchStocks(username: string, password: string): Observable<StockAlert[]> {
     return this.http.get<StockAlert[]>(`${this.apiBaseUrl}/stocks`, {
-      headers: this.basicAuth(username, password),
+      headers: this.marketAuth(username, password),
     });
   }
 
   previewStock(username: string, password: string, symbol: string): Observable<StockAlert> {
     return this.http.get<StockAlert>(`${this.apiBaseUrl}/stocks/preview`, {
-      headers: this.basicAuth(username, password),
+      headers: this.marketAuth(username, password),
       params: { symbol },
     });
   }
 
   fetchStockHistory(username: string, password: string, symbol: string, range: string): Observable<ChartSeries> {
     return this.http.get<ChartSeries>(`${this.apiBaseUrl}/stocks/${encodeURIComponent(symbol)}/history`, {
-      headers: this.basicAuth(username, password),
+      headers: this.marketAuth(username, password),
       params: { range },
     });
   }
 
   fetchIndicatorHistory(username: string, password: string, indicatorId: string, range: string): Observable<ChartSeries> {
     return this.http.get<ChartSeries>(`${this.apiBaseUrl}/indicators/${encodeURIComponent(indicatorId)}/history`, {
-      headers: this.basicAuth(username, password),
+      headers: this.marketAuth(username, password),
       params: { range },
     });
   }
@@ -415,7 +581,7 @@ export class MarketDashboardService {
     return this.http.post<PortfolioHolding>(
       `${this.apiBaseUrl}/portfolio`,
       normalizedHolding,
-      { headers: this.basicAuth(username, password) },
+      { headers: this.marketAuth(username, password) },
     );
   }
 
@@ -429,7 +595,7 @@ export class MarketDashboardService {
     return this.http.put<PortfolioHolding>(
       `${this.apiBaseUrl}/portfolio/${holdingId}`,
       normalizedHolding,
-      { headers: this.basicAuth(username, password) },
+      { headers: this.marketAuth(username, password) },
     );
   }
 
@@ -472,7 +638,7 @@ export class MarketDashboardService {
     }
 
     return this.http.get<SymbolSearchResult[]>(`${this.apiBaseUrl}/symbols/search`, {
-      headers: this.basicAuth(username, password),
+      headers: this.marketAuth(username, password),
       params,
     });
   }
@@ -505,10 +671,36 @@ export class MarketDashboardService {
     );
   }
 
+  testMarketApiToken(username: string, password: string, providerId: string): Observable<MarketApiTokenTestResponse> {
+    const provider = this.marketApiProviders.find((option) => option.id === providerId);
+    let headers = this.basicAuth(username, password);
+    const token = this.draftMarketApiToken(providerId).trim();
+    if (provider && token) {
+      headers = headers.set(provider.tokenHeader, token);
+    }
+
+    return this.http.post<MarketApiTokenTestResponse>(
+      `${this.apiBaseUrl}/users/me/market-apis/${encodeURIComponent(providerId)}/test`,
+      {},
+      { headers },
+    );
+  }
+
   private basicAuth(username: string, password: string): HttpHeaders {
     return new HttpHeaders({
       Authorization: `Basic ${btoa(`${username}:${password}`)}`,
     });
+  }
+
+  private marketAuth(username: string, password: string): HttpHeaders {
+    let headers = this.basicAuth(username, password);
+    for (const provider of this.marketApiProviders) {
+      const token = this.marketApiToken(provider.id).trim();
+      if (token) {
+        headers = headers.set(provider.tokenHeader, token);
+      }
+    }
+    return headers;
   }
 
   private loadGlobalIndicatorChart(indicatorId: string, range = this.getGlobalIndicatorChartRange(indicatorId)): void {
@@ -561,6 +753,14 @@ export class MarketDashboardService {
       next.delete(day);
     }
     return orderedDays.filter((option) => next.has(option));
+  }
+
+  private browserStorage(): Storage | undefined {
+    try {
+      return globalThis.localStorage;
+    } catch {
+      return undefined;
+    }
   }
 
   private resolveApiBaseUrl(): string {

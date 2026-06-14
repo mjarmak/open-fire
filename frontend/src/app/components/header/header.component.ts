@@ -20,6 +20,7 @@ export class HeaderComponent {
   @Output() openLogin = new EventEmitter<void>();
   @Output() openCreateUser = new EventEmitter<void>();
   @Output() openFeedback = new EventEmitter<void>();
+  @Output() openApiTokens = new EventEmitter<void>();
 
   protected openMenu(): void {
     this.menuOpen = true;
@@ -41,6 +42,11 @@ export class HeaderComponent {
 
   protected selectFeedback(): void {
     this.openFeedback.emit();
+    this.closeMenu();
+  }
+
+  protected selectApiTokens(): void {
+    this.openApiTokens.emit();
     this.closeMenu();
   }
 

@@ -7,6 +7,7 @@ import { finalize, of, switchMap } from 'rxjs';
 import { DashboardResponse, IndicatorSnapshot, PortfolioHolding, StockAlert, SymbolSearchResult, UserDcaSettings, UserRetirementSettings } from './market-dashboard.models';
 import { MarketDashboardService } from './market-dashboard.service';
 import { AddPositionDialogComponent } from './components/add-position-dialog/add-position-dialog.component';
+import { ApiTokenSettingsDialogComponent } from './components/api-token-settings-dialog/api-token-settings-dialog.component';
 import { AlertsDialogComponent } from './components/alerts-dialog/alerts-dialog.component';
 import { DcaPanelComponent } from './components/dca-panel/dca-panel.component';
 import { DcaSettingsDialogComponent } from './components/dca-settings-dialog/dca-settings-dialog.component';
@@ -32,6 +33,7 @@ import { dialogBackdropAnimation, dialogPanelAnimation } from './components/dial
     FormsModule,
     RouterOutlet,
     AddPositionDialogComponent,
+    ApiTokenSettingsDialogComponent,
     AlertsDialogComponent,
     DcaPanelComponent,
     DcaSettingsDialogComponent,
@@ -572,6 +574,11 @@ export class AppComponent implements OnDestroy, OnInit {
     this.feedbackDialogOpen = false;
     this.feedbackMessage = '';
     this.isSendingFeedback = false;
+    this.marketDashboardService.apiTokenDialogOpen = false;
+    this.marketDashboardService.isSavingApiTokens = false;
+    this.marketDashboardService.draftMarketApiTokens = {};
+    this.marketDashboardService.clearMarketApiTokenVisibility();
+    this.marketDashboardService.clearMarketApiTokenTestStates();
     this.dashboard = this.emptyDashboard();
   }
 
@@ -955,6 +962,74 @@ export class AppComponent implements OnDestroy, OnInit {
         },
         error: () => this.showSnackbar('Could not send feedback.', 'error'),
       });
+  }
+
+  openApiTokenSettings(): void {
+    if (!this.isLoggedIn) {
+      this.openLoginDialog();
+      this.showSnackbar('Login before editing API token settings.', 'error');
+      return;
+    }
+
+    this.marketDashboardService.apiTokenDialogOpen = true;
+    this.marketDashboardService.loadMarketApiTokenDraftsFromBrowser();
+    this.marketDashboardService.clearMarketApiTokenVisibility();
+    this.marketDashboardService.clearMarketApiTokenTestStates();
+  }
+
+  closeApiTokenSettings(): void {
+    this.marketDashboardService.apiTokenDialogOpen = false;
+    this.marketDashboardService.isSavingApiTokens = false;
+  }
+
+  saveApiTokenSettings(): void {
+    if (!this.isLoggedIn) {
+      return;
+    }
+
+    this.marketDashboardService.isSavingApiTokens = true;
+    this.marketDashboardService.saveMarketApiTokenDraftsToBrowser();
+    this.marketDashboardService.isSavingApiTokens = false;
+    this.showSnackbar('API token settings saved.');
+    this.closeApiTokenSettings();
+    this.refreshDashboard();
+  }
+
+  testApiToken(providerId: string): void {
+    if (!this.isLoggedIn) {
+      this.openLoginDialog();
+      this.showSnackbar('Login before testing API tokens.', 'error');
+      return;
+    }
+    if (!this.marketDashboardService.hasDraftMarketApiToken(providerId)) {
+      this.marketDashboardService.setMarketApiTokenTestState(providerId, 'error', 'Enter a token before testing.');
+      return;
+    }
+
+    this.marketDashboardService.setMarketApiTokenTestState(providerId, 'testing', 'Testing token...');
+    const testedToken = this.marketDashboardService.draftMarketApiToken(providerId);
+    this.marketDashboardService.testMarketApiToken(this.username, this.password, providerId).subscribe({
+      next: (result) => {
+        if (this.marketDashboardService.draftMarketApiToken(providerId) !== testedToken) {
+          return;
+        }
+        this.marketDashboardService.setMarketApiTokenTestState(
+          providerId,
+          result.success ? 'success' : 'error',
+          result.message
+        );
+      },
+      error: () => {
+        if (this.marketDashboardService.draftMarketApiToken(providerId) !== testedToken) {
+          return;
+        }
+        this.marketDashboardService.setMarketApiTokenTestState(
+          providerId,
+          'error',
+          'Could not test this API token right now.'
+        );
+      },
+    });
   }
 
   openDcaDialog(): void {

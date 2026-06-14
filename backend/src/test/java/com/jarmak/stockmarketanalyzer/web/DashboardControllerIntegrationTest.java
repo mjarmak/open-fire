@@ -24,6 +24,8 @@ import com.jarmak.stockmarketanalyzer.market.DashboardService;
 import com.jarmak.stockmarketanalyzer.market.FinnhubClient;
 import com.jarmak.stockmarketanalyzer.market.HistoryRange;
 import com.jarmak.stockmarketanalyzer.market.MarketIndicatorService;
+import com.jarmak.stockmarketanalyzer.market.MarketApiTokenTestService;
+import com.jarmak.stockmarketanalyzer.market.MarketApiTokenTestService.MarketApiTokenTestResult;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartSeries;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.DashboardResponse;
@@ -87,6 +89,9 @@ class DashboardControllerIntegrationTest {
 
   @MockBean
   private FeedbackService feedbackService;
+
+  @MockBean
+  private MarketApiTokenTestService marketApiTokenTestService;
 
   @Test
   void createsUser() throws Exception {
@@ -597,6 +602,29 @@ class DashboardControllerIntegrationTest {
         .andExpect(jsonPath("$.telegramDcaEnabled").value(true))
         .andExpect(jsonPath("$.reminderNote").value("Buy monthly allocation"))
         .andExpect(jsonPath("$.reminderDays[0]").value("MON"));
+  }
+
+  @Test
+  void testsMarketApiTokenWithProviderHeader() throws Exception {
+    when(marketApiTokenTestService.test("finnhub", "draft-token"))
+        .thenReturn(new MarketApiTokenTestResult("finnhub", true, "Finnhub token works."));
+
+    mockMvc.perform(post("/api/users/me/market-apis/finnhub/test")
+            .header(MarketApiRequestInterceptor.FINNHUB_TOKEN_HEADER, "draft-token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.provider").value("finnhub"))
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.message").value("Finnhub token works."));
+
+    verify(marketApiTokenTestService).test("finnhub", "draft-token");
+  }
+
+  @Test
+  void rejectsUnknownMarketApiTokenTestProvider() throws Exception {
+    mockMvc.perform(post("/api/users/me/market-apis/not-real/test"))
+        .andExpect(status().isBadRequest());
+
+    verify(marketApiTokenTestService, never()).test(anyString(), anyString());
   }
 
   @Test

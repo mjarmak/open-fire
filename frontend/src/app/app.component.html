@@ -8,6 +8,7 @@
     (openLogin)="openLoginDialog()"
     (openCreateUser)="openCreateUserDialog()"
     (openFeedback)="openFeedbackDialog()"
+    (openApiTokens)="openApiTokenSettings()"
   />
 
   @if (isLoggedIn) {
@@ -151,6 +152,12 @@
   (closeDialog)="closeTelegramDialog()"
   (save)="saveTelegramChatId()"
   (test)="sendTelegramTest()"
+/>
+
+<app-api-token-settings-dialog
+  (closeDialog)="closeApiTokenSettings()"
+  (save)="saveApiTokenSettings()"
+  (testToken)="testApiToken($event)"
 />
 
 @if (feedbackDialogOpen) {

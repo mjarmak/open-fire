@@ -3,6 +3,8 @@ package com.jarmak.stockmarketanalyzer.market.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
 import com.jarmak.stockmarketanalyzer.market.HistoryRange;
+import com.jarmak.stockmarketanalyzer.market.MarketApiProvider;
+import com.jarmak.stockmarketanalyzer.market.MarketApiRequestContext;
 import com.jarmak.stockmarketanalyzer.market.MarketApiUtils;
 import com.jarmak.stockmarketanalyzer.market.MarketSnapshotCandidate;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
@@ -44,11 +46,11 @@ public class AlphaVantageApiService {
   }
 
   public boolean configured() {
-    return StringUtils.hasText(properties.market().alphaVantageApiKey());
+    return StringUtils.hasText(apiKey());
   }
 
   public Optional<MarketSnapshotCandidate> companySnapshot(String symbol) {
-    return cached(snapshotCache, "alphavantage|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> {
+    return cached(snapshotCache, cacheKey("alphavantage|" + symbol), SNAPSHOT_CACHE_SECONDS, () -> {
       if (!configured()) {
         return Optional.empty();
       }
@@ -91,7 +93,7 @@ public class AlphaVantageApiService {
   }
 
   public Optional<MarketSnapshotCandidate> companyPriceSnapshot(String symbol) {
-    return cached(snapshotCache, "alphavantage-price|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> {
+    return cached(snapshotCache, cacheKey("alphavantage-price|" + symbol), SNAPSHOT_CACHE_SECONDS, () -> {
       if (!configured()) {
         return Optional.empty();
       }
@@ -142,7 +144,7 @@ public class AlphaVantageApiService {
   }
 
   public List<TimeSeriesPoint> dailyCloses(String symbol) {
-    return cached(closesCache, "symbol:" + symbol, CLOSES_CACHE_SECONDS, () -> {
+    return cached(closesCache, cacheKey("symbol:" + symbol), CLOSES_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
       }
@@ -178,7 +180,7 @@ public class AlphaVantageApiService {
   }
 
   public List<SymbolSearchResult> searchSymbols(String keywords) {
-    return cached(searchCache, "alphavantage|" + MarketApiUtils.normalizeSearchText(keywords), SEARCH_PROVIDER_CACHE_SECONDS, () -> {
+    return cached(searchCache, cacheKey("alphavantage|" + MarketApiUtils.normalizeSearchText(keywords)), SEARCH_PROVIDER_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
       }
@@ -216,7 +218,7 @@ public class AlphaVantageApiService {
     String outputSize = alphaVantageHistoryOutputSize(range);
 
     try {
-      return cached(historyCache, "alphavantage|" + symbol + "|" + range.label(), historyCacheSeconds(range), () -> {
+      return cached(historyCache, cacheKey("alphavantage|" + symbol + "|" + range.label()), historyCacheSeconds(range), () -> {
         String function = defaultFunction;
         String interval = defaultInterval;
         JsonNode response = query(function, alphaVantageHistoryParams(providerSymbol, outputSize, interval));
@@ -394,7 +396,7 @@ public class AlphaVantageApiService {
                 .path("/query")
                 .queryParam("function", function);
             params.forEach((key, value) -> builder.queryParam(key, value));
-            builder.queryParam("apikey", properties.market().alphaVantageApiKey());
+            builder.queryParam("apikey", apiKey());
             return builder.build();
           })
           .retrieve()
@@ -403,6 +405,14 @@ public class AlphaVantageApiService {
       LOGGER.debug("Alpha Vantage request failed for {} with params {}: {}", function, params, exception.getMessage());
       return null;
     }
+  }
+
+  private String apiKey() {
+    return MarketApiRequestContext.apiKey(MarketApiProvider.ALPHA_VANTAGE, properties.market().alphaVantageApiKey());
+  }
+
+  private String cacheKey(String key) {
+    return MarketApiRequestContext.providerCacheSuffix(MarketApiProvider.ALPHA_VANTAGE) + "|" + key;
   }
 
   private <T> T cached(Map<String, CacheEntry<T>> cache, String key, long ttlSeconds, java.util.function.Supplier<T> loader) {

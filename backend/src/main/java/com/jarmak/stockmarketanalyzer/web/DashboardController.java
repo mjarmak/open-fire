@@ -6,6 +6,9 @@ import com.jarmak.stockmarketanalyzer.market.DashboardService;
 import com.jarmak.stockmarketanalyzer.market.FinnhubClient;
 import com.jarmak.stockmarketanalyzer.market.HistoryRange;
 import com.jarmak.stockmarketanalyzer.market.MarketIndicatorService;
+import com.jarmak.stockmarketanalyzer.market.MarketApiProvider;
+import com.jarmak.stockmarketanalyzer.market.MarketApiTokenTestService;
+import com.jarmak.stockmarketanalyzer.market.MarketApiTokenTestService.MarketApiTokenTestResult;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartSeries;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.DashboardResponse;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.IndicatorSnapshot;
@@ -23,6 +26,7 @@ import com.jarmak.stockmarketanalyzer.security.UserAccountService.UserTelegramSe
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -55,6 +59,7 @@ public class DashboardController {
   private final UserAccountService userAccountService;
   private final StockAlertService stockAlertService;
   private final FeedbackService feedbackService;
+  private final MarketApiTokenTestService marketApiTokenTestService;
 
   public DashboardController(
       DashboardService dashboardService,
@@ -64,7 +69,8 @@ public class DashboardController {
       MarketIndicatorService marketIndicatorService,
       UserAccountService userAccountService,
       StockAlertService stockAlertService,
-      FeedbackService feedbackService
+      FeedbackService feedbackService,
+      MarketApiTokenTestService marketApiTokenTestService
   ) {
     this.dashboardService = dashboardService;
     this.telegramNotificationService = telegramNotificationService;
@@ -74,6 +80,7 @@ public class DashboardController {
     this.userAccountService = userAccountService;
     this.stockAlertService = stockAlertService;
     this.feedbackService = feedbackService;
+    this.marketApiTokenTestService = marketApiTokenTestService;
   }
 
   @PostMapping({"/users", "/users/"})
@@ -307,6 +314,20 @@ public class DashboardController {
     );
   }
 
+  @PostMapping("/users/me/market-apis/{provider}/test")
+  MarketApiTokenTestResponse testMarketApiToken(@PathVariable String provider, HttpServletRequest request) {
+    String normalizedProvider = MarketApiProvider.normalize(provider);
+    if (!StringUtils.hasText(normalizedProvider)) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown market data API.");
+    }
+
+    MarketApiTokenTestResult result = marketApiTokenTestService.test(
+        normalizedProvider,
+        marketApiTokenHeader(normalizedProvider, request)
+    );
+    return new MarketApiTokenTestResponse(result.provider(), result.success(), result.message());
+  }
+
   @GetMapping("/users/me/retirement")
   UserAccountService.UserRetirementSettings getRetirementSettings() {
     return userAccountService.getRetirementSettings();
@@ -349,6 +370,9 @@ public class DashboardController {
   ) {
   }
 
+  public record MarketApiTokenTestResponse(String provider, boolean success, String message) {
+  }
+
   public record CreateUserRequest(
       @NotBlank @Size(min = 3, max = 64) @Pattern(regexp = "[A-Za-z0-9._-]+") String username,
       @NotBlank @Size(min = 8, max = 128) String password
@@ -376,6 +400,17 @@ public class DashboardController {
     } catch (RuntimeException exception) {
       return null;
     }
+  }
+
+  private String marketApiTokenHeader(String provider, HttpServletRequest request) {
+    return switch (provider) {
+      case MarketApiProvider.FINNHUB -> request.getHeader(MarketApiRequestInterceptor.FINNHUB_TOKEN_HEADER);
+      case MarketApiProvider.TWELVE_DATA -> request.getHeader(MarketApiRequestInterceptor.TWELVE_DATA_TOKEN_HEADER);
+      case MarketApiProvider.FINANCIAL_MODELING_PREP -> request.getHeader(MarketApiRequestInterceptor.FINANCIAL_MODELING_PREP_TOKEN_HEADER);
+      case MarketApiProvider.ALPHA_VANTAGE -> request.getHeader(MarketApiRequestInterceptor.ALPHA_VANTAGE_TOKEN_HEADER);
+      case MarketApiProvider.EODHD -> request.getHeader(MarketApiRequestInterceptor.EODHD_TOKEN_HEADER);
+      default -> "";
+    };
   }
 
   private HistoryRange parseHistoryRange(String range) {

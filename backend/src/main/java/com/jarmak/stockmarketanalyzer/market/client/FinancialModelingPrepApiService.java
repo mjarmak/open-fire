@@ -3,6 +3,8 @@ package com.jarmak.stockmarketanalyzer.market.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
 import com.jarmak.stockmarketanalyzer.market.HistoryRange;
+import com.jarmak.stockmarketanalyzer.market.MarketApiProvider;
+import com.jarmak.stockmarketanalyzer.market.MarketApiRequestContext;
 import com.jarmak.stockmarketanalyzer.market.MarketApiUtils;
 import com.jarmak.stockmarketanalyzer.market.MarketSnapshotCandidate;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
@@ -49,19 +51,19 @@ public class FinancialModelingPrepApiService {
   }
 
   public boolean configured() {
-    return StringUtils.hasText(properties.market().financialModelingPrepApiKey());
+    return StringUtils.hasText(apiKey());
   }
 
   public Optional<MarketSnapshotCandidate> companySnapshot(String symbol) {
-    return cached(snapshotCache, "fmp|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> snapshot(symbol, true), Optional.empty());
+    return cached(snapshotCache, cacheKey("fmp|" + symbol), SNAPSHOT_CACHE_SECONDS, () -> snapshot(symbol, true), Optional.empty());
   }
 
   public Optional<MarketSnapshotCandidate> companyPriceSnapshot(String symbol) {
-    return cached(snapshotCache, "fmp-price|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> snapshot(symbol, false), Optional.empty());
+    return cached(snapshotCache, cacheKey("fmp-price|" + symbol), SNAPSHOT_CACHE_SECONDS, () -> snapshot(symbol, false), Optional.empty());
   }
 
   public List<TimeSeriesPoint> dailyCloses(String symbol) {
-    return cached(closesCache, "fmp|" + symbol, CLOSES_CACHE_SECONDS, () -> {
+    return cached(closesCache, cacheKey("fmp|" + symbol), CLOSES_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
       }
@@ -87,7 +89,7 @@ public class FinancialModelingPrepApiService {
   }
 
   public List<SymbolSearchResult> searchSymbols(String keywords) {
-    return cached(searchCache, "fmp|" + MarketApiUtils.normalizeSearchText(keywords), SEARCH_PROVIDER_CACHE_SECONDS, () -> {
+    return cached(searchCache, cacheKey("fmp|" + MarketApiUtils.normalizeSearchText(keywords)), SEARCH_PROVIDER_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
       }
@@ -126,7 +128,7 @@ public class FinancialModelingPrepApiService {
       return List.of();
     }
 
-    return cached(historyCache, "fmp|" + symbol + "|" + range.label(), historyCacheSeconds(range), () -> {
+    return cached(historyCache, cacheKey("fmp|" + symbol + "|" + range.label()), historyCacheSeconds(range), () -> {
       JsonNode response = query(historyEndpoint(range), historyParams(providerSymbol, range));
       if (response == null) {
         return null;
@@ -259,7 +261,7 @@ public class FinancialModelingPrepApiService {
                 .path("/stable/")
                 .path(path);
             params.forEach((key, value) -> builder.queryParam(key, value));
-            builder.queryParam("apikey", properties.market().financialModelingPrepApiKey());
+            builder.queryParam("apikey", apiKey());
             return builder.build();
           })
           .retrieve()
@@ -271,6 +273,17 @@ public class FinancialModelingPrepApiService {
       LOGGER.debug("Financial Modeling Prep request failed for {} with params {}: {}", path, params, exception.getMessage());
       return null;
     }
+  }
+
+  private String apiKey() {
+    return MarketApiRequestContext.apiKey(
+        MarketApiProvider.FINANCIAL_MODELING_PREP,
+        properties.market().financialModelingPrepApiKey()
+    );
+  }
+
+  private String cacheKey(String key) {
+    return MarketApiRequestContext.providerCacheSuffix(MarketApiProvider.FINANCIAL_MODELING_PREP) + "|" + key;
   }
 
   private JsonNode arrayNode(JsonNode response) {

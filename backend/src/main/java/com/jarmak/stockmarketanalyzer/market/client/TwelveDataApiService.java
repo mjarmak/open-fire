@@ -3,6 +3,8 @@ package com.jarmak.stockmarketanalyzer.market.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
 import com.jarmak.stockmarketanalyzer.market.HistoryRange;
+import com.jarmak.stockmarketanalyzer.market.MarketApiProvider;
+import com.jarmak.stockmarketanalyzer.market.MarketApiRequestContext;
 import com.jarmak.stockmarketanalyzer.market.MarketApiUtils;
 import com.jarmak.stockmarketanalyzer.market.MarketSnapshotCandidate;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
@@ -51,11 +53,11 @@ public class TwelveDataApiService {
   }
 
   public boolean configured() {
-    return StringUtils.hasText(properties.market().twelveDataApiKey());
+    return StringUtils.hasText(apiKey());
   }
 
   public Optional<MarketSnapshotCandidate> companySnapshot(String symbol) {
-    return cached(snapshotCache, "twelvedata|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> {
+    return cached(snapshotCache, cacheKey("twelvedata|" + symbol), SNAPSHOT_CACHE_SECONDS, () -> {
       if (!configured()) {
         return Optional.empty();
       }
@@ -107,7 +109,7 @@ public class TwelveDataApiService {
   }
 
   public Optional<MarketSnapshotCandidate> companyPriceSnapshot(String symbol) {
-    return cached(snapshotCache, "twelvedata-price|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> {
+    return cached(snapshotCache, cacheKey("twelvedata-price|" + symbol), SNAPSHOT_CACHE_SECONDS, () -> {
       if (!configured()) {
         return Optional.empty();
       }
@@ -163,7 +165,7 @@ public class TwelveDataApiService {
   }
 
   public List<TimeSeriesPoint> dailyCloses(String symbol) {
-    return cached(closesCache, "symbol:" + symbol, CLOSES_CACHE_SECONDS, () -> {
+    return cached(closesCache, cacheKey("symbol:" + symbol), CLOSES_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
       }
@@ -201,7 +203,7 @@ public class TwelveDataApiService {
   }
 
   public List<SymbolSearchResult> searchSymbols(String keywords) {
-    return cached(searchCache, "twelvedata|" + MarketApiUtils.normalizeSearchText(keywords), SEARCH_PROVIDER_CACHE_SECONDS, () -> {
+    return cached(searchCache, cacheKey("twelvedata|" + MarketApiUtils.normalizeSearchText(keywords)), SEARCH_PROVIDER_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
       }
@@ -245,7 +247,7 @@ public class TwelveDataApiService {
     try {
       long toMillis = Instant.now().toEpochMilli();
       Instant fromDate = range.allTime() ? Instant.EPOCH : Instant.now().minus(range.lookback());
-      return cached(historyCache, "twelvedata|" + symbol + "|" + range.label(), historyCacheSeconds(range), () -> {
+      return cached(historyCache, cacheKey("twelvedata|" + symbol + "|" + range.label()), historyCacheSeconds(range), () -> {
         JsonNode response = query("time_series", Map.of(
             "symbol", providerSymbol,
             "interval", twelvedataHistoryInterval(range),
@@ -341,7 +343,7 @@ public class TwelveDataApiService {
                 .path("/")
                 .path(function);
             params.forEach((key, value) -> builder.queryParam(key, value));
-            builder.queryParam("apikey", properties.market().twelveDataApiKey());
+            builder.queryParam("apikey", apiKey());
             return builder.build();
           })
           .retrieve()
@@ -363,6 +365,14 @@ public class TwelveDataApiService {
       LOGGER.debug("Twelve Data request failed for {} with params {}: {}", function, params, exception.getMessage());
       return null;
     }
+  }
+
+  private String apiKey() {
+    return MarketApiRequestContext.apiKey(MarketApiProvider.TWELVE_DATA, properties.market().twelveDataApiKey());
+  }
+
+  private String cacheKey(String key) {
+    return MarketApiRequestContext.providerCacheSuffix(MarketApiProvider.TWELVE_DATA) + "|" + key;
   }
 
   private <T> T cached(Map<String, CacheEntry<T>> cache, String key, long ttlSeconds, java.util.function.Supplier<T> loader) {

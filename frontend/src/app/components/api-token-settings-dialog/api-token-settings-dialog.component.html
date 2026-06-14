@@ -1,0 +1,100 @@
+@if (state.apiTokenDialogOpen) {
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop>
+    <section class="edit-dialog api-token-dialog" role="dialog" aria-modal="true" aria-labelledby="api-token-title" @dialogPanel (click)="$event.stopPropagation()">
+      <div class="dialog-heading">
+        <div>
+          <h2 id="api-token-title">API Tokens</h2>
+        </div>
+        <button type="button" class="icon-action" title="Close dialog" aria-label="Close API token settings" (click)="closeDialog.emit()"></button>
+      </div>
+
+      <form class="edit-form" (ngSubmit)="save.emit()">
+        <fieldset class="dialog-fieldset" [disabled]="state.isSavingApiTokens">
+          <p class="api-token-intro">
+            OpenFIRE uses the developer's free market-data API tokens by default. Those free quotas can run out quickly when multiple users use the app on the same day, so it is recommended to set up your own free or paid API tokens.
+          </p>
+          <small class="field-hint api-token-storage-note">
+            <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span>We do not store your API tokens in our system. Token values are saved only in this browser's local storage and are sent to the backend only when market data is requested.</span>
+          </small>
+
+          <div class="api-provider-list">
+            @for (provider of state.marketApiProviders; track provider.id) {
+              <section class="api-provider-item">
+                <label>
+                  <span>{{ provider.tokenLabel }}</span>
+                  <div class="api-token-input-row">
+                    <input
+                      [type]="state.isMarketApiTokenVisible(provider.id) ? 'text' : 'password'"
+                      autocomplete="off"
+                      [name]="'marketApiToken' + provider.id"
+                      [ngModel]="state.draftMarketApiToken(provider.id)"
+                      (ngModelChange)="state.setDraftMarketApiToken(provider.id, $event)"
+                      placeholder="Use developer token"
+                    />
+                    <button
+                      type="button"
+                      class="secondary api-token-visibility-button"
+                      [title]="state.isMarketApiTokenVisible(provider.id) ? 'Hide token' : 'Show token'"
+                      [attr.aria-label]="state.isMarketApiTokenVisible(provider.id) ? 'Hide ' + provider.name + ' token' : 'Show ' + provider.name + ' token'"
+                      [attr.aria-pressed]="state.isMarketApiTokenVisible(provider.id)"
+                      (click)="state.toggleMarketApiTokenVisibility(provider.id)"
+                    >
+                      @if (state.isMarketApiTokenVisible(provider.id)) {
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C7 20 2.73 16.89 1 12a12.16 12.16 0 0 1 4.06-5.94" />
+                          <path d="M9.9 4.24A10.8 10.8 0 0 1 12 4c5 0 9.27 3.11 11 8a12.1 12.1 0 0 1-1.54 2.82" />
+                          <path d="M14.12 14.12A3 3 0 0 1 9.88 9.88" />
+                          <path d="M1 1l22 22" />
+                        </svg>
+                      } @else {
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      }
+                    </button>
+                    <button
+                      type="button"
+                      class="secondary api-token-test-button"
+                      [disabled]="!state.hasDraftMarketApiToken(provider.id) || state.isTestingMarketApiToken(provider.id) || state.isSavingApiTokens"
+                      (click)="testToken.emit(provider.id)"
+                    >
+                      {{ state.isTestingMarketApiToken(provider.id) ? 'Testing' : 'Test' }}
+                    </button>
+                  </div>
+                </label>
+
+                @if (state.marketApiTokenTestMessage(provider.id)) {
+                  <small
+                    class="field-hint api-token-test-result"
+                    [class.api-token-test-success]="state.marketApiTokenTestSucceeded(provider.id)"
+                    [class.api-token-test-error]="state.marketApiTokenTestFailed(provider.id)"
+                  >
+                    {{ state.marketApiTokenTestMessage(provider.id) }}
+                  </small>
+                }
+
+                <small class="field-hint">{{ provider.limit }}</small>
+                <a class="api-provider-link" [href]="provider.signupUrl" target="_blank" rel="noopener noreferrer">
+                  Get a {{ provider.name }} token
+                </a>
+              </section>
+            }
+          </div>
+
+          <div class="dialog-actions">
+            <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+            <button type="submit">
+              {{ state.isSavingApiTokens ? 'Saving' : 'Save' }}
+            </button>
+          </div>
+        </fieldset>
+      </form>
+    </section>
+  </div>
+}

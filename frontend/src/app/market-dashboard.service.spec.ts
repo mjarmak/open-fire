@@ -8,6 +8,7 @@ describe('MarketDashboardService', () => {
   let http: HttpTestingController;
 
   beforeEach(() => {
+    localStorage.clear();
     TestBed.configureTestingModule({
       providers: [
         MarketDashboardService,
@@ -63,6 +64,86 @@ describe('MarketDashboardService', () => {
     expect(request.request.params.get('includeIndicators')).toBe('true');
 
     request.flush([]);
+  });
+
+  it('sends browser-stored market API tokens only with market data requests', () => {
+    localStorage.setItem('openfire_market_api_token_finnhub', 'user-finnhub-token');
+    localStorage.setItem('openfire_market_api_token_eodhd', 'user-eodhd-token');
+
+    service.searchSymbols('user', 'password123', 'app', false, true).subscribe();
+
+    const searchRequest = http.expectOne((candidate) => candidate.url === '/api/symbols/search');
+    expect(searchRequest.request.headers.get('X-OpenFire-Api-Token-Finnhub')).toBe('user-finnhub-token');
+    expect(searchRequest.request.headers.get('X-OpenFire-Api-Token-Eodhd')).toBe('user-eodhd-token');
+    searchRequest.flush([]);
+  });
+
+  it('loads and saves market API token drafts in local storage', () => {
+    localStorage.setItem('openfire_market_api_token_twelvedata', 'twelve-token');
+
+    service.loadMarketApiTokenDraftsFromBrowser();
+
+    expect(service.draftMarketApiToken('twelvedata')).toBe('twelve-token');
+
+    service.setDraftMarketApiToken('finnhub', 'finnhub-token');
+    service.setDraftMarketApiToken('twelvedata', '');
+    service.saveMarketApiTokenDraftsToBrowser();
+
+    expect(localStorage.getItem('openfire_market_api_token_finnhub')).toBe('finnhub-token');
+    expect(localStorage.getItem('openfire_market_api_token_twelvedata')).toBeNull();
+  });
+
+  it('tests the draft market API token without saving it to browser storage', () => {
+    service.setDraftMarketApiToken('finnhub', 'draft-token');
+
+    service.testMarketApiToken('user', 'password123', 'finnhub').subscribe((result) => {
+      expect(result).toEqual({
+        provider: 'finnhub',
+        success: true,
+        message: 'Finnhub token works.',
+      });
+    });
+
+    const request = http.expectOne('/api/users/me/market-apis/finnhub/test');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.headers.get('Authorization')).toBe(`Basic ${btoa('user:password123')}`);
+    expect(request.request.headers.get('X-OpenFire-Api-Token-Finnhub')).toBe('draft-token');
+    expect(localStorage.getItem('openfire_market_api_token_finnhub')).toBeNull();
+    request.flush({
+      provider: 'finnhub',
+      success: true,
+      message: 'Finnhub token works.',
+    });
+  });
+
+  it('detects whether a draft market API token can be tested', () => {
+    service.setDraftMarketApiToken('finnhub', '   ');
+    service.setDraftMarketApiToken('twelvedata', 'twelve-token');
+
+    expect(service.hasDraftMarketApiToken('finnhub')).toBeFalse();
+    expect(service.hasDraftMarketApiToken('twelvedata')).toBeTrue();
+  });
+
+  it('clears a token test result when the draft token changes', () => {
+    service.setMarketApiTokenTestState('finnhub', 'success', 'Finnhub token works.');
+
+    service.setDraftMarketApiToken('finnhub', 'new-token');
+
+    expect(service.marketApiTokenTestMessage('finnhub')).toBe('');
+    expect(service.marketApiTokenTestSucceeded('finnhub')).toBeFalse();
+  });
+
+  it('toggles API token visibility per provider', () => {
+    expect(service.isMarketApiTokenVisible('finnhub')).toBeFalse();
+
+    service.toggleMarketApiTokenVisibility('finnhub');
+
+    expect(service.isMarketApiTokenVisible('finnhub')).toBeTrue();
+    expect(service.isMarketApiTokenVisible('twelvedata')).toBeFalse();
+
+    service.clearMarketApiTokenVisibility();
+
+    expect(service.isMarketApiTokenVisible('finnhub')).toBeFalse();
   });
 
   it('retries global risk chart history after an empty response', fakeAsync(() => {

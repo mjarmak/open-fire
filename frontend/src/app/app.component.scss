@@ -2575,6 +2575,105 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
   width: min(560px, 100%);
 }
 
+.api-token-dialog {
+  width: min(720px, 100%);
+}
+
+.api-token-intro {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.api-token-storage-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.api-token-storage-note svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--status-risk);
+}
+
+.api-provider-list {
+  display: grid;
+  gap: 12px;
+}
+
+.api-provider-item {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.api-token-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.api-token-input-row input {
+  width: 100%;
+}
+
+.api-token-visibility-button {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+}
+
+.api-token-visibility-button svg {
+  pointer-events: none;
+}
+
+.api-token-test-button {
+  white-space: nowrap;
+}
+
+.api-token-test-result {
+  font-weight: 700;
+}
+
+.api-token-test-success {
+  color: var(--positive-text);
+}
+
+.api-token-test-error {
+  color: var(--status-risk);
+}
+
+.api-provider-link {
+  width: fit-content;
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.api-provider-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 560px) {
+  .api-token-input-row {
+    grid-template-columns: minmax(0, 1fr) 34px;
+  }
+
+  .api-token-test-button {
+    grid-column: 1 / -1;
+    width: fit-content;
+  }
+}
+
 .feedback-dialog {
   width: min(560px, 100%);
 }

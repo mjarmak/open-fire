@@ -3,6 +3,8 @@ package com.jarmak.stockmarketanalyzer.market.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
 import com.jarmak.stockmarketanalyzer.market.HistoryRange;
+import com.jarmak.stockmarketanalyzer.market.MarketApiProvider;
+import com.jarmak.stockmarketanalyzer.market.MarketApiRequestContext;
 import com.jarmak.stockmarketanalyzer.market.MarketApiUtils;
 import com.jarmak.stockmarketanalyzer.market.MarketSnapshotCandidate;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
@@ -49,19 +51,19 @@ public class EodHistoricalDataApiService {
   }
 
   public boolean configured() {
-    return StringUtils.hasText(properties.market().eodHistoricalDataApiKey());
+    return StringUtils.hasText(apiKey());
   }
 
   public Optional<MarketSnapshotCandidate> companySnapshot(String symbol) {
-    return cached(snapshotCache, "eodhd|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> snapshot(symbol, true), Optional.empty());
+    return cached(snapshotCache, cacheKey("eodhd|" + symbol), SNAPSHOT_CACHE_SECONDS, () -> snapshot(symbol, true), Optional.empty());
   }
 
   public Optional<MarketSnapshotCandidate> companyPriceSnapshot(String symbol) {
-    return cached(snapshotCache, "eodhd-price|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> snapshot(symbol, false), Optional.empty());
+    return cached(snapshotCache, cacheKey("eodhd-price|" + symbol), SNAPSHOT_CACHE_SECONDS, () -> snapshot(symbol, false), Optional.empty());
   }
 
   public List<TimeSeriesPoint> dailyCloses(String symbol) {
-    return cached(closesCache, "eodhd|" + symbol, CLOSES_CACHE_SECONDS, () -> {
+    return cached(closesCache, cacheKey("eodhd|" + symbol), CLOSES_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
       }
@@ -87,7 +89,7 @@ public class EodHistoricalDataApiService {
   }
 
   public List<SymbolSearchResult> searchSymbols(String keywords) {
-    return cached(searchCache, "eodhd|" + MarketApiUtils.normalizeSearchText(keywords), SEARCH_PROVIDER_CACHE_SECONDS, () -> {
+    return cached(searchCache, cacheKey("eodhd|" + MarketApiUtils.normalizeSearchText(keywords)), SEARCH_PROVIDER_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
       }
@@ -121,7 +123,7 @@ public class EodHistoricalDataApiService {
       return List.of();
     }
 
-    return cached(historyCache, "eodhd|" + symbol + "|" + range.label(), historyCacheSeconds(range), () -> {
+    return cached(historyCache, cacheKey("eodhd|" + symbol + "|" + range.label()), historyCacheSeconds(range), () -> {
       JsonNode response = query(historyEndpoint(range), providerSymbol, historyParams(range));
       if (response == null) {
         return null;
@@ -261,7 +263,7 @@ public class EodHistoricalDataApiService {
                 .host("eodhd.com")
                 .pathSegment("api", endpoint, pathValue);
             params.forEach((key, value) -> builder.queryParam(key, value));
-            builder.queryParam("api_token", properties.market().eodHistoricalDataApiKey());
+            builder.queryParam("api_token", apiKey());
             builder.queryParam("fmt", "json");
             return builder.build();
           })
@@ -274,6 +276,14 @@ public class EodHistoricalDataApiService {
       LOGGER.debug("EODHD request failed for {} with params {}: {}", endpoint, params, exception.getMessage());
       return null;
     }
+  }
+
+  private String apiKey() {
+    return MarketApiRequestContext.apiKey(MarketApiProvider.EODHD, properties.market().eodHistoricalDataApiKey());
+  }
+
+  private String cacheKey(String key) {
+    return MarketApiRequestContext.providerCacheSuffix(MarketApiProvider.EODHD) + "|" + key;
   }
 
   private JsonNode arrayNode(JsonNode response) {

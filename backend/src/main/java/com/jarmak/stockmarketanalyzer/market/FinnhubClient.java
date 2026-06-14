@@ -78,7 +78,7 @@ public class FinnhubClient {
     }
 
     String normalizedSymbol = symbol.trim().toUpperCase();
-    return cached(snapshotCache, normalizedSymbol, SNAPSHOT_CACHE_SECONDS, () -> fetchCompanySnapshot(normalizedSymbol));
+    return cached(snapshotCache, MarketApiRequestContext.requestCacheSuffix() + "|" + normalizedSymbol, SNAPSHOT_CACHE_SECONDS, () -> fetchCompanySnapshot(normalizedSymbol));
   }
 
   public Optional<CompanySnapshot> companyPriceSnapshot(String symbol) {
@@ -87,7 +87,7 @@ public class FinnhubClient {
     }
 
     String normalizedSymbol = symbol.trim().toUpperCase();
-    return cached(priceSnapshotCache, normalizedSymbol, SNAPSHOT_CACHE_SECONDS, () -> fetchCompanyPriceSnapshot(normalizedSymbol));
+    return cached(priceSnapshotCache, MarketApiRequestContext.requestCacheSuffix() + "|" + normalizedSymbol, SNAPSHOT_CACHE_SECONDS, () -> fetchCompanyPriceSnapshot(normalizedSymbol));
   }
 
   public List<TimeSeriesPoint> dailyCloses(String symbol) {
@@ -96,7 +96,7 @@ public class FinnhubClient {
     }
 
     String normalizedSymbol = symbol.trim().toUpperCase();
-    return cachedNonEmptyList(closesCache, normalizedSymbol, CLOSES_CACHE_SECONDS, () -> fetchDailyCloses(normalizedSymbol));
+    return cachedNonEmptyList(closesCache, MarketApiRequestContext.requestCacheSuffix() + "|" + normalizedSymbol, CLOSES_CACHE_SECONDS, () -> fetchDailyCloses(normalizedSymbol));
   }
 
   public List<ChartPoint> historicalCandles(String symbol, HistoryRange range) {
@@ -105,7 +105,7 @@ public class FinnhubClient {
     }
 
     String normalizedSymbol = symbol.trim().toUpperCase();
-    String cacheKey = normalizedSymbol + "|" + range.label();
+    String cacheKey = MarketApiRequestContext.requestCacheSuffix() + "|" + normalizedSymbol + "|" + range.label();
     CacheEntry<List<ChartPoint>> existing = historyCache.get(cacheKey);
     if (existing != null && !existing.expired()) {
       LOGGER.debug(
@@ -137,7 +137,7 @@ public class FinnhubClient {
     }
 
     String query = keywords.trim().toLowerCase();
-    return cached(searchCache, query, SEARCH_CACHE_SECONDS, () -> fetchSymbols(query));
+    return cached(searchCache, MarketApiRequestContext.requestCacheSuffix() + "|" + query, SEARCH_CACHE_SECONDS, () -> fetchSymbols(query));
   }
 
   public Optional<SymbolSearchResult> findExactSymbol(String symbol) {
@@ -310,7 +310,7 @@ public class FinnhubClient {
   }
 
   private List<SymbolSearchResult> matchingSymbols(String type, String keywords) {
-      return cached(symbolListCache, SYMBOL_LIST_KEY + "-" + type, SYMBOL_LIST_CACHE_SECONDS, () -> finnhubApiService.symbolList(type))
+      return cached(symbolListCache, MarketApiRequestContext.requestCacheSuffix() + "|" + SYMBOL_LIST_KEY + "-" + type, SYMBOL_LIST_CACHE_SECONDS, () -> finnhubApiService.symbolList(type))
           .stream()
           .filter(result -> matchesSearch(result, keywords))
           .toList();

@@ -3,6 +3,8 @@ package com.jarmak.stockmarketanalyzer.market.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
 import com.jarmak.stockmarketanalyzer.market.HistoryRange;
+import com.jarmak.stockmarketanalyzer.market.MarketApiProvider;
+import com.jarmak.stockmarketanalyzer.market.MarketApiRequestContext;
 import com.jarmak.stockmarketanalyzer.market.MarketApiUtils;
 import com.jarmak.stockmarketanalyzer.market.MarketSnapshotCandidate;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
@@ -51,11 +53,11 @@ public class FinnhubApiService {
   }
 
   public boolean configured() {
-    return StringUtils.hasText(properties.market().finnhubApiKey());
+    return StringUtils.hasText(apiKey());
   }
 
   public Optional<MarketSnapshotCandidate> companySnapshot(String symbol) {
-    return cached(snapshotCache, "finnhub|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> {
+    return cached(snapshotCache, cacheKey("finnhub|" + symbol), SNAPSHOT_CACHE_SECONDS, () -> {
       if (!configured()) {
         return Optional.empty();
       }
@@ -161,7 +163,7 @@ public class FinnhubApiService {
   }
 
   public Optional<MarketSnapshotCandidate> companyPriceSnapshot(String symbol) {
-    return cached(snapshotCache, "finnhub-price|" + symbol, SNAPSHOT_CACHE_SECONDS, () -> {
+    return cached(snapshotCache, cacheKey("finnhub-price|" + symbol), SNAPSHOT_CACHE_SECONDS, () -> {
       if (!configured()) {
         return Optional.empty();
       }
@@ -217,7 +219,7 @@ public class FinnhubApiService {
   }
 
   public List<TimeSeriesPoint> dailyCloses(String symbol) {
-    return cachedNonEmptyList(dailyClosesCache, symbol, CLOSES_CACHE_SECONDS, () -> {
+    return cachedNonEmptyList(dailyClosesCache, cacheKey(symbol), CLOSES_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
       }
@@ -260,7 +262,7 @@ public class FinnhubApiService {
   }
 
   public List<SymbolSearchResult> searchSymbols(String keywords) {
-    return cached(searchCache, "finnhub|" + MarketApiUtils.normalizeSearchText(keywords), SEARCH_PROVIDER_CACHE_SECONDS, () -> {
+    return cached(searchCache, cacheKey("finnhub|" + MarketApiUtils.normalizeSearchText(keywords)), SEARCH_PROVIDER_CACHE_SECONDS, () -> {
       if (!configured()) {
         return List.of();
       }
@@ -281,11 +283,12 @@ public class FinnhubApiService {
   }
 
   public List<SymbolSearchResult> symbolList(String type) {
-    return cached(symbolListCache, type, 3_600, () -> fetchAssetSymbols(type));
+    return cached(symbolListCache, cacheKey(type), 3_600, () -> fetchAssetSymbols(type));
   }
 
   public List<ChartPoint> historicalCandles(String symbol, HistoryRange range) {
-    CacheEntry<Boolean> accessBlocked = historyBackoff.get(FINNHUB_HISTORY_BACKOFF_KEY);
+    String backoffKey = cacheKey(FINNHUB_HISTORY_BACKOFF_KEY);
+    CacheEntry<Boolean> accessBlocked = historyBackoff.get(backoffKey);
     if (accessBlocked != null && !accessBlocked.expired()) {
       LOGGER.debug("Skipping Finnhub history for {} {} due to recent access errors.", symbol, range.label());
       return List.of();
@@ -294,7 +297,7 @@ public class FinnhubApiService {
     try {
       long to = Instant.now().getEpochSecond();
       long from = range.allTime() ? 0 : Instant.now().minus(range.lookback()).getEpochSecond();
-      return cachedNonEmptyList(historyCache, symbol + "|" + range.label(), historyCacheSeconds(range), () -> {
+      return cachedNonEmptyList(historyCache, cacheKey(symbol + "|" + range.label()), historyCacheSeconds(range), () -> {
         if (!configured()) {
           LOGGER.debug("Skipping Finnhub history for {} {} because Finnhub API key is not configured.", symbol, range.label());
           return List.<ChartPoint>of();
@@ -341,7 +344,7 @@ public class FinnhubApiService {
       });
     } catch (HttpClientErrorException.Forbidden exception) {
       historyBackoff.put(
-          FINNHUB_HISTORY_BACKOFF_KEY,
+          backoffKey,
           new CacheEntry<>(true, Instant.now().plusSeconds(FINNHUB_HISTORY_ACCESS_BACKOFF_SECONDS))
       );
       LOGGER.debug(
@@ -354,7 +357,7 @@ public class FinnhubApiService {
       return List.of();
     } catch (HttpClientErrorException.TooManyRequests exception) {
       historyBackoff.put(
-          FINNHUB_HISTORY_BACKOFF_KEY,
+          backoffKey,
           new CacheEntry<>(true, Instant.now().plusSeconds(CLOSES_CACHE_SECONDS))
       );
       LOGGER.debug(
@@ -384,11 +387,19 @@ public class FinnhubApiService {
               .path("/api/v1")
               .path(path);
           params.forEach((key, value) -> builder.queryParam(key, value));
-          builder.queryParam("token", properties.market().finnhubApiKey());
+          builder.queryParam("token", apiKey());
           return builder.build();
         })
         .retrieve()
         .body(JsonNode.class);
+  }
+
+  private String apiKey() {
+    return MarketApiRequestContext.apiKey(MarketApiProvider.FINNHUB, properties.market().finnhubApiKey());
+  }
+
+  private String cacheKey(String key) {
+    return MarketApiRequestContext.providerCacheSuffix(MarketApiProvider.FINNHUB) + "|" + key;
   }
 
   private List<SymbolSearchResult> fetchAssetSymbols(String type) {

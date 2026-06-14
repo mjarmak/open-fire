@@ -63,6 +63,7 @@ describe('AppComponent', () => {
       'saveRetirementSettings',
       'dcaSettings',
       'saveDcaSettings',
+      'testMarketApiToken',
       'searchSymbols',
       'ensureGlobalIndicatorChart',
       'getGlobalIndicatorChartRange',
@@ -74,6 +75,20 @@ describe('AppComponent', () => {
       'setDraftTelegramAlertDay',
       'isDraftDcaReminderDaySelected',
       'setDraftDcaReminderDay',
+      'loadMarketApiTokenDraftsFromBrowser',
+      'saveMarketApiTokenDraftsToBrowser',
+      'draftMarketApiToken',
+      'hasDraftMarketApiToken',
+      'setDraftMarketApiToken',
+      'isMarketApiTokenVisible',
+      'toggleMarketApiTokenVisibility',
+      'clearMarketApiTokenVisibility',
+      'setMarketApiTokenTestState',
+      'clearMarketApiTokenTestStates',
+      'isTestingMarketApiToken',
+      'marketApiTokenTestSucceeded',
+      'marketApiTokenTestFailed',
+      'marketApiTokenTestMessage',
     ]);
     Object.assign(marketDashboardService, new MarketDashboardService({} as never));
     Object.defineProperties(marketDashboardService, {
@@ -114,6 +129,11 @@ describe('AppComponent', () => {
       reminderNote: '',
       reminderDays: ['WED', 'FRI'],
     }));
+    marketDashboardService.testMarketApiToken.and.returnValue(of({
+      provider: 'finnhub',
+      success: true,
+      message: 'Finnhub token works.',
+    }));
     marketDashboardService.searchSymbols.and.returnValue(of([]));
     marketDashboardService.submitFeedback.and.returnValue(of({
       id: 1,
@@ -138,6 +158,53 @@ describe('AppComponent', () => {
         ? [...new Set([...marketDashboardService.draftDcaReminderDays, day])]
         : marketDashboardService.draftDcaReminderDays.filter((value) => value !== day);
     });
+    marketDashboardService.loadMarketApiTokenDraftsFromBrowser.and.callFake(() => {
+      marketDashboardService.draftMarketApiTokens = {};
+    });
+    marketDashboardService.saveMarketApiTokenDraftsToBrowser.and.stub();
+    marketDashboardService.draftMarketApiToken.and.callFake((providerId: string) =>
+      marketDashboardService.draftMarketApiTokens[providerId] ?? '');
+    marketDashboardService.hasDraftMarketApiToken.and.callFake((providerId: string) =>
+      (marketDashboardService.draftMarketApiTokens[providerId] ?? '').trim().length > 0);
+    marketDashboardService.setDraftMarketApiToken.and.callFake((providerId: string, token: string) => {
+      marketDashboardService.draftMarketApiTokens = {
+        ...marketDashboardService.draftMarketApiTokens,
+        [providerId]: token,
+      };
+    });
+    marketDashboardService.isMarketApiTokenVisible.and.callFake((providerId: string) =>
+      Boolean(marketDashboardService.marketApiTokenVisibleProviders[providerId]));
+    marketDashboardService.toggleMarketApiTokenVisibility.and.callFake((providerId: string) => {
+      marketDashboardService.marketApiTokenVisibleProviders = {
+        ...marketDashboardService.marketApiTokenVisibleProviders,
+        [providerId]: !marketDashboardService.marketApiTokenVisibleProviders[providerId],
+      };
+    });
+    marketDashboardService.clearMarketApiTokenVisibility.and.callFake(() => {
+      marketDashboardService.marketApiTokenVisibleProviders = {};
+    });
+    marketDashboardService.setMarketApiTokenTestState.and.callFake((providerId: string, status: 'idle' | 'testing' | 'success' | 'error', message = '') => {
+      marketDashboardService.marketApiTokenTestStatuses = {
+        ...marketDashboardService.marketApiTokenTestStatuses,
+        [providerId]: status,
+      };
+      marketDashboardService.marketApiTokenTestMessages = {
+        ...marketDashboardService.marketApiTokenTestMessages,
+        [providerId]: message,
+      };
+    });
+    marketDashboardService.clearMarketApiTokenTestStates.and.callFake(() => {
+      marketDashboardService.marketApiTokenTestStatuses = {};
+      marketDashboardService.marketApiTokenTestMessages = {};
+    });
+    marketDashboardService.isTestingMarketApiToken.and.callFake((providerId: string) =>
+      marketDashboardService.marketApiTokenTestStatuses[providerId] === 'testing');
+    marketDashboardService.marketApiTokenTestSucceeded.and.callFake((providerId: string) =>
+      marketDashboardService.marketApiTokenTestStatuses[providerId] === 'success');
+    marketDashboardService.marketApiTokenTestFailed.and.callFake((providerId: string) =>
+      marketDashboardService.marketApiTokenTestStatuses[providerId] === 'error');
+    marketDashboardService.marketApiTokenTestMessage.and.callFake((providerId: string) =>
+      marketDashboardService.marketApiTokenTestMessages[providerId] ?? '');
 
     await TestBed.configureTestingModule({
       imports: [AppComponent],
@@ -696,6 +763,65 @@ describe('AppComponent', () => {
     expect(text).toContain('Alert briefings are sent once daily at 21:00 UTC on the selected days.');
     expect(text).toContain('DCA reminders are sent at 14:00 UTC on their selected reminder days when enabled.');
     expect(text).toContain('DCA reminders are sent at 14:00 UTC on the selected days.');
+  });
+
+  it('opens API token settings from the top menu and saves browser token drafts', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.isLoggedIn = true;
+    app.username = 'user';
+    app.password = 'password123';
+
+    fixture.detectChanges();
+
+    const root = fixture.nativeElement as HTMLElement;
+    const menuButton = root.querySelector('.top-menu-button') as HTMLButtonElement | null;
+    menuButton?.click();
+    fixture.detectChanges();
+
+    const apiButton = Array.from(root.querySelectorAll<HTMLButtonElement>('.top-menu-action'))
+      .find((button): button is HTMLButtonElement => button.textContent?.includes('API Tokens') ?? false);
+    apiButton?.click();
+    fixture.detectChanges();
+
+    expect(marketDashboardService.loadMarketApiTokenDraftsFromBrowser).toHaveBeenCalled();
+    expect(marketDashboardService.clearMarketApiTokenVisibility).toHaveBeenCalled();
+    expect(app.marketDashboardService.apiTokenDialogOpen).toBeTrue();
+    expect(root.textContent).toContain('We do not store your API tokens in our system');
+    expect(root.textContent).toContain('Finnhub');
+    expect(root.querySelector('a[href="https://finnhub.io/register"]')).not.toBeNull();
+    expect(root.querySelector('input[type="checkbox"]')).toBeNull();
+
+    const finnhubProvider = Array.from(root.querySelectorAll<HTMLElement>('.api-provider-item'))
+      .find((item): item is HTMLElement => item.textContent?.includes('Finnhub') ?? false);
+    expect(finnhubProvider?.querySelector<HTMLInputElement>('input[placeholder="Use developer token"]')?.type).toBe('password');
+    const visibilityButton = finnhubProvider?.querySelector<HTMLButtonElement>('.api-token-visibility-button');
+    expect(visibilityButton?.getAttribute('aria-pressed')).toBe('false');
+    visibilityButton?.click();
+    fixture.detectChanges();
+
+    expect(marketDashboardService.toggleMarketApiTokenVisibility).toHaveBeenCalledWith('finnhub');
+    expect(finnhubProvider?.querySelector<HTMLInputElement>('input[placeholder="Use developer token"]')?.type).toBe('text');
+    expect(finnhubProvider?.querySelector<HTMLButtonElement>('.api-token-visibility-button')?.getAttribute('aria-pressed')).toBe('true');
+
+    let testButton = finnhubProvider?.querySelector<HTMLButtonElement>('.api-token-test-button');
+    expect(testButton?.disabled).toBeTrue();
+
+    app.marketDashboardService.draftMarketApiTokens = { finnhub: 'browser-only-token' };
+    fixture.detectChanges();
+    testButton = finnhubProvider?.querySelector<HTMLButtonElement>('.api-token-test-button');
+    expect(testButton?.disabled).toBeFalse();
+    testButton?.click();
+    fixture.detectChanges();
+
+    expect(marketDashboardService.testMarketApiToken).toHaveBeenCalledOnceWith('user', 'password123', 'finnhub');
+    expect(marketDashboardService.setMarketApiTokenTestState).toHaveBeenCalledWith('finnhub', 'testing', 'Testing token...');
+    expect(root.textContent).toContain('Finnhub token works.');
+
+    app.saveApiTokenSettings();
+
+    expect(marketDashboardService.saveMarketApiTokenDraftsToBrowser).toHaveBeenCalled();
+    expect(app.marketDashboardService.apiTokenDialogOpen).toBeFalse();
   });
 
   it('opens feedback dialog from the top menu with a selected 512 character input', fakeAsync(() => {
