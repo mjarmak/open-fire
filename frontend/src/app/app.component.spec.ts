@@ -291,6 +291,31 @@ describe('AppComponent', () => {
     expect(app.snackbarMessage).toContain('Some dashboard data could not load');
   });
 
+  it('opens feedback from the snackbar action for 5xx dashboard errors', fakeAsync(() => {
+    spyOn(console, 'error');
+    marketDashboardService.fetchIndicators.and.returnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.username = 'user';
+    app.password = 'password123';
+
+    app.refreshDashboard();
+    fixture.detectChanges();
+
+    const root = fixture.nativeElement as HTMLElement;
+    const feedbackButton = root.querySelector<HTMLButtonElement>('.snackbar-action');
+    expect(app.snackbarMessage).toContain('Some dashboard indicator data could not load');
+    expect(app.snackbarAction).toBe('feedback');
+    expect(feedbackButton?.textContent?.trim()).toBe('Send feedback');
+
+    feedbackButton?.click();
+    fixture.detectChanges();
+    tick();
+
+    expect(app.feedbackDialogOpen).toBeTrue();
+    expect(app.snackbarMessage).toBe('');
+  }));
+
   it('opens login and clears the entered password when every dashboard request returns unauthorized', () => {
     const unauthorized = throwError(() => new HttpErrorResponse({ status: 401 }));
     marketDashboardService.fetchIndicators.and.returnValue(unauthorized);
@@ -902,6 +927,7 @@ describe('AppComponent', () => {
 
     const textarea = root.querySelector('.feedback-dialog textarea') as HTMLTextAreaElement | null;
     expect(app.feedbackDialogOpen).toBeTrue();
+    expect(root.querySelector('.feedback-dialog .eyebrow')).toBeNull();
     expect(textarea).not.toBeNull();
     expect(textarea?.getAttribute('maxlength')).toBe('512');
     expect(document.activeElement).toBe(textarea);

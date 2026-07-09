@@ -687,7 +687,11 @@ button[aria-busy="true"]:disabled:not(.icon-btn)::after {
   z-index: 80;
   left: 50%;
   bottom: 18px;
-  width: min(420px, calc(100vw - 32px));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: min(520px, calc(100vw - 32px));
   padding: 10px 14px;
   border: 1px solid var(--border-strong);
   border-radius: 6px;
@@ -700,6 +704,28 @@ button[aria-busy="true"]:disabled:not(.icon-btn)::after {
   text-align: center;
   transform: translateX(-50%);
   animation: snackbar-in 180ms ease-out;
+}
+
+.snackbar-message {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.snackbar-action {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--tooltip-text) 45%, transparent);
+  border-radius: 6px;
+  color: var(--tooltip-text);
+  background: color-mix(in srgb, var(--tooltip-text) 12%, transparent);
+  font: inherit;
+  font-size: 0.78rem;
+  line-height: 1.1;
+  cursor: pointer;
+}
+
+.snackbar-action:hover {
+  background: color-mix(in srgb, var(--tooltip-text) 20%, transparent);
 }
 
 @keyframes snackbar-in {

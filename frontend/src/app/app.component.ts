@@ -118,6 +118,8 @@ export class AppComponent implements OnDestroy, OnInit {
   set snackbarMessage(value: string) { this.marketDashboardService.snackbarMessage = value; }
   get snackbarTone(): 'neutral' | 'error' { return this.marketDashboardService.snackbarTone; }
   set snackbarTone(value: 'neutral' | 'error') { this.marketDashboardService.snackbarTone = value; }
+  get snackbarAction(): 'feedback' | null { return this.marketDashboardService.snackbarAction; }
+  set snackbarAction(value: 'feedback' | null) { this.marketDashboardService.snackbarAction = value; }
   get loginDialogOpen(): boolean { return this.marketDashboardService.loginDialogOpen; }
   set loginDialogOpen(value: boolean) { this.marketDashboardService.loginDialogOpen = value; }
   get authDialogMode(): 'login' | 'create' { return this.marketDashboardService.authDialogMode; }
@@ -343,15 +345,40 @@ export class AppComponent implements OnDestroy, OnInit {
     this.themeMode = storedTheme === 'light' ? 'light' : 'dark';
   }
 
-  private showSnackbar(message: string, tone: 'neutral' | 'error' = 'neutral'): void {
+  private showSnackbar(
+    message: string,
+    tone: 'neutral' | 'error' = 'neutral',
+    action: 'feedback' | null = null,
+  ): void {
     this.snackbarMessage = message;
     this.snackbarTone = tone;
+    this.snackbarAction = action;
     if (this.snackbarHandle) {
       clearTimeout(this.snackbarHandle);
     }
     this.snackbarHandle = setTimeout(() => {
       this.snackbarMessage = '';
-    }, 4200);
+      this.snackbarAction = null;
+      this.snackbarHandle = undefined;
+    }, action ? 9000 : 4200);
+  }
+
+  private showErrorSnackbar(message: string, error?: unknown): void {
+    this.showSnackbar(message, 'error', this.isServerError(error) ? 'feedback' : null);
+  }
+
+  private isServerError(error: unknown): boolean {
+    return error instanceof HttpErrorResponse && error.status >= 500 && error.status < 600;
+  }
+
+  openFeedbackFromSnackbar(): void {
+    if (this.snackbarHandle) {
+      clearTimeout(this.snackbarHandle);
+      this.snackbarHandle = undefined;
+    }
+    this.snackbarMessage = '';
+    this.snackbarAction = null;
+    this.openFeedbackDialog(true);
   }
 
   refreshDashboard(clearCredentialsOnAuthFailure = false): void {
@@ -398,7 +425,7 @@ export class AppComponent implements OnDestroy, OnInit {
         }
         if (successfulCalls > 0 && unauthorizedCalls > 0 && !reportedError) {
           reportedError = true;
-          this.showSnackbar('Some dashboard data could not load. The rest of the page will continue updating.', 'error');
+          this.showErrorSnackbar('Some dashboard data could not load. The rest of the page will continue updating.');
         }
       }
     };
@@ -438,7 +465,7 @@ export class AppComponent implements OnDestroy, OnInit {
       console.error(`Dashboard ${section} failed to load.`, error);
       if (!reportedError) {
         reportedError = true;
-        this.showSnackbar(`Some dashboard ${section} data could not load. The rest of the page will continue updating.`, 'error');
+        this.showErrorSnackbar(`Some dashboard ${section} data could not load. The rest of the page will continue updating.`, error);
       }
     };
 
@@ -607,10 +634,10 @@ export class AppComponent implements OnDestroy, OnInit {
           this.showSnackbar(`${response.username} created. Loading your portfolio.`);
           this.refreshDashboard(true);
         },
-        error: () => {
+        error: (error) => {
           this.isLoading = false;
           this.isLoggedIn = false;
-          this.showSnackbar('Could not create user. Make sure Postgres users are enabled and the username is not already taken.', 'error');
+          this.showErrorSnackbar('Could not create user. Make sure Postgres users are enabled and the username is not already taken.', error);
         },
       });
   }
@@ -698,7 +725,7 @@ export class AppComponent implements OnDestroy, OnInit {
         this.telegramAlertDays = settings.alertDays ?? [...this.marketDashboardService.defaultTelegramAlertDays];
         this.draftTelegramAlertDays = [...this.telegramAlertDays];
       },
-      error: () => this.showSnackbar('Could not load Telegram settings.', 'error'),
+      error: (error) => this.showErrorSnackbar('Could not load Telegram settings.', error),
     });
   }
 
@@ -886,8 +913,8 @@ export class AppComponent implements OnDestroy, OnInit {
     this.telegramDialogOpen = false;
   }
 
-  openFeedbackDialog(): void {
-    if (!this.isLoggedIn) {
+  openFeedbackDialog(allowWithCredentials = false): void {
+    if (!this.isLoggedIn && !(allowWithCredentials && this.authCredentialsValid)) {
       this.openLoginDialog();
       this.showSnackbar('Login before sending feedback.', 'error');
       return;
@@ -939,7 +966,9 @@ export class AppComponent implements OnDestroy, OnInit {
   }
 
   sendFeedback(): void {
-    if (!this.isLoggedIn) {
+    if (!this.isLoggedIn && !this.authCredentialsValid) {
+      this.openLoginDialog();
+      this.showSnackbar('Login before sending feedback.', 'error');
       return;
     }
 
@@ -961,7 +990,7 @@ export class AppComponent implements OnDestroy, OnInit {
           this.showSnackbar(response.message);
           this.closeFeedbackDialog();
         },
-        error: () => this.showSnackbar('Could not send feedback.', 'error'),
+        error: (error) => this.showErrorSnackbar('Could not send feedback.', error),
       });
   }
 
@@ -1135,7 +1164,7 @@ export class AppComponent implements OnDestroy, OnInit {
           this.showSnackbar('DCA reminder settings saved.');
           this.closeDcaDialog();
         },
-        error: () => this.showSnackbar('Could not save DCA reminder settings.', 'error'),
+        error: (error) => this.showErrorSnackbar('Could not save DCA reminder settings.', error),
       });
   }
 
@@ -1192,7 +1221,7 @@ export class AppComponent implements OnDestroy, OnInit {
           this.showSnackbar('Retirement settings saved.');
           this.closeRetirementSettings();
         },
-        error: () => this.showSnackbar('Could not save retirement settings.', 'error'),
+        error: (error) => this.showErrorSnackbar('Could not save retirement settings.', error),
       });
   }
 
@@ -1263,7 +1292,7 @@ export class AppComponent implements OnDestroy, OnInit {
           this.closeTelegramDialog();
           this.refreshDashboard();
         },
-        error: () => this.showSnackbar('Could not save Telegram settings.', 'error'),
+        error: (error) => this.showErrorSnackbar('Could not save Telegram settings.', error),
       });
   }
 
@@ -1282,7 +1311,7 @@ export class AppComponent implements OnDestroy, OnInit {
       )
       .subscribe({
         next: (response) => this.handleTelegramSendResponse(response),
-        error: () => this.showSnackbar('Telegram test failed. Check backend auth and Telegram settings.', 'error'),
+        error: (error) => this.showErrorSnackbar('Telegram test failed. Check backend auth and Telegram settings.', error),
       });
   }
 
@@ -1400,8 +1429,8 @@ export class AppComponent implements OnDestroy, OnInit {
           this.showSnackbar(`${savedHolding.symbol} saved to portfolio.`);
           this.closeAddPosition();
         },
-        error: () => {
-          this.showSnackbar('Could not save holding. Check symbol, quantity, average cost, and backend auth.', 'error');
+        error: (error) => {
+          this.showErrorSnackbar('Could not save holding. Check symbol, quantity, average cost, and backend auth.', error);
         },
       });
   }
@@ -1424,7 +1453,7 @@ export class AppComponent implements OnDestroy, OnInit {
         this.applyLocalHoldingDelete(holdingId);
         this.showSnackbar(`${symbol} removed from portfolio.`);
       },
-      error: () => this.showSnackbar(`Could not remove ${symbol}.`, 'error'),
+      error: (error) => this.showErrorSnackbar(`Could not remove ${symbol}.`, error),
     });
   }
 
@@ -1580,8 +1609,8 @@ export class AppComponent implements OnDestroy, OnInit {
             : `${nextSymbol} position updated.`);
           this.closeEditPosition();
         },
-        error: () => {
-          this.showSnackbar('Could not update position. Check ticker, quantity, average cost, and backend auth.', 'error');
+        error: (error) => {
+          this.showErrorSnackbar('Could not update position. Check ticker, quantity, average cost, and backend auth.', error);
         },
       });
   }
@@ -1722,7 +1751,7 @@ export class AppComponent implements OnDestroy, OnInit {
         URL.revokeObjectURL(url);
         this.showSnackbar('Portfolio positions exported as CSV.');
       },
-      error: () => this.showSnackbar('Could not export portfolio CSV. Check backend auth.', 'error'),
+      error: (error) => this.showErrorSnackbar('Could not export portfolio CSV. Check backend auth.', error),
     });
   }
 
@@ -1748,8 +1777,8 @@ export class AppComponent implements OnDestroy, OnInit {
             this.showSnackbar(`${response.imported} position(s) imported from CSV.${errorText}`);
             this.refreshDashboard();
           },
-          error: () => {
-            this.showSnackbar('Could not import portfolio CSV. Check the file format and backend auth.', 'error');
+          error: (error) => {
+            this.showErrorSnackbar('Could not import portfolio CSV. Check the file format and backend auth.', error);
           },
         });
     };

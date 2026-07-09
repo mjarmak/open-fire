@@ -121,6 +121,7 @@ export class MarketDashboardService {
   isImportingPortfolio = false;
   snackbarMessage = '';
   snackbarTone: 'neutral' | 'error' = 'neutral';
+  snackbarAction: 'feedback' | null = null;
   loginDialogOpen = false;
   authDialogMode: 'login' | 'create' = 'login';
   addDialogOpen = false;
