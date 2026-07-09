@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -201,7 +202,8 @@ public class BinanceApiService {
     String haystack = MarketApiUtils.normalizeSearchText(
         result.symbol() + " " + result.name() + " " + result.region() + " " + result.currency()
     );
-    return haystack.contains(normalizedKeywords);
+    return haystack.contains(normalizedKeywords)
+        || MarketApiUtils.cryptoPairMatches(normalizedKeywords, result.symbol());
   }
 
   private int searchRank(SymbolSearchResult result, String normalizedKeywords) {
@@ -214,19 +216,22 @@ public class BinanceApiService {
     if (baseSymbol.equals(normalizedKeywords)) {
       return 0;
     }
-    if (symbol.endsWith(normalizedKeywords + DEFAULT_QUOTE_ASSET.toLowerCase())) {
+    if (MarketApiUtils.cryptoPairMatches(normalizedKeywords, result.symbol())) {
       return 1;
     }
-    if (symbol.contains(normalizedKeywords) && DEFAULT_QUOTE_ASSET.equalsIgnoreCase(result.currency())) {
+    if (symbol.endsWith(normalizedKeywords + DEFAULT_QUOTE_ASSET.toLowerCase())) {
       return 2;
     }
-    if (name.startsWith(normalizedKeywords)) {
+    if (symbol.contains(normalizedKeywords) && DEFAULT_QUOTE_ASSET.equalsIgnoreCase(result.currency())) {
       return 3;
     }
-    if (symbol.contains(normalizedKeywords)) {
+    if (name.startsWith(normalizedKeywords)) {
       return 4;
     }
-    return 5;
+    if (symbol.contains(normalizedKeywords)) {
+      return 5;
+    }
+    return 6;
   }
 
   private String providerSymbol(String symbol) {
@@ -240,6 +245,11 @@ public class BinanceApiService {
         return "";
       }
       normalized = normalized.substring(normalized.indexOf(':') + 1);
+    }
+    Optional<MarketApiUtils.CryptoPair> cryptoPair = MarketApiUtils.cryptoPair(normalized);
+    if (cryptoPair.isPresent()) {
+      String quote = "USD".equals(cryptoPair.get().quote()) ? DEFAULT_QUOTE_ASSET : cryptoPair.get().quote();
+      return cryptoPair.get().base() + quote;
     }
     return normalized.replace("/", "").replace("-", "").replace("_", "");
   }

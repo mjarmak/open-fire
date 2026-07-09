@@ -58,6 +58,29 @@ class BinanceApiServiceIntegrationTest {
     server.verify();
   }
 
+  @Test
+  void searchAndCandlesResolveBareEthUsdToBinanceEthUsdt() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    BinanceApiService service = new BinanceApiService(builder.build());
+
+    expectExchangeInfo(server);
+    expectDailyKline(server, "ETHUSDT", "2352.04000000");
+
+    SymbolSearchResult eth = service.searchSymbols("ETHUSD").get(0);
+    assertThat(eth.symbol()).isEqualTo("BINANCE:ETHUSDT");
+    assertThat(eth.name()).isEqualTo("Ethereum / USDT");
+
+    List<ChartPoint> ethCandles = service.dailyCandles("ETHUSD", PRICE_DATE, PRICE_DATE);
+    assertThat(ethCandles).singleElement()
+        .satisfies(point -> {
+          assertThat(point.timestamp()).isEqualTo(Instant.parse("2024-01-01T00:00:00Z"));
+          assertThat(point.value()).isEqualByComparingTo("2352.04000000");
+        });
+
+    server.verify();
+  }
+
   private void expectExchangeInfo(MockRestServiceServer server) {
     server.expect(request -> {
           assertThat(request.getURI().getHost()).isEqualTo("api.binance.com");

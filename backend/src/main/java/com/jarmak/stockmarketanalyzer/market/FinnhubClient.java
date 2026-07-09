@@ -151,7 +151,7 @@ public class FinnhubClient {
     }
 
     return searchSymbols(symbol).stream()
-        .filter(result -> symbol.equalsIgnoreCase(result.symbol()))
+        .filter(result -> exactSymbolMatch(symbol, result))
         .findFirst();
   }
 
@@ -465,7 +465,8 @@ public class FinnhubClient {
     String query = keywords.trim().toLowerCase();
     String normalizedQuery = MarketApiUtils.normalizeSearchText(query);
     String haystack = MarketApiUtils.normalizeSearchText(result.symbol() + " " + result.name() + " " + result.region() + " " + result.currency());
-    return haystack.contains(normalizedQuery);
+    return haystack.contains(normalizedQuery)
+        || MarketApiUtils.cryptoPairMatches(keywords, result.symbol());
   }
 
   private int searchRank(SymbolSearchResult result, String keywords) {
@@ -476,39 +477,33 @@ public class FinnhubClient {
     if (symbol.equals(query)) {
       return 0;
     }
-    if (symbol.startsWith(query)) {
+    if (MarketApiUtils.cryptoPairMatches(keywords, result.symbol())) {
       return 1;
     }
-    if (name.startsWith(query)) {
+    if (symbol.startsWith(query)) {
       return 2;
     }
-    if ("Common Stock".equalsIgnoreCase(result.region()) || "EQS".equalsIgnoreCase(result.region())) {
+    if (name.startsWith(query)) {
       return 3;
     }
-    return 4;
+    if ("Common Stock".equalsIgnoreCase(result.region()) || "EQS".equalsIgnoreCase(result.region())) {
+      return 4;
+    }
+    return 5;
   }
 
   private boolean looksLikeCryptoSearch(String keywords) {
-    String query = MarketApiUtils.normalizeSearchText(keywords);
-    if (!StringUtils.hasText(query)) {
+    if (!StringUtils.hasText(MarketApiUtils.normalizeSearchText(keywords))) {
       return false;
     }
 
-    return List.of(
-        "btc", "bitcoin",
-        "eth", "ethereum",
-        "ada", "cardano",
-        "sol", "solana",
-        "xrp", "doge", "dogecoin",
-        "bnb", "ltc", "litecoin",
-        "dot", "polkadot",
-        "avax", "avalanche",
-        "matic", "polygon",
-        "link", "chainlink",
-        "uni", "uniswap",
-        "trx", "tron",
-        "shib", "ton", "bch", "xlm", "atom"
-    ).contains(query);
+    return MarketApiUtils.isKnownCryptoSearchTerm(keywords)
+        || MarketApiUtils.cryptoPair(keywords).isPresent();
+  }
+
+  private boolean exactSymbolMatch(String requestedSymbol, SymbolSearchResult result) {
+    return requestedSymbol.equalsIgnoreCase(result.symbol())
+        || MarketApiUtils.cryptoPairMatches(requestedSymbol, result.symbol());
   }
 
   private <T> T firstPresent(java.util.function.Supplier<T>... suppliers) {

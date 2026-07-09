@@ -10,6 +10,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import org.springframework.util.StringUtils;
 
@@ -45,6 +46,8 @@ public final class MarketApiUtils {
 
   public static final List<String> CRYPTO_EXCHANGES = List.of("binance", "coinbase");
   public static final List<String> FOREX_EXCHANGES = List.of("oanda", "fxcm");
+  private static final List<String> CRYPTO_PAIR_QUOTES = List.of("USDT", "USDC", "BUSD", "USD", "BTC", "ETH", "EUR", "GBP");
+  private static final List<String> USD_COMPATIBLE_CRYPTO_QUOTES = List.of("USDT", "USDC", "BUSD");
 
   private MarketApiUtils() {
   }
@@ -53,6 +56,9 @@ public final class MarketApiUtils {
     STOCK,
     CRYPTO,
     FOREX
+  }
+
+  public record CryptoPair(String base, String quote) {
   }
 
   public static AssetClass assetClass(String symbol) {
@@ -66,6 +72,9 @@ public final class MarketApiUtils {
     }
     if (normalized.contains("_")) {
       return AssetClass.FOREX;
+    }
+    if (cryptoPair(normalized).isPresent()) {
+      return AssetClass.CRYPTO;
     }
     return AssetClass.STOCK;
   }
@@ -117,6 +126,60 @@ public final class MarketApiUtils {
     return (value == null ? "" : value)
         .toLowerCase()
         .replaceAll("[^a-z0-9]+", "");
+  }
+
+  public static boolean isKnownCryptoSearchTerm(String value) {
+    String normalized = normalizeSearchText(value);
+    if (!StringUtils.hasText(normalized)) {
+      return false;
+    }
+
+    return CRYPTO_NAMES.entrySet().stream()
+        .anyMatch(entry ->
+            normalized.equals(normalizeSearchText(entry.getKey()))
+                || normalized.equals(normalizeSearchText(entry.getValue()))
+        );
+  }
+
+  public static Optional<CryptoPair> cryptoPair(String value) {
+    String normalized = normalizedPairSymbol(value);
+    if (!StringUtils.hasText(normalized)) {
+      return Optional.empty();
+    }
+
+    for (String quote : CRYPTO_PAIR_QUOTES) {
+      if (normalized.endsWith(quote) && normalized.length() > quote.length()) {
+        String base = normalized.substring(0, normalized.length() - quote.length());
+        if (CRYPTO_NAMES.containsKey(base)) {
+          return Optional.of(new CryptoPair(base, quote));
+        }
+      }
+    }
+    return Optional.empty();
+  }
+
+  public static boolean cryptoPairMatches(String requestedSymbol, String candidateSymbol) {
+    Optional<CryptoPair> requested = cryptoPair(requestedSymbol);
+    Optional<CryptoPair> candidate = cryptoPair(candidateSymbol);
+    if (requested.isEmpty() || candidate.isEmpty()) {
+      return false;
+    }
+
+    return requested.get().base().equals(candidate.get().base())
+        && cryptoQuotesCompatible(requested.get().quote(), candidate.get().quote());
+  }
+
+  public static boolean cryptoQuotesCompatible(String requestedQuote, String candidateQuote) {
+    if (requestedQuote.equals(candidateQuote)) {
+      return true;
+    }
+    if ("USD".equals(requestedQuote)) {
+      return USD_COMPATIBLE_CRYPTO_QUOTES.contains(candidateQuote);
+    }
+    if ("USD".equals(candidateQuote)) {
+      return USD_COMPATIBLE_CRYPTO_QUOTES.contains(requestedQuote);
+    }
+    return false;
   }
 
   public static BigDecimal positiveMetric(JsonNode node) {
@@ -201,12 +264,21 @@ public final class MarketApiUtils {
     }
 
     String normalized = candidate.toUpperCase().replaceAll("[^A-Z0-9]", "");
-    for (String quote : List.of("USDT", "USDC", "BUSD", "USD", "BTC", "ETH", "EUR", "GBP")) {
+    for (String quote : CRYPTO_PAIR_QUOTES) {
       if (normalized.endsWith(quote) && normalized.length() > quote.length()) {
         return normalized.substring(0, normalized.length() - quote.length());
       }
     }
     return normalized;
+  }
+
+  private static String normalizedPairSymbol(String value) {
+    String candidate = value == null ? "" : value.trim().toUpperCase();
+    int exchangeSeparator = candidate.indexOf(':');
+    if (exchangeSeparator >= 0 && exchangeSeparator + 1 < candidate.length()) {
+      candidate = candidate.substring(exchangeSeparator + 1);
+    }
+    return candidate.replaceAll("[^A-Z0-9]", "");
   }
 
   public static int firstPairSeparator(String value) {

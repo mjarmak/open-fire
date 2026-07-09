@@ -143,6 +143,35 @@ class FinnhubClientTest {
   }
 
   @Test
+  void findExactSymbolResolvesBareUsdCryptoPairToBinanceUsdtSymbol() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/search")))
+        .andRespond(withSuccess("{\"result\":[]}", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/crypto/symbol")))
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/crypto/symbol")))
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v3/exchangeInfo")))
+        .andRespond(withSuccess("""
+            {
+              "symbols": [
+                {"symbol":"BTCUSDT","status":"TRADING","baseAsset":"BTC","quoteAsset":"USDT","isSpotTradingAllowed":true},
+                {"symbol":"ETHUSDT","status":"TRADING","baseAsset":"ETH","quoteAsset":"USDT","isSpotTradingAllowed":true}
+              ]
+            }
+            """, MediaType.APPLICATION_JSON));
+
+    SymbolSearchResult result = client.findExactSymbol("ETHUSD").orElseThrow();
+
+    assertThat(result.symbol()).isEqualTo("BINANCE:ETHUSDT");
+    assertThat(result.name()).isEqualTo("Ethereum / USDT");
+    server.verify();
+  }
+
+  @Test
   void searchIncludesBinanceCryptoSymbolsWhenSecondaryProvidersAreConfigured() {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
