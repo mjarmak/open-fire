@@ -19,6 +19,7 @@ import com.jarmak.stockmarketanalyzer.config.AppProperties;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.SymbolSearchResult;
 import com.jarmak.stockmarketanalyzer.market.client.AlphaVantageApiService;
+import com.jarmak.stockmarketanalyzer.market.client.BinanceApiService;
 import com.jarmak.stockmarketanalyzer.market.client.EodHistoricalDataApiService;
 import com.jarmak.stockmarketanalyzer.market.client.FinancialModelingPrepApiService;
 import com.jarmak.stockmarketanalyzer.market.client.FinnhubApiService;
@@ -94,20 +95,74 @@ class FinnhubClientTest {
             """, MediaType.APPLICATION_JSON));
     server.expect(requestTo(containsString("/api/v1/crypto/symbol")))
         .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/search")))
+        .andRespond(withSuccess("{\"result\":[]}", MediaType.APPLICATION_JSON));
     server.expect(requestTo(containsString("/api/v1/forex/symbol")))
         .andRespond(withSuccess("""
             [{"symbol":"OANDA:EUR_USD","displaySymbol":"EUR/USD","description":"Euro / US Dollar"}]
             """, MediaType.APPLICATION_JSON));
     server.expect(requestTo(containsString("/api/v1/forex/symbol")))
         .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
-    server.expect(requestTo(containsString("/api/v1/search")))
-        .andRespond(withSuccess("{\"result\":[]}", MediaType.APPLICATION_JSON));
 
     List<SymbolSearchResult> cryptoResults = client.searchSymbols("btc");
     List<SymbolSearchResult> currencyResults = client.searchSymbols("eur usd");
 
     assertThat(cryptoResults).extracting(SymbolSearchResult::symbol).contains("BINANCE:BTCUSDT");
     assertThat(currencyResults).extracting(SymbolSearchResult::symbol).contains("OANDA:EUR_USD");
+    server.verify();
+  }
+
+  @Test
+  void searchIncludesBinanceCryptoSymbolsWithoutProviderApiKeys() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/search")))
+        .andRespond(withSuccess("{\"result\":[]}", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/crypto/symbol")))
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/crypto/symbol")))
+        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v3/exchangeInfo")))
+        .andRespond(withSuccess("""
+            {
+              "symbols": [
+                {"symbol":"ETHUSDT","status":"TRADING","baseAsset":"ETH","quoteAsset":"USDT","isSpotTradingAllowed":true},
+                {"symbol":"ADAUSDT","status":"TRADING","baseAsset":"ADA","quoteAsset":"USDT","isSpotTradingAllowed":true},
+                {"symbol":"ETHBTC","status":"TRADING","baseAsset":"ETH","quoteAsset":"BTC","isSpotTradingAllowed":true}
+              ]
+            }
+            """, MediaType.APPLICATION_JSON));
+
+    List<SymbolSearchResult> results = client.searchSymbols("ethereum");
+
+    assertThat(results).extracting(SymbolSearchResult::symbol).contains("BINANCE:ETHUSDT");
+    assertThat(results).extracting(SymbolSearchResult::name).contains("Ethereum / USDT");
+    server.verify();
+  }
+
+  @Test
+  void searchIncludesBinanceCryptoSymbolsWhenSecondaryProvidersAreConfigured() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties("finnhub", "twelve", "alpha"), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/search")))
+        .andRespond(withSuccess("{\"result\":[]}", MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v3/exchangeInfo")))
+        .andRespond(withSuccess("""
+            {
+              "symbols": [
+                {"symbol":"ADAUSDT","status":"TRADING","baseAsset":"ADA","quoteAsset":"USDT","isSpotTradingAllowed":true}
+              ]
+            }
+            """, MediaType.APPLICATION_JSON));
+
+    List<SymbolSearchResult> results = client.searchSymbols("cardano");
+
+    assertThat(results).extracting(SymbolSearchResult::symbol).contains("BINANCE:ADAUSDT");
+    assertThat(results).extracting(SymbolSearchResult::name).contains("Cardano / USDT");
     server.verify();
   }
 
@@ -150,10 +205,6 @@ class FinnhubClientTest {
             """, MediaType.APPLICATION_JSON));
     server.expect(requestTo(containsString("/api/v1/crypto/symbol")))
         .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
-    server.expect(requestTo(containsString("/api/v1/forex/symbol")))
-        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
-    server.expect(requestTo(containsString("/api/v1/forex/symbol")))
-        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
     server.expect(requestTo(containsString("/api/v1/search")))
         .andRespond(withSuccess("{\"result\":[]}", MediaType.APPLICATION_JSON));
 
@@ -173,9 +224,12 @@ class FinnhubClientTest {
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
     FinnhubClient client = new FinnhubClient(properties(), builder.build());
 
-    server.expect(requestTo(containsString("/api/v1/crypto/candle")))
+    server.expect(requestTo(containsString("/api/v3/klines")))
         .andRespond(withSuccess("""
-            {"s":"ok","c":[100,110],"t":[1717200000,1717286400]}
+            [
+              [1717200000000,"0","0","0","100","0",1717286399999,"0",0,"0","0","0"],
+              [1717286400000,"0","0","0","110","0",1717372799999,"0",0,"0","0","0"]
+            ]
             """, MediaType.APPLICATION_JSON));
     server.expect(requestTo(containsString("/api/v1/forex/candle")))
         .andRespond(withSuccess("""
@@ -390,6 +444,9 @@ class FinnhubClientTest {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
     FinnhubClient client = new FinnhubClient(properties(), builder.build());
+    long oldest = LocalDate.now(ZoneOffset.UTC).minusDays(20).atStartOfDay().toEpochSecond(ZoneOffset.UTC);
+    long middle = LocalDate.now(ZoneOffset.UTC).minusDays(13).atStartOfDay().toEpochSecond(ZoneOffset.UTC);
+    long newest = LocalDate.now(ZoneOffset.UTC).minusDays(6).atStartOfDay().toEpochSecond(ZoneOffset.UTC);
 
     server.expect(requestTo(containsString("/api/v1/stock/candle")))
         .andRespond(withSuccess("""
@@ -397,8 +454,8 @@ class FinnhubClientTest {
             """, MediaType.APPLICATION_JSON));
     server.expect(requestTo(containsString("/api/v1/stock/candle")))
         .andRespond(withSuccess("""
-            {"s":"ok","c":[101,104,108],"t":[1779235200,1779840000,1780444800]}
-            """, MediaType.APPLICATION_JSON));
+            {"s":"ok","c":[101,104,108],"t":[%d,%d,%d]}
+            """.formatted(oldest, middle, newest), MediaType.APPLICATION_JSON));
 
     List<ChartPoint> points = client.historicalCandles("AAPL", HistoryRange.ONE_MONTH);
 
@@ -545,12 +602,14 @@ class FinnhubClientTest {
     FinancialModelingPrepApiService financialModelingPrepApiService = mock(FinancialModelingPrepApiService.class);
     EodHistoricalDataApiService eodHistoricalDataApiService = mock(EodHistoricalDataApiService.class);
     AlphaVantageApiService alphaVantageApiService = mock(AlphaVantageApiService.class);
+    BinanceApiService binanceApiService = mock(BinanceApiService.class);
     FinnhubClient client = new FinnhubClient(
         finnhubApiService,
         twelveDataApiService,
         financialModelingPrepApiService,
         eodHistoricalDataApiService,
-        alphaVantageApiService
+        alphaVantageApiService,
+        binanceApiService
     );
 
     when(finnhubApiService.companyPriceSnapshot("AAPL")).thenReturn(Optional.of(new MarketSnapshotCandidate(

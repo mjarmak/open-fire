@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
+import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.SymbolSearchResult;
 import com.jarmak.stockmarketanalyzer.market.MarketSnapshotCandidate;
 import com.jarmak.stockmarketanalyzer.market.TimeSeriesPoint;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -91,14 +93,45 @@ class LiveMarketApiClientSmokeTest {
     assertSearchMinimumFields(results);
   }
 
+  @Test
+  void binanceLiveSearchAndHistoricalDailyCandlesReturnKnownCryptoPrices() {
+    liveMarketApiTestsEnabled();
+    BinanceApiService service = new BinanceApiService(RestClient.create());
+    LocalDate priceDate = LocalDate.of(2024, 1, 1);
+
+    SymbolSearchResult btc = service.searchSymbols("btc").stream()
+        .filter(result -> "BINANCE:BTCUSDT".equals(result.symbol()))
+        .findFirst()
+        .orElseThrow();
+    List<ChartPoint> btcCandles = service.dailyCandles(btc.symbol(), priceDate, priceDate);
+
+    assertThat(btc.name()).isEqualTo("Bitcoin / USDT");
+    assertThat(btcCandles).singleElement()
+        .satisfies(point -> assertThat(point.value()).isEqualByComparingTo("44179.55000000"));
+
+    SymbolSearchResult eth = service.searchSymbols("eth").stream()
+        .filter(result -> "BINANCE:ETHUSDT".equals(result.symbol()))
+        .findFirst()
+        .orElseThrow();
+    List<ChartPoint> ethCandles = service.dailyCandles(eth.symbol(), priceDate, priceDate);
+
+    assertThat(eth.name()).isEqualTo("Ethereum / USDT");
+    assertThat(ethCandles).singleElement()
+        .satisfies(point -> assertThat(point.value()).isEqualByComparingTo("2352.04000000"));
+  }
+
   private String liveApiKey(String envVar) {
+    liveMarketApiTestsEnabled();
+    String apiKey = System.getenv(envVar);
+    assumeTrue(StringUtils.hasText(apiKey), "Set " + envVar + " to run this live provider smoke test.");
+    return apiKey;
+  }
+
+  private void liveMarketApiTestsEnabled() {
     assumeTrue(
         "true".equalsIgnoreCase(System.getenv("LIVE_MARKET_API_TESTS")),
         "Set LIVE_MARKET_API_TESTS=true to run live market API smoke tests."
     );
-    String apiKey = System.getenv(envVar);
-    assumeTrue(StringUtils.hasText(apiKey), "Set " + envVar + " to run this live provider smoke test.");
-    return apiKey;
   }
 
   private void assertStockPriceSnapshot(Optional<MarketSnapshotCandidate> snapshot) {
