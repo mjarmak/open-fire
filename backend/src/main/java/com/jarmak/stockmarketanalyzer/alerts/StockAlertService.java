@@ -3,17 +3,34 @@ package com.jarmak.stockmarketanalyzer.alerts;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
 import com.jarmak.stockmarketanalyzer.market.CompanySnapshot;
 import com.jarmak.stockmarketanalyzer.market.FinnhubClient;
+import com.jarmak.stockmarketanalyzer.market.MarketApiRequestContext;
+import com.jarmak.stockmarketanalyzer.market.MarketApiRequestContext.ContextSnapshot;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.PortfolioHolding;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.StockAlert;
 import com.jarmak.stockmarketanalyzer.portfolio.PortfolioService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class StockAlertService {
+  private static final Logger LOGGER = LoggerFactory.getLogger(StockAlertService.class);
+  private static final int MAX_CONCURRENT_POSITION_FETCHES = 4;
+  private static final AtomicInteger POSITION_FETCH_THREAD_NUMBER = new AtomicInteger();
+
   private final AppProperties properties;
   private final FinnhubClient finnhubClient;
   private final PortfolioService portfolioService;
@@ -25,15 +42,11 @@ public class StockAlertService {
   }
 
   public List<StockAlert> evaluateWatchedStocks(BigDecimal vixFearIndex) {
-    return portfolioService.holdings().stream()
-        .map(holding -> evaluate(holding, vixFearIndex))
-        .toList();
+    return evaluateHoldings(portfolioService.holdings(), vixFearIndex);
   }
 
   public List<StockAlert> evaluateWatchedStocksForUser(String username, BigDecimal vixFearIndex) {
-    return portfolioService.holdingsForUser(username).stream()
-        .map(holding -> evaluate(holding, vixFearIndex))
-        .toList();
+    return evaluateHoldings(portfolioService.holdingsForUser(username), vixFearIndex);
   }
 
   public StockAlert preview(String symbol, String companyName) {
@@ -107,10 +120,103 @@ public class StockAlertService {
     );
   }
 
+  private List<StockAlert> evaluateHoldings(List<PortfolioHolding> holdings, BigDecimal vixFearIndex) {
+    if (holdings.isEmpty()) {
+      return List.of();
+    }
+
+    Map<String, Optional<CompanySnapshot>> snapshots = fetchPositionSnapshots(holdings);
+    return holdings.stream()
+        .map(holding -> evaluate(
+            holding,
+            vixFearIndex,
+            snapshots.getOrDefault(normalizeSymbol(holding.symbol()), Optional.empty())
+        ))
+        .toList();
+  }
+
+  private Map<String, Optional<CompanySnapshot>> fetchPositionSnapshots(List<PortfolioHolding> holdings) {
+    Map<String, String> distinctSymbols = new LinkedHashMap<>();
+    for (PortfolioHolding holding : holdings) {
+      distinctSymbols.putIfAbsent(normalizeSymbol(holding.symbol()), holding.symbol());
+    }
+
+    List<Map.Entry<String, String>> symbols = new ArrayList<>(distinctSymbols.entrySet());
+    Map<String, Optional<CompanySnapshot>> snapshots = new LinkedHashMap<>();
+    ContextSnapshot requestContext = MarketApiRequestContext.capture();
+    ThreadPoolExecutor executor = new ThreadPoolExecutor(
+        MAX_CONCURRENT_POSITION_FETCHES,
+        MAX_CONCURRENT_POSITION_FETCHES,
+        0L,
+        TimeUnit.MILLISECONDS,
+        new ArrayBlockingQueue<>(MAX_CONCURRENT_POSITION_FETCHES),
+        this::newPositionFetchThread
+    );
+
+    try {
+      for (int batchStart = 0; batchStart < symbols.size(); batchStart += MAX_CONCURRENT_POSITION_FETCHES) {
+        int batchEnd = Math.min(batchStart + MAX_CONCURRENT_POSITION_FETCHES, symbols.size());
+        List<CompletableFuture<SymbolSnapshot>> batch = new ArrayList<>(batchEnd - batchStart);
+        for (int index = batchStart; index < batchEnd; index++) {
+          Map.Entry<String, String> symbol = symbols.get(index);
+          batch.add(CompletableFuture.supplyAsync(
+              () -> new SymbolSnapshot(
+                  symbol.getKey(),
+                  fetchPositionSnapshot(symbol.getValue(), requestContext)
+              ),
+              executor
+          ));
+        }
+
+        for (CompletableFuture<SymbolSnapshot> future : batch) {
+          SymbolSnapshot snapshot = future.join();
+          snapshots.put(snapshot.normalizedSymbol(), snapshot.snapshot());
+        }
+      }
+      return snapshots;
+    } finally {
+      executor.shutdown();
+    }
+  }
+
+  private Optional<CompanySnapshot> fetchPositionSnapshot(String symbol, ContextSnapshot requestContext) {
+    ContextSnapshot previousContext = MarketApiRequestContext.capture();
+    MarketApiRequestContext.restore(requestContext);
+    try {
+      Optional<CompanySnapshot> snapshot = finnhubClient.companySnapshot(symbol);
+      return snapshot == null ? Optional.empty() : snapshot;
+    } catch (RuntimeException exception) {
+      LOGGER.warn("Could not fetch market snapshot for position {}.", symbol, exception);
+      return Optional.empty();
+    } finally {
+      MarketApiRequestContext.restore(previousContext);
+    }
+  }
+
+  private Thread newPositionFetchThread(Runnable task) {
+    Thread thread = new Thread(
+        task,
+        "open-fire-position-fetch-" + POSITION_FETCH_THREAD_NUMBER.incrementAndGet()
+    );
+    thread.setDaemon(true);
+    return thread;
+  }
+
+  private String normalizeSymbol(String symbol) {
+    return symbol == null ? "" : symbol.trim().toUpperCase(Locale.ROOT);
+  }
+
   private StockAlert evaluate(PortfolioHolding holding, BigDecimal vixFearIndex) {
+    return evaluate(holding, vixFearIndex, finnhubClient.companySnapshot(holding.symbol()));
+  }
+
+  private StockAlert evaluate(
+      PortfolioHolding holding,
+      BigDecimal vixFearIndex,
+      Optional<CompanySnapshot> maybeSnapshot
+  ) {
     BigDecimal roundedVixFearIndex = vixFearIndex == null ? null : vixFearIndex.setScale(1, RoundingMode.HALF_UP);
     boolean highFear = aboveOrEqual(roundedVixFearIndex, properties.market().highVixThreshold());
-    Optional<CompanySnapshot> maybeSnapshot = finnhubClient.companySnapshot(holding.symbol());
     if (maybeSnapshot.isEmpty()) {
       BigDecimal costBasis = holding.watchOnly() ? null : holding.quantity().multiply(holding.averageCost()).setScale(2, RoundingMode.HALF_UP);
       String reason = highFear
@@ -361,5 +467,8 @@ public class StockAlertService {
 
   private boolean below(BigDecimal value, BigDecimal threshold) {
     return value != null && threshold != null && value.signum() > 0 && value.compareTo(threshold) < 0;
+  }
+
+  private record SymbolSnapshot(String normalizedSymbol, Optional<CompanySnapshot> snapshot) {
   }
 }
