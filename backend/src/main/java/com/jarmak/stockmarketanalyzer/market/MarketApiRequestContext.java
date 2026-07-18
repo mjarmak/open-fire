@@ -21,6 +21,19 @@ public final class MarketApiRequestContext {
     CURRENT.remove();
   }
 
+  public static ContextSnapshot capture() {
+    Settings settings = CURRENT.get();
+    return new ContextSnapshot(settings == null ? null : settings.apiTokens());
+  }
+
+  public static void restore(ContextSnapshot snapshot) {
+    if (snapshot == null || snapshot.apiTokens() == null) {
+      clear();
+      return;
+    }
+    set(snapshot.apiTokens());
+  }
+
   public static String apiKey(String provider, String fallback) {
     Settings settings = CURRENT.get();
     if (settings == null) {
@@ -67,6 +80,12 @@ public final class MarketApiRequestContext {
       return builder.toString();
     } catch (NoSuchAlgorithmException exception) {
       return Integer.toHexString(token.hashCode());
+    }
+  }
+
+  public record ContextSnapshot(Map<String, String> apiTokens) {
+    public ContextSnapshot {
+      apiTokens = apiTokens == null ? null : Map.copyOf(apiTokens);
     }
   }
 
