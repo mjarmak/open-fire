@@ -391,6 +391,50 @@ describe('AppComponent', () => {
     expect(app.isLoadingDca).toBeFalse();
   });
 
+  it('loads retirement settings independently of pending dashboard requests', () => {
+    marketDashboardService.fetchIndicators.and.returnValue(NEVER);
+    marketDashboardService.fetchStockPrices.and.returnValue(NEVER);
+    marketDashboardService.fetchPortfolio.and.returnValue(NEVER);
+    marketDashboardService.notificationStatus.and.returnValue(NEVER);
+    const retirementSettings$ = new Subject<{
+      investingStartDate: string | null;
+      desiredMonthlyIncome: number | null;
+      customReturnRate: number | null;
+      monthlySavings: number | null;
+      otherSavings: number | null;
+      yearlyInflationRate: number | null;
+      safeWithdrawalRate: number | null;
+    }>();
+    marketDashboardService.retirementSettings.and.returnValue(retirementSettings$);
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.username = 'demoUser';
+    app.password = 'demoPass123';
+
+    app.refreshDashboard();
+
+    expect(marketDashboardService.retirementSettings).toHaveBeenCalledOnceWith('demoUser', 'demoPass123');
+    expect(app.isLoggedIn).toBeFalse();
+    expect(app.isLoadingRetirement).toBeTrue();
+
+    retirementSettings$.next({
+      investingStartDate: '2022-01-01',
+      desiredMonthlyIncome: 3500,
+      customReturnRate: 9,
+      monthlySavings: 750,
+      otherSavings: 20000,
+      yearlyInflationRate: 2.5,
+      safeWithdrawalRate: 3.5,
+    });
+    retirementSettings$.complete();
+
+    expect(app.investingStartDate).toBe('2022-01-01');
+    expect(app.desiredMonthlyIncome).toBe(3500);
+    expect(app.monthlySavings).toBe(750);
+    expect(app.hasLoadedRetirementSettings).toBeTrue();
+    expect(app.isLoadingRetirement).toBeFalse();
+  });
+
   it('logout clears stored username/password but keeps remember-login preference', () => {
     localStorage.setItem('sma_username', 'demoUser');
     localStorage.setItem('sma_password', 'demoPass123');

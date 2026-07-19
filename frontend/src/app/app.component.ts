@@ -400,11 +400,11 @@ export class AppComponent implements OnDestroy, OnInit {
       asOf: new Date().toISOString(),
     };
     this.loadDcaSettingsSilently(loadToken);
+    this.loadRetirementSettingsSilently(loadToken);
 
     const dashboardCallCount = 4;
     let pendingCalls = dashboardCallCount;
     let reportedError = false;
-    let loadedRetirementSettings = false;
     let successfulCalls = 0;
     let unauthorizedCalls = 0;
     const completeCall = () => {
@@ -446,10 +446,6 @@ export class AppComponent implements OnDestroy, OnInit {
       this.isLoggedIn = true;
       this.loginDialogOpen = false;
       this.storeLoginCredentials();
-      if (!loadedRetirementSettings) {
-        loadedRetirementSettings = true;
-        this.loadRetirementSettingsSilently();
-      }
     };
     const handleLoadError = (section: string) => (error: HttpErrorResponse) => {
       if (loadToken !== this.dashboardLoadToken) {
@@ -648,6 +644,9 @@ export class AppComponent implements OnDestroy, OnInit {
     this.password = '';
     this.clearLoginCredentials();
     this.hasLoadedDcaSettings = false;
+    this.isLoadingRetirement = false;
+    this.hasLoadedRetirementSettings = false;
+    this.retirementSettingsOpen = false;
     this.telegramDcaEnabled = false;
     this.dcaReminderNote = '';
     this.dcaReminderDays = [...this.marketDashboardService.defaultDcaReminderDays];
@@ -1295,20 +1294,28 @@ export class AppComponent implements OnDestroy, OnInit {
       });
   }
 
-  loadRetirementSettingsSilently(): void {
-    if (!this.isLoggedIn) return;
+  loadRetirementSettingsSilently(loadToken = this.dashboardLoadToken): void {
+    if (!this.authCredentialsValid) return;
     this.isLoadingRetirement = true;
-    this.marketDashboardService.retirementSettings(this.username, this.password).subscribe({
-      next: (settings) => this.applyRetirementSettings(settings),
-      error: () => {
-        this.hasLoadedRetirementSettings = false;
-        this.isLoadingRetirement = false;
-      },
-      complete: () => {
-        this.isLoadingRetirement = false;
-        this.hasLoadedRetirementSettings = true;
-      },
-    });
+    this.hasLoadedRetirementSettings = false;
+    this.marketDashboardService.retirementSettings(this.username, this.password)
+      .pipe(finalize(() => {
+        if (loadToken === this.dashboardLoadToken) {
+          this.isLoadingRetirement = false;
+        }
+      }))
+      .subscribe({
+        next: (settings) => {
+          if (loadToken !== this.dashboardLoadToken) return;
+          this.applyRetirementSettings(settings);
+          this.hasLoadedRetirementSettings = true;
+        },
+        error: () => {
+          if (loadToken === this.dashboardLoadToken) {
+            this.hasLoadedRetirementSettings = false;
+          }
+        },
+      });
   }
 
   private applyRetirementSettings(settings: UserRetirementSettings): void {

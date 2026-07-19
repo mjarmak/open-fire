@@ -61,6 +61,10 @@ export class RetirementPlannerComponent {
   hoverX = 0;
   hoverY = 0;
 
+  protected get positionsLoaded(): boolean {
+    return !this.state.isLoadingStocks && !this.state.isLoadingPortfolio;
+  }
+
   get currentPortfolioValue(): number {
     return this.snapshot.currentPortfolioValue;
   }
@@ -98,7 +102,13 @@ export class RetirementPlannerComponent {
   }
 
   get targetRetirementFund(): number {
-    return this.snapshot.targetRetirementFund;
+    const safeWithdrawalRatio = Math.max(0.001, this.state.safeWithdrawalRate / 100);
+    return this.retirementTargetAtYear(
+      0,
+      this.state.desiredMonthlyIncome,
+      this.state.yearlyInflationRate,
+      safeWithdrawalRatio,
+    );
   }
 
   get projections(): RetirementProjection[] {
@@ -146,6 +156,30 @@ export class RetirementPlannerComponent {
       const val = line === 'ideal' ? proj[i].ideal : line === 'actual' ? proj[i].actual : proj[i].custom;
       if (retired || val >= proj[i].target) {
         return `${proj[i].year} ${proj[i].year === 1 ? 'year' : 'years'}`;
+      }
+    }
+    return '> 30 years';
+  }
+
+  getConfiguredYearsToRetire(annualRatePercent: number): string {
+    const safeWithdrawalRatio = Math.max(0.001, this.state.safeWithdrawalRate / 100);
+    const annualRate = Math.max(-0.99, annualRatePercent / 100);
+    for (let year = 0; year <= 30; year++) {
+      const projection = this.projectRetirementBalanceWithInputs(
+        Math.max(0, this.state.otherSavings),
+        Math.max(0, this.state.monthlySavings),
+        annualRate,
+        year,
+        safeWithdrawalRatio,
+      );
+      const target = this.retirementTargetAtYear(
+        year,
+        this.state.desiredMonthlyIncome,
+        this.state.yearlyInflationRate,
+        safeWithdrawalRatio,
+      );
+      if (projection.retired || projection.balance >= target) {
+        return `${year} ${year === 1 ? 'year' : 'years'}`;
       }
     }
     return '> 30 years';

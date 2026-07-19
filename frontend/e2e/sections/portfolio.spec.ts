@@ -705,7 +705,7 @@ test.describe('Portfolio Section', () => {
       portfolio: [],
     });
 
-    await page.route('**/api/stocks', async (route) => {
+    await page.route('**/api/stocks/prices', async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 500));
       if (route.request().method().toUpperCase() === 'GET') {
         await route.fulfill({
@@ -728,7 +728,7 @@ test.describe('Portfolio Section', () => {
   });
 
   test('shows loading spinners only inside the sections still waiting for data', async ({ page }) => {
-    await page.route('**/api/stocks', async (route) => {
+    await page.route('**/api/stocks/prices', async (route) => {
       if (route.request().method().toUpperCase() === 'GET') {
         await new Promise((resolve) => setTimeout(resolve, 600));
       }
@@ -746,10 +746,16 @@ test.describe('Portfolio Section', () => {
     await expect(indicatorGrid.getByText('Loading market indicators and retirement progress...')).toBeHidden();
     await expect(dcaPanel.getByText('Loading DCA reminder settings...')).toBeHidden();
     await expect(portfolioBoard.getByText('Loading portfolio...')).toBeVisible();
-    await expect(retirementBoard.getByText('Loading retirement plan...')).toBeVisible();
+    await expect(retirementBoard.getByText('Loading retirement plan...')).toBeHidden();
+    await expect(retirementBoard.getByText('Loading portfolio projections...')).toBeVisible();
+    await expect(retirementBoard.locator('.config-metric-card')).toBeVisible();
+    await expect(retirementBoard.getByText('Actual:', { exact: true })).toBeHidden();
+    await expect(retirementBoard.locator('.chart-wrapper')).toBeHidden();
     await expect(page.getByRole('heading', { name: 'Portfolio' })).toBeVisible();
 
     await expect(portfolioBoard.getByText('Loading portfolio...')).toBeHidden({ timeout: 5_000 });
-    await expect(retirementBoard.getByText('Loading retirement plan...')).toBeHidden({ timeout: 5_000 });
+    await expect(retirementBoard.getByText('Loading portfolio projections...')).toBeHidden({ timeout: 5_000 });
+    await expect(retirementBoard.getByText('Actual:', { exact: true })).toBeVisible();
+    await expect(retirementBoard.locator('.chart-wrapper')).toBeVisible();
   });
 });

@@ -104,20 +104,25 @@ describe('RetirementPlannerComponent', () => {
     expect(element.querySelector('.retirement-content')).not.toBeNull();
   });
 
-  it('shows a loading indicator while positions are loading', async () => {
+  it('shows configuration but withholds position-dependent outputs while positions load', async () => {
     const element = await render(createState({ isLoadingStocks: true }));
 
-    expect(element.querySelector('.section-loading .loading-spinner')).not.toBeNull();
-    expect(element.textContent).toContain('Loading retirement plan...');
-    expect(element.querySelector('.retirement-content')).toBeNull();
+    expect(element.textContent).toContain('Loading portfolio projections...');
+    expect(element.querySelector('.retirement-content')).not.toBeNull();
+    expect(element.querySelector('.config-metric-card')).not.toBeNull();
+    expect(element.querySelector('.target-fund-card')).not.toBeNull();
+    expect(normalizedText(element.querySelector('.target-fund-card'))).not.toContain('Actual:');
+    expect(element.querySelector('.current-assets-card')).toBeNull();
+    expect(element.querySelector('.chart-wrapper')).toBeNull();
   });
 
-  it('shows a loading indicator while portfolio metadata is loading', async () => {
+  it('withholds position-dependent outputs while portfolio metadata loads', async () => {
     const element = await render(createState({ isLoadingPortfolio: true }));
 
-    expect(element.querySelector('.section-loading .loading-spinner')).not.toBeNull();
-    expect(element.textContent).toContain('Loading retirement plan...');
-    expect(element.querySelector('.retirement-content')).toBeNull();
+    expect(element.textContent).toContain('Loading portfolio projections...');
+    expect(element.querySelector('.config-metric-card')).not.toBeNull();
+    expect(element.querySelector('.current-assets-card')).toBeNull();
+    expect(element.querySelector('.chart-wrapper')).toBeNull();
   });
 
   it('shows a loading indicator when retirement settings are loading', async () => {

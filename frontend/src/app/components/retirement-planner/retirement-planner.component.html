@@ -6,7 +6,7 @@
     </div>
   </div>
 
-  @if (state.isLoadingRetirement || state.isLoadingStocks || state.isLoadingPortfolio || !state.hasLoadedRetirementSettings) {
+  @if (state.isLoadingRetirement || !state.hasLoadedRetirementSettings) {
     <div class="empty-state section-loading">
       <div class="loading-spinner" aria-hidden="true"></div>
       <span>Loading retirement plan...</span>
@@ -14,6 +14,7 @@
   } @else {
     <div class="retirement-content">
       <div class="retirement-metrics-grid">
+        @if (positionsLoaded) {
         <div class="metric-card current-assets-card">
           <span class="label">Portfolio Summary</span>
           <strong class="value">{{ formatCompactCurrency(currentPortfolioValue) }}</strong>
@@ -97,6 +98,7 @@
             </div>
           </div>
         </div>
+        }
 
         <div class="metric-card target-fund-card">
           <span class="label">Target Retirement Fund</span>
@@ -105,15 +107,17 @@
           <div class="time-grid">
             <div class="time-item">
               <span>Realistic (10%):</span>
-              <strong>{{ getYearsToRetire('ideal') }}</strong>
+              <strong>{{ getConfiguredYearsToRetire(10) }}</strong>
             </div>
+            @if (positionsLoaded) {
             <div class="time-item">
               <span>Actual:</span>
               <strong>{{ getYearsToRetire('actual') }}</strong>
             </div>
+            }
             <div class="time-item">
               <span>Custom ({{ state.customReturnRate }}%):</span>
-              <strong>{{ getYearsToRetire('custom') }}</strong>
+              <strong>{{ getConfiguredYearsToRetire(state.customReturnRate) }}</strong>
             </div>
           </div>
         </div>
@@ -153,6 +157,14 @@
         </div>
       </div>
 
+      @if (!positionsLoaded) {
+        <div class="empty-state section-loading retirement-position-loading" role="status" aria-live="polite">
+          <div class="loading-spinner" aria-hidden="true"></div>
+          <span>Loading portfolio projections...</span>
+        </div>
+      }
+
+      @if (positionsLoaded) {
       <div class="chart-wrapper">
         <h3 class="chart-title">
           <span
@@ -267,6 +279,7 @@
           </div>
         </div>
       </div>
+      }
     </div>
   }
 </section>
