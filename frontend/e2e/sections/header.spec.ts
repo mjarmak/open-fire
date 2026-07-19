@@ -42,6 +42,10 @@ test.describe('Header Section', () => {
     await expect(dialog.getByRole('button', { name: 'Light mode' })).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Refresh Dashboard' })).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Logout' })).toBeVisible();
+    const sourceLink = dialog.getByRole('link', { name: 'View OpenFIRE source code on GitHub (opens in a new tab)' });
+    await expect(sourceLink).toHaveText('Open Source Code');
+    await expect(sourceLink).toHaveAttribute('href', 'https://github.com/mjarmak/open-fire');
+    await expect(sourceLink).toHaveAttribute('target', '_blank');
 
     const dialogBox = await dialog.boundingBox();
     expect(dialogBox).not.toBeNull();
@@ -63,6 +67,8 @@ test.describe('Header Section', () => {
 
     await expect(leftPanel.locator('.brand-mark')).toHaveCount(0);
     await expect(middlePanel.locator('.brand-mark')).toBeVisible();
+    await expect(middlePanel.locator('.brand-mark')).toHaveAttribute('src', 'openfire-logo-48.png');
+    await expect(middlePanel.locator('.brand-mark')).toHaveAttribute('srcset', /openfire-logo-96\.png 2x/);
     await expect(middlePanel).toContainText('OpenFIRE');
 
     const topBarBox = await topBar.boundingBox();

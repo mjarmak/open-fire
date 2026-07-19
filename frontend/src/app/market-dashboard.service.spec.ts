@@ -25,6 +25,15 @@ describe('MarketDashboardService', () => {
     http.verify();
   });
 
+  it('uses same-origin API URLs for local and Tailscale hosts', () => {
+    service.fetchPortfolio('user', 'password123').subscribe();
+
+    const request = http.expectOne('/api/portfolio');
+    expect(request.request.url.startsWith('http://localhost')).toBeFalse();
+    expect(request.request.url.startsWith('http://127.0.0.1')).toBeFalse();
+    request.flush([]);
+  });
+
   it('omits includeIndicators from lightweight symbol searches', () => {
     service.searchSymbols('user', 'password123', 'app').subscribe((results) => {
       expect(results).toEqual([]);

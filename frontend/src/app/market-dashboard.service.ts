@@ -43,7 +43,7 @@ type MarketApiTokenTestStatus = 'idle' | 'testing' | 'success' | 'error';
 
 @Injectable({ providedIn: 'root' })
 export class MarketDashboardService {
-  private readonly apiBaseUrl = this.resolveApiBaseUrl();
+  private readonly apiBaseUrl = '/api';
   readonly dcaReminderMaxLength = 800;
   readonly feedbackMaxLength = 512;
   readonly telegramAlertScheduleLabel = '21:00 UTC';
@@ -768,16 +768,4 @@ export class MarketDashboardService {
     }
   }
 
-  private resolveApiBaseUrl(): string {
-    const location = globalThis.location;
-    if (location?.hostname === 'localhost' && location.port === '4200') {
-      return 'http://localhost:8080/api';
-    }
-
-    if (location?.hostname === '127.0.0.1' && location.port === '4200') {
-      return 'http://127.0.0.1:8080/api';
-    }
-
-    return '/api';
-  }
 }

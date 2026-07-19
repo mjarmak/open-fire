@@ -398,12 +398,12 @@ export class AppComponent implements OnDestroy, OnInit {
       ...this.dashboard,
       asOf: new Date().toISOString(),
     };
+    this.loadDcaSettingsSilently(loadToken);
 
     const dashboardCallCount = 4;
     let pendingCalls = dashboardCallCount;
     let reportedError = false;
     let loadedRetirementSettings = false;
-    let loadedDcaSettings = false;
     let successfulCalls = 0;
     let unauthorizedCalls = 0;
     const completeCall = () => {
@@ -448,10 +448,6 @@ export class AppComponent implements OnDestroy, OnInit {
       if (!loadedRetirementSettings) {
         loadedRetirementSettings = true;
         this.loadRetirementSettingsSilently();
-      }
-      if (!loadedDcaSettings) {
-        loadedDcaSettings = true;
-        this.loadDcaSettingsSilently();
       }
     };
     const handleLoadError = (section: string) => (error: HttpErrorResponse) => {
@@ -1168,21 +1164,29 @@ export class AppComponent implements OnDestroy, OnInit {
       });
   }
 
-  loadDcaSettingsSilently(): void {
-    if (!this.isLoggedIn) {
+  loadDcaSettingsSilently(loadToken = this.dashboardLoadToken): void {
+    if (!this.authCredentialsValid) {
       return;
     }
 
     this.isLoadingDca = true;
     this.marketDashboardService.dcaSettings(this.username, this.password).subscribe({
-      next: (settings) => this.applyDcaSettings(settings),
+      next: (settings) => {
+        if (loadToken === this.dashboardLoadToken) {
+          this.applyDcaSettings(settings);
+        }
+      },
       error: () => {
-        this.hasLoadedDcaSettings = false;
-        this.isLoadingDca = false;
+        if (loadToken === this.dashboardLoadToken) {
+          this.hasLoadedDcaSettings = false;
+          this.isLoadingDca = false;
+        }
       },
       complete: () => {
-        this.isLoadingDca = false;
-        this.hasLoadedDcaSettings = true;
+        if (loadToken === this.dashboardLoadToken) {
+          this.isLoadingDca = false;
+          this.hasLoadedDcaSettings = true;
+        }
       },
     });
   }

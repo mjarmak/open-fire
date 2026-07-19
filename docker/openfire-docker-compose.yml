@@ -1,6 +1,6 @@
 services:
   open_fire_backend:
-    image: ${BACKEND_IMAGE:?BACKEND_IMAGE is set by scripts/deploy-linux.sh}
+    image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE or use an OpenFIRE deploy script}
     container_name: open_fire_backend
     restart: always
     env_file:
@@ -18,10 +18,10 @@ services:
     expose:
       - "${BACKEND_CONTAINER_PORT:-8080}"
     ports:
-      - "${BACKEND_PORT:-8080}:${BACKEND_CONTAINER_PORT:-8080}"
+      - "0.0.0.0:${BACKEND_PORT:-8080}:${BACKEND_CONTAINER_PORT:-8080}"
 
   open_fire_frontend:
-    image: ${FRONTEND_IMAGE:?FRONTEND_IMAGE is set by scripts/deploy-linux.sh}
+    image: ${FRONTEND_IMAGE:?Set FRONTEND_IMAGE or use an OpenFIRE deploy script}
     container_name: open_fire_frontend
     restart: always
     depends_on:
@@ -30,4 +30,4 @@ services:
       BACKEND_HOST: open_fire_backend
       BACKEND_CONTAINER_PORT: ${BACKEND_CONTAINER_PORT:-8080}
     ports:
-      - "${FRONTEND_PORT:-80}:80"
+      - "0.0.0.0:${FRONTEND_PORT:-80}:80"

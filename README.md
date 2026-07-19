@@ -35,6 +35,57 @@ Default basic auth:
 - Username: `admin`
 - Password: `admin123`
 
+## Tailscale And Network Access
+
+Start the Spring Boot backend on port `8080`, then run Angular in network mode:
+
+```powershell
+mvn -f backend/pom.xml spring-boot:run
+npm --prefix frontend run start:network
+```
+
+Angular listens on `0.0.0.0:4200` and proxies `/api` to the backend on the same computer. From another device in the same Tailscale network, open:
+
+```text
+http://<open-fire-host-tailscale-ip>:4200
+```
+
+Find the host address with `tailscale ip -4`. The browser uses same-origin `/api` URLs, so it never tries to connect to its own `localhost`. If Windows Firewall prompts for Node.js network access, allow it on the network profile used by Tailscale.
+
+The Docker Compose stack also publishes its configured frontend and backend ports on `0.0.0.0`, making the frontend reachable through the host's Tailscale IP. Only the frontend port is needed in the browser.
+
+## Local Docker Deploy
+
+The local PowerShell deploy follows the application-build, Docker-build, push, and Compose workflow used by Jenius Remixer:
+
+```powershell
+npm --prefix frontend run deploy:local
+```
+
+It performs these steps in order:
+
+1. Builds Angular.
+2. Builds and tests Spring Boot with Maven.
+3. Builds the backend and frontend Docker images.
+4. Pushes both images.
+5. Starts Docker Compose and waits for the frontend and API proxy.
+6. Prints localhost, LAN, and detected Tailscale URLs.
+
+The default image prefix is `jeniustech/open-fire`. Override it for another registry or namespace:
+
+```powershell
+$env:DOCKER_IMAGE_PREFIX="ghcr.io/your-user/open-fire"
+npm --prefix frontend run deploy:local
+```
+
+For a local-only run that does not push images:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/docker-build-push-compose.ps1 -NoPush
+```
+
+The script uses `docker/openfire.env.production` by default. If it does not exist, the script creates it from `docker/openfire.env.example` and stops so the local credentials can be filled in. Useful options include `-ImageTag`, `-FrontendPort`, `-BackendPort`, `-NoCache`, `-Pull`, and `-PreflightOnly`.
+
 ## Deploy With Docker Compose
 
 The repo includes Dockerfiles for the Spring Boot backend and Angular frontend, plus a production compose file for frontend, backend, and PostgreSQL.

@@ -214,9 +214,10 @@ app-root.light-theme .top-bar .icon-btn {
 
 .welcome-logo {
   display: block;
-  width: 92px;
-  height: 92px;
+  width: 112px;
+  height: 112px;
   margin: 0 auto 4px;
+  object-fit: contain;
 }
 
 .welcome-content h2 {

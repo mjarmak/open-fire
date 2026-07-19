@@ -3,9 +3,11 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve --proxy-config proxy.conf.json",
+    "start:network": "ng serve --host 0.0.0.0 --proxy-config proxy.conf.json",
     "backend": "mvn -f backend/pom.xml spring-boot:run",
     "build": "ng build",
+    "deploy:local": "powershell -ExecutionPolicy Bypass -File ../scripts/docker-build-push-compose.ps1",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:e2e": "playwright test",

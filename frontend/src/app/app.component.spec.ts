@@ -2,7 +2,7 @@ import { ElementRef } from '@angular/core';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { of, Subject, throwError } from 'rxjs';
+import { NEVER, of, Subject, throwError } from 'rxjs';
 import { AppComponent } from './app.component';
 import { StockAlert, SymbolSearchResult } from './market-dashboard.models';
 import { MarketDashboardService } from './market-dashboard.service';
@@ -238,6 +238,58 @@ describe('AppComponent', () => {
     expect(compiled.textContent).toContain('OpenFIRE');
   });
 
+  it('uses generated PNG logo assets for the header and welcome screen', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    fixture.detectChanges();
+    app.isLoggedIn = false;
+    app.isLoading = false;
+    app.username = '';
+    app.password = '';
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const headerLogo = compiled.querySelector<HTMLImageElement>('.brand-mark');
+    const welcomeLogo = compiled.querySelector<HTMLImageElement>('.welcome-logo');
+
+    expect(headerLogo?.getAttribute('src')).toBe('openfire-logo-48.png');
+    expect(headerLogo?.getAttribute('srcset')).toContain('openfire-logo-96.png 2x');
+    expect(welcomeLogo?.getAttribute('src')).toBe('openfire-logo-128.png');
+    expect(welcomeLogo?.getAttribute('srcset')).toContain('openfire-logo-256.png 2x');
+  });
+
+  it('hides the header authentication actions while authentication is loading', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    fixture.detectChanges();
+    app.isLoggedIn = false;
+    app.isLoading = true;
+    app.username = 'demoUser';
+    app.password = 'demoPass123';
+
+    fixture.detectChanges();
+
+    const header = fixture.nativeElement.querySelector('app-header') as HTMLElement;
+    const authButtons = Array.from(header.querySelectorAll('button'))
+      .filter((button) => ['Login', 'Create user'].includes(button.textContent?.trim() ?? ''));
+    expect(authButtons).toHaveSize(0);
+    expect(fixture.nativeElement.textContent).toContain('Loading your dashboard...');
+  });
+
+  it('labels the GitHub menu link as open source code', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+
+    const root = fixture.nativeElement as HTMLElement;
+    root.querySelector<HTMLButtonElement>('.top-menu-button')?.click();
+    fixture.detectChanges();
+
+    const sourceLink = root.querySelector<HTMLAnchorElement>('.github-menu-action');
+    expect(sourceLink?.textContent?.trim()).toBe('Open Source Code');
+    expect(sourceLink?.getAttribute('href')).toBe('https://github.com/mjarmak/open-fire');
+    expect(sourceLink?.getAttribute('target')).toBe('_blank');
+    expect(sourceLink?.getAttribute('aria-label')).toContain('opens in a new tab');
+  });
+
   it('does not log back in from stale dashboard responses after logout', () => {
     const delayedIndicators$ = new Subject<[]>();
     marketDashboardService.fetchIndicators.and.returnValue(delayedIndicators$.asObservable());
@@ -254,6 +306,43 @@ describe('AppComponent', () => {
 
     expect(app.isLoggedIn).toBeFalse();
     expect(app.isLoading).toBeFalse();
+  });
+
+  it('loads DCA settings independently of pending dashboard requests', () => {
+    marketDashboardService.fetchIndicators.and.returnValue(NEVER);
+    marketDashboardService.fetchStocks.and.returnValue(NEVER);
+    marketDashboardService.fetchPortfolio.and.returnValue(NEVER);
+    marketDashboardService.notificationStatus.and.returnValue(NEVER);
+    const dcaSettings$ = new Subject<{
+      telegramDcaEnabled: boolean;
+      reminderNote: string;
+      reminderDays: string[];
+    }>();
+    marketDashboardService.dcaSettings.and.returnValue(dcaSettings$);
+
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.username = 'demoUser';
+    app.password = 'demoPass123';
+
+    app.refreshDashboard();
+
+    expect(marketDashboardService.dcaSettings).toHaveBeenCalledOnceWith('demoUser', 'demoPass123');
+    expect(app.isLoggedIn).toBeFalse();
+    expect(app.isLoadingDca).toBeTrue();
+
+    dcaSettings$.next({
+      telegramDcaEnabled: true,
+      reminderNote: 'Invest on schedule.',
+      reminderDays: ['MON'],
+    });
+    dcaSettings$.complete();
+
+    expect(app.telegramDcaEnabled).toBeTrue();
+    expect(app.dcaReminderNote).toBe('Invest on schedule.');
+    expect(app.dcaReminderDays).toEqual(['MON']);
+    expect(app.hasLoadedDcaSettings).toBeTrue();
+    expect(app.isLoadingDca).toBeFalse();
   });
 
   it('logout clears stored username/password but keeps remember-login preference', () => {
