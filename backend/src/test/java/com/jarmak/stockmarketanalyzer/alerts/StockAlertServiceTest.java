@@ -213,6 +213,47 @@ class StockAlertServiceTest {
     verify(finnhubClient, never()).dailyCloses("AAPL");
   }
 
+  @Test
+  void loadsPositionPricesAndAccountingWithoutRiskHistory() {
+    AppProperties properties = mock(AppProperties.class);
+    FinnhubClient finnhubClient = mock(FinnhubClient.class);
+    PortfolioService portfolioService = mock(PortfolioService.class);
+    StockAlertService service = new StockAlertService(properties, finnhubClient, portfolioService);
+    when(portfolioService.holdings()).thenReturn(List.of(
+        new PortfolioHolding(7L, "AAPL", "Apple Inc.", BigDecimal.valueOf(3), BigDecimal.valueOf(100), false)
+    ));
+    when(finnhubClient.companyPriceSnapshot("AAPL")).thenReturn(Optional.of(new CompanySnapshot(
+        "AAPL",
+        "Apple Inc.",
+        "Technology",
+        BigDecimal.valueOf(3_000_000_000_000L),
+        null,
+        null,
+        null,
+        null,
+        BigDecimal.valueOf(110),
+        BigDecimal.valueOf(106),
+        null
+    )));
+
+    StockAlert price = service.evaluateWatchedStockPrices().get(0);
+
+    assertThat(price.id()).isEqualTo(7L);
+    assertThat(price.latestPrice()).isEqualByComparingTo("110.00");
+    assertThat(price.marketValue()).isEqualByComparingTo("330.00");
+    assertThat(price.costBasis()).isEqualByComparingTo("300.00");
+    assertThat(price.dayGainLoss()).isEqualByComparingTo("12.00");
+    assertThat(price.dayGainLossPercent()).isEqualByComparingTo("3.8");
+    assertThat(price.unrealizedGainLoss()).isEqualByComparingTo("30.00");
+    assertThat(price.unrealizedGainLossPercent()).isEqualByComparingTo("10.0");
+    assertThat(price.peRatio()).isNull();
+    assertThat(price.realizedVolatilityPercent()).isNull();
+    assertThat(price.thirtyDayChangePercent()).isNull();
+    verify(finnhubClient).companyPriceSnapshot("AAPL");
+    verify(finnhubClient, never()).companySnapshot("AAPL");
+    verify(finnhubClient, never()).dailyCloses("AAPL");
+  }
+
   private AppProperties properties() {
     return new AppProperties(
         null,

@@ -114,6 +114,7 @@ export class MarketDashboardService {
   isLoading = false;
   isLoadingIndicators = false;
   isLoadingStocks = false;
+  isLoadingStockDetails = false;
   isLoadingPortfolio = false;
   isLoadingNotification = false;
   isLoggedIn = false;
@@ -482,6 +483,12 @@ export class MarketDashboardService {
 
   fetchStocks(username: string, password: string): Observable<StockAlert[]> {
     return this.http.get<StockAlert[]>(`${this.apiBaseUrl}/stocks`, {
+      headers: this.marketAuth(username, password),
+    });
+  }
+
+  fetchStockPrices(username: string, password: string): Observable<StockAlert[]> {
+    return this.http.get<StockAlert[]>(`${this.apiBaseUrl}/stocks/prices`, {
       headers: this.marketAuth(username, password),
     });
   }

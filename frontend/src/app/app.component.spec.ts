@@ -46,6 +46,7 @@ describe('AppComponent', () => {
       'fetchDashboard',
       'fetchIndicators',
       'fetchStocks',
+      'fetchStockPrices',
       'fetchStockHistory',
       'fetchIndicatorHistory',
       'fetchPortfolio',
@@ -108,6 +109,7 @@ describe('AppComponent', () => {
     });
     marketDashboardService.fetchIndicators.and.returnValue(of([]));
     marketDashboardService.fetchStocks.and.returnValue(of([]));
+    marketDashboardService.fetchStockPrices.and.returnValue(of([]));
     marketDashboardService.fetchStockHistory.and.returnValue(of({ id: 'AAPL', range: '1y', points: [] }));
     marketDashboardService.fetchIndicatorHistory.and.returnValue(of({ id: 'vix', range: '1y', points: [] }));
     marketDashboardService.fetchPortfolio.and.returnValue(of([]));
@@ -308,9 +310,53 @@ describe('AppComponent', () => {
     expect(app.isLoading).toBeFalse();
   });
 
+  it('renders position prices before risk details finish loading', () => {
+    const price = stockLookupRisk({
+      id: 7,
+      quantity: 3,
+      averageCost: 100,
+      latestPrice: 110,
+      marketValue: 330,
+      costBasis: 300,
+      peRatio: null,
+      beta: null,
+      realizedVolatilityPercent: null,
+      drawdownPercent: null,
+      fearScore: null,
+      thirtyDayChangePercent: null,
+      reason: 'Risk details are loading.',
+    });
+    const details$ = new Subject<StockAlert[]>();
+    marketDashboardService.fetchStockPrices.and.returnValue(of([price]));
+    marketDashboardService.fetchStocks.and.returnValue(details$);
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.username = 'demoUser';
+    app.password = 'demoPass123';
+
+    app.refreshDashboard();
+
+    expect(app.stocks[0].latestPrice).toBe(110);
+    expect(app.stocks[0].marketValue).toBe(330);
+    expect(app.stocks[0].peRatio).toBeNull();
+    expect(marketDashboardService.isLoadingStocks).toBeFalse();
+    expect(marketDashboardService.isLoadingStockDetails).toBeTrue();
+    expect(app.isLoading).toBeFalse();
+
+    details$.next([stockLookupRisk({ id: 7, peRatio: 28, fearScore: 41, thirtyDayChangePercent: 6.5 })]);
+    details$.complete();
+
+    expect(app.stocks[0].latestPrice).toBe(110);
+    expect(app.stocks[0].marketValue).toBe(330);
+    expect(app.stocks[0].peRatio).toBe(28);
+    expect(app.stocks[0].fearScore).toBe(41);
+    expect(app.stocks[0].thirtyDayChangePercent).toBe(6.5);
+    expect(marketDashboardService.isLoadingStockDetails).toBeFalse();
+  });
+
   it('loads DCA settings independently of pending dashboard requests', () => {
     marketDashboardService.fetchIndicators.and.returnValue(NEVER);
-    marketDashboardService.fetchStocks.and.returnValue(NEVER);
+    marketDashboardService.fetchStockPrices.and.returnValue(NEVER);
     marketDashboardService.fetchPortfolio.and.returnValue(NEVER);
     marketDashboardService.notificationStatus.and.returnValue(NEVER);
     const dcaSettings$ = new Subject<{
@@ -408,7 +454,7 @@ describe('AppComponent', () => {
   it('opens login and clears the entered password when every dashboard request returns unauthorized', () => {
     const unauthorized = throwError(() => new HttpErrorResponse({ status: 401 }));
     marketDashboardService.fetchIndicators.and.returnValue(unauthorized);
-    marketDashboardService.fetchStocks.and.returnValue(unauthorized);
+    marketDashboardService.fetchStockPrices.and.returnValue(unauthorized);
     marketDashboardService.fetchPortfolio.and.returnValue(unauthorized);
     marketDashboardService.notificationStatus.and.returnValue(unauthorized);
     const fixture = TestBed.createComponent(AppComponent);

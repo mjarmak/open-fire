@@ -30,6 +30,12 @@ public class StockAlertService {
         .toList();
   }
 
+  public List<StockAlert> evaluateWatchedStockPrices() {
+    return portfolioService.holdings().stream()
+        .map(this::evaluatePrice)
+        .toList();
+  }
+
   public List<StockAlert> evaluateWatchedStocksForUser(String username, BigDecimal vixFearIndex) {
     return portfolioService.holdingsForUser(username).stream()
         .map(holding -> evaluate(holding, vixFearIndex))
@@ -104,6 +110,93 @@ public class StockAlertService {
         true,
         false,
         "Price details loaded."
+    );
+  }
+
+  private StockAlert evaluatePrice(PortfolioHolding holding) {
+    Optional<CompanySnapshot> maybeSnapshot = finnhubClient.companyPriceSnapshot(holding.symbol());
+    BigDecimal costBasis = holding.watchOnly()
+        ? null
+        : holding.quantity().multiply(holding.averageCost()).setScale(2, RoundingMode.HALF_UP);
+    if (maybeSnapshot.isEmpty()) {
+      return new StockAlert(
+          holding.id(),
+          holding.symbol(),
+          holding.companyName(),
+          "Unknown",
+          holding.quantity(),
+          holding.averageCost(),
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          costBasis,
+          null,
+          null,
+          null,
+          null,
+          null,
+          holding.watchOnly(),
+          false,
+          "Price details are unavailable."
+      );
+    }
+
+    CompanySnapshot snapshot = maybeSnapshot.get();
+    BigDecimal latestPrice = snapshot.latestPrice().setScale(2, RoundingMode.HALF_UP);
+    BigDecimal previousClose = snapshot.previousClose().setScale(2, RoundingMode.HALF_UP);
+    BigDecimal marketValue = holding.watchOnly()
+        ? null
+        : holding.quantity().multiply(latestPrice).setScale(2, RoundingMode.HALF_UP);
+    BigDecimal stockDayChange = latestPrice.subtract(previousClose).setScale(2, RoundingMode.HALF_UP);
+    BigDecimal dayGainLoss = holding.watchOnly()
+        ? stockDayChange
+        : holding.quantity().multiply(stockDayChange).setScale(2, RoundingMode.HALF_UP);
+    BigDecimal dayGainLossPercent = previousClose.signum() == 0
+        ? null
+        : stockDayChange.divide(previousClose, 6, RoundingMode.HALF_UP)
+            .multiply(BigDecimal.valueOf(100))
+            .setScale(1, RoundingMode.HALF_UP);
+    BigDecimal gainLoss = holding.watchOnly()
+        ? null
+        : marketValue.subtract(costBasis).setScale(2, RoundingMode.HALF_UP);
+    BigDecimal gainLossPercent = holding.watchOnly() || costBasis.signum() == 0
+        ? null
+        : gainLoss.divide(costBasis, 6, RoundingMode.HALF_UP)
+            .multiply(BigDecimal.valueOf(100))
+            .setScale(1, RoundingMode.HALF_UP);
+    String companyName = snapshot.name() == null || snapshot.name().isBlank()
+        ? holding.companyName()
+        : snapshot.name();
+
+    return new StockAlert(
+        holding.id(),
+        snapshot.symbol(),
+        companyName,
+        positionType(snapshot),
+        holding.quantity(),
+        holding.averageCost(),
+        latestPrice,
+        snapshot.marketCap(),
+        null,
+        null,
+        null,
+        null,
+        null,
+        marketValue,
+        costBasis,
+        dayGainLoss,
+        dayGainLossPercent,
+        gainLoss,
+        gainLossPercent,
+        null,
+        holding.watchOnly(),
+        false,
+        "Risk details are loading."
     );
   }
 

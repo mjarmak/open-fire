@@ -167,6 +167,18 @@ class DashboardControllerIntegrationTest {
   }
 
   @Test
+  void getsLightweightStockPricesSeparately() throws Exception {
+    when(dashboardService.stockPrices()).thenReturn(List.of(stock()));
+
+    mockMvc.perform(get("/api/stocks/prices"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].symbol").value("AAPL"))
+        .andExpect(jsonPath("$[0].latestPrice").value(110));
+
+    verify(dashboardService).stockPrices();
+  }
+
+  @Test
   void getsStockHistory() throws Exception {
     when(finnhubClient.historicalCandles("AAPL", HistoryRange.ONE_MONTH))
         .thenReturn(List.of(new ChartPoint(Instant.parse("2026-06-03T10:00:00Z"), BigDecimal.valueOf(110.25))));

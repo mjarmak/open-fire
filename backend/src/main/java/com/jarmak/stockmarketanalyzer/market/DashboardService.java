@@ -92,6 +92,10 @@ public class DashboardService {
     return List.copyOf(stockAlertService.evaluateWatchedStocks(null));
   }
 
+  public List<StockAlert> stockPrices() {
+    return List.copyOf(stockAlertService.evaluateWatchedStockPrices());
+  }
+
   public List<PortfolioHolding> portfolio() {
     return portfolioService.holdings();
   }

@@ -110,6 +110,11 @@ public class DashboardController {
     return dashboardService.stocks();
   }
 
+  @GetMapping("/stocks/prices")
+  List<StockAlert> stockPrices() {
+    return dashboardService.stockPrices();
+  }
+
   @GetMapping("/stocks/preview")
   StockAlert stockPreview(@RequestParam String symbol) {
     SymbolSearchResult match = finnhubClient.findExactSymbol(symbol)

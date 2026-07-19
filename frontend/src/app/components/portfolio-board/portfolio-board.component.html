@@ -266,7 +266,7 @@
             [class.value-neg]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent < 0"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>30D</small>{{ stock.thirtyDayChangePercent === null ? '-' : (stock.thirtyDayChangePercent | number: '1.0-2') + '%' }}</span>
+          ><small>30D</small>{{ stock.thirtyDayChangePercent === null ? (state.isLoadingStockDetails ? '...' : '-') : (stock.thirtyDayChangePercent | number: '1.0-2') + '%' }}</span>
           <span><small>Market Cap</small>{{ formatMoney(stock.marketCap) }}</span>
           <span
             class="metric-tooltip risk-metric risk-fear"
@@ -276,7 +276,7 @@
             [class.fear-high]="stock.fearScore !== null && stock.fearScore >= 65"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>Fear</small>{{ stock.fearScore === null ? '-' : (stock.fearScore | number: '1.0-0') + '/100' }}</span>
+          ><small>Fear</small>{{ stock.fearScore === null ? (state.isLoadingStockDetails ? '...' : '-') : (stock.fearScore | number: '1.0-0') + '/100' }}</span>
           <span
             class="metric-tooltip risk-metric risk-pe"
             tabindex="0"
@@ -285,7 +285,7 @@
             [class.pe-high]="stock.peRatio !== null && stock.peRatio > 25"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>P/E</small>{{ stock.peRatio === null ? '-' : (stock.peRatio | number: '1.0-2') }}</span>
+          ><small>P/E</small>{{ stock.peRatio === null ? (state.isLoadingStockDetails ? '...' : '-') : (stock.peRatio | number: '1.0-2') }}</span>
           <span
             class="metric-tooltip risk-metric risk-beta"
             tabindex="0"
@@ -294,7 +294,7 @@
             [class.beta-high]="stock.beta !== null && stock.beta > 1.5"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>Beta</small>{{ stock.beta === null ? '-' : (stock.beta | number: '1.0-2') }}</span>
+          ><small>Beta</small>{{ stock.beta === null ? (state.isLoadingStockDetails ? '...' : '-') : (stock.beta | number: '1.0-2') }}</span>
           <span
             class="metric-tooltip risk-metric risk-vol"
             tabindex="0"
@@ -303,7 +303,7 @@
             [class.vol-high]="stock.realizedVolatilityPercent !== null && stock.realizedVolatilityPercent > 40"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>Vol</small>{{ stock.realizedVolatilityPercent === null ? '-' : (stock.realizedVolatilityPercent | number: '1.0-2') + '%' }}</span>
+          ><small>Vol</small>{{ stock.realizedVolatilityPercent === null ? (state.isLoadingStockDetails ? '...' : '-') : (stock.realizedVolatilityPercent | number: '1.0-2') + '%' }}</span>
           <span
             class="metric-tooltip risk-metric risk-dd"
             tabindex="0"
@@ -312,7 +312,7 @@
             [class.drawdown-high]="stock.drawdownPercent !== null && stock.drawdownPercent > 20"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>DD</small>{{ stock.drawdownPercent === null ? '-' : (stock.drawdownPercent | number: '1.0-2') + '%' }}</span>
+          ><small>DD</small>{{ stock.drawdownPercent === null ? (state.isLoadingStockDetails ? '...' : '-') : (stock.drawdownPercent | number: '1.0-2') + '%' }}</span>
         </div>
         }
         <div class="row-actions" (click)="stopRowClick($event)">

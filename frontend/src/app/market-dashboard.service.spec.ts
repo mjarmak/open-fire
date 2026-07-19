@@ -34,6 +34,14 @@ describe('MarketDashboardService', () => {
     request.flush([]);
   });
 
+  it('fetches lightweight position prices from their own endpoint', () => {
+    service.fetchStockPrices('user', 'password123').subscribe();
+
+    const request = http.expectOne('/api/stocks/prices');
+    expect(request.request.headers.get('Authorization')).toBe(`Basic ${btoa('user:password123')}`);
+    request.flush([]);
+  });
+
   it('omits includeIndicators from lightweight symbol searches', () => {
     service.searchSymbols('user', 'password123', 'app').subscribe((results) => {
       expect(results).toEqual([]);

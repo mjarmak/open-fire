@@ -59,6 +59,7 @@ describe('PortfolioBoardComponent', () => {
     return {
       isLoading: false,
       isLoadingStocks: false,
+      isLoadingStockDetails: false,
       isImportingPortfolio: false,
       username: 'demo',
       password: 'password123',
@@ -168,6 +169,24 @@ describe('PortfolioBoardComponent', () => {
 
     expect(element.querySelector('.section-loading')).toBeNull();
     expect(element.textContent).toContain('Add a portfolio position above');
+  });
+
+  it('shows deferred placeholders while position risk details load', async () => {
+    const { element } = await render(createState({
+      isLoadingStockDetails: true,
+      stocks: [stock({
+        peRatio: null,
+        beta: null,
+        realizedVolatilityPercent: null,
+        drawdownPercent: null,
+        fearScore: null,
+        thirtyDayChangePercent: null,
+      })],
+    }));
+
+    expect(textContent(element.querySelector('.metric-30d'))).toBe('30D...');
+    expect(textContent(element.querySelector('.risk-pe'))).toBe('P/E...');
+    expect(textContent(element.querySelector('.risk-vol'))).toBe('Vol...');
   });
 
   it('shows P/E in the position type category tooltip only when available', async () => {

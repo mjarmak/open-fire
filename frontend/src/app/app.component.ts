@@ -392,6 +392,7 @@ export class AppComponent implements OnDestroy, OnInit {
     this.isLoading = true;
     this.marketDashboardService.isLoadingIndicators = true;
     this.marketDashboardService.isLoadingStocks = true;
+    this.marketDashboardService.isLoadingStockDetails = false;
     this.marketDashboardService.isLoadingPortfolio = true;
     this.marketDashboardService.isLoadingNotification = true;
     this.dashboard = {
@@ -479,7 +480,7 @@ export class AppComponent implements OnDestroy, OnInit {
         error: handleLoadError('indicator'),
       });
 
-    this.marketDashboardService.fetchStocks(this.username, this.password)
+    this.marketDashboardService.fetchStockPrices(this.username, this.password)
       .pipe(finalize(() => completeSectionCall('isLoadingStocks')))
       .subscribe({
         next: (stocks) => {
@@ -489,6 +490,7 @@ export class AppComponent implements OnDestroy, OnInit {
             stocks,
             dailyReport: this.composeDailyReport(this.indicators, stocks),
           };
+          this.loadStockDetails(loadToken);
         },
         error: handleLoadError('position'),
       });
@@ -518,6 +520,69 @@ export class AppComponent implements OnDestroy, OnInit {
         },
         error: handleLoadError('notification'),
       });
+  }
+
+  private loadStockDetails(loadToken: number): void {
+    if (loadToken !== this.dashboardLoadToken || this.stocks.length === 0) {
+      this.marketDashboardService.isLoadingStockDetails = false;
+      return;
+    }
+
+    this.marketDashboardService.isLoadingStockDetails = true;
+    this.marketDashboardService.fetchStocks(this.username, this.password)
+      .pipe(finalize(() => {
+        if (loadToken === this.dashboardLoadToken) {
+          this.marketDashboardService.isLoadingStockDetails = false;
+        }
+      }))
+      .subscribe({
+        next: (details) => {
+          if (loadToken !== this.dashboardLoadToken) {
+            return;
+          }
+          const stocks = this.mergeStockDetails(this.stocks, details);
+          this.dashboard = {
+            ...this.dashboard,
+            stocks,
+            dailyReport: this.composeDailyReport(this.indicators, stocks),
+          };
+        },
+        error: (error: HttpErrorResponse) => {
+          if (loadToken === this.dashboardLoadToken) {
+            console.error('Dashboard position risk details failed to load.', error);
+          }
+        },
+      });
+  }
+
+  private mergeStockDetails(stocks: StockAlert[], details: StockAlert[]): StockAlert[] {
+    const detailsById = new Map<number, StockAlert>();
+    const detailsBySymbol = new Map<string, StockAlert>();
+    for (const detail of details) {
+      if (detail.id !== null) {
+        detailsById.set(detail.id, detail);
+      }
+      detailsBySymbol.set(detail.symbol.toUpperCase(), detail);
+    }
+    return stocks.map((stock) => {
+      const detail = stock.id === null
+        ? detailsBySymbol.get(stock.symbol.toUpperCase())
+        : detailsById.get(stock.id) ?? detailsBySymbol.get(stock.symbol.toUpperCase());
+      if (!detail) {
+        return stock;
+      }
+      return {
+        ...stock,
+        peRatio: detail.peRatio,
+        beta: detail.beta,
+        realizedVolatilityPercent: detail.realizedVolatilityPercent,
+        drawdownPercent: detail.drawdownPercent,
+        fearScore: detail.fearScore,
+        thirtyDayChangePercent: detail.thirtyDayChangePercent,
+        alert: detail.alert,
+        reason: detail.reason,
+      };
+    });
   }
 
   private composeDailyReport(indicators: IndicatorSnapshot[], stocks: StockAlert[]): string {
@@ -575,6 +640,7 @@ export class AppComponent implements OnDestroy, OnInit {
     this.isLoading = false;
     this.marketDashboardService.isLoadingIndicators = false;
     this.marketDashboardService.isLoadingStocks = false;
+    this.marketDashboardService.isLoadingStockDetails = false;
     this.marketDashboardService.isLoadingPortfolio = false;
     this.marketDashboardService.isLoadingNotification = false;
     this.isLoggedIn = false;
