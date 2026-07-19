@@ -262,57 +262,99 @@
             tabindex="0"
             data-tooltip="30D: percentage price change over the last 30 calendar days."
             aria-label="30D: percentage price change over the last 30 calendar days."
+            [class.indicator-loading]="state.isLoadingStockDetails && stock.thirtyDayChangePercent === null"
             [class.value-pos]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent > 0"
             [class.value-neg]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent < 0"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>30D</small>{{ stock.thirtyDayChangePercent === null ? (state.isLoadingStockDetails ? '...' : '-') : (stock.thirtyDayChangePercent | number: '1.0-2') + '%' }}</span>
+          ><small>30D</small>
+            @if (state.isLoadingStockDetails && stock.thirtyDayChangePercent === null) {
+              <i class="position-indicator-skeleton" aria-hidden="true"></i>
+            } @else {
+              {{ stock.thirtyDayChangePercent === null ? '-' : (stock.thirtyDayChangePercent | number: '1.0-2') + '%' }}
+            }
+          </span>
           <span><small>Market Cap</small>{{ formatMoney(stock.marketCap) }}</span>
           <span
             class="metric-tooltip risk-metric risk-fear"
             tabindex="0"
             data-tooltip="Fear score: composite risk score from valuation, beta, 30-day volatility, 30-day drawdown, and 30-day price moves. Alert threshold: 65/100."
             aria-label="Fear score: composite risk score from valuation, beta, 30-day volatility, 30-day drawdown, and 30-day price moves. Alert threshold: 65 out of 100."
+            [class.indicator-loading]="state.isLoadingStockDetails && stock.fearScore === null"
             [class.fear-high]="stock.fearScore !== null && stock.fearScore >= 65"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>Fear</small>{{ stock.fearScore === null ? (state.isLoadingStockDetails ? '...' : '-') : (stock.fearScore | number: '1.0-0') + '/100' }}</span>
+          ><small>Fear</small>
+            @if (state.isLoadingStockDetails && stock.fearScore === null) {
+              <i class="position-indicator-skeleton" aria-hidden="true"></i>
+            } @else {
+              {{ stock.fearScore === null ? '-' : (stock.fearScore | number: '1.0-0') + '/100' }}
+            }
+          </span>
           <span
             class="metric-tooltip risk-metric risk-pe"
             tabindex="0"
             data-tooltip="P/E: trailing price-to-earnings ratio, a valuation measure comparing share price with trailing earnings per share. Alert threshold: above 25."
             aria-label="P/E: trailing price-to-earnings ratio, a valuation measure comparing share price with trailing earnings per share. Alert threshold: above 25."
+            [class.indicator-loading]="state.isLoadingStockDetails && stock.peRatio === null"
             [class.pe-high]="stock.peRatio !== null && stock.peRatio > 25"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>P/E</small>{{ stock.peRatio === null ? (state.isLoadingStockDetails ? '...' : '-') : (stock.peRatio | number: '1.0-2') }}</span>
+          ><small>P/E</small>
+            @if (state.isLoadingStockDetails && stock.peRatio === null) {
+              <i class="position-indicator-skeleton" aria-hidden="true"></i>
+            } @else {
+              {{ stock.peRatio === null ? '-' : (stock.peRatio | number: '1.0-2') }}
+            }
+          </span>
           <span
             class="metric-tooltip risk-metric risk-beta"
             tabindex="0"
             data-tooltip="Beta: sensitivity to broad market moves. 1 tracks the market; above 1 tends to move more. Alert threshold: above 1.5."
             aria-label="Beta: sensitivity to broad market moves. 1 tracks the market; above 1 tends to move more. Alert threshold: above 1.5."
+            [class.indicator-loading]="state.isLoadingStockDetails && stock.beta === null"
             [class.beta-high]="stock.beta !== null && stock.beta > 1.5"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>Beta</small>{{ stock.beta === null ? (state.isLoadingStockDetails ? '...' : '-') : (stock.beta | number: '1.0-2') }}</span>
+          ><small>Beta</small>
+            @if (state.isLoadingStockDetails && stock.beta === null) {
+              <i class="position-indicator-skeleton" aria-hidden="true"></i>
+            } @else {
+              {{ stock.beta === null ? '-' : (stock.beta | number: '1.0-2') }}
+            }
+          </span>
           <span
             class="metric-tooltip risk-metric risk-vol"
             tabindex="0"
             data-tooltip="Vol: annualized realized volatility from the latest 30 daily returns, using 31 closes. Falls back to quote high/low if history is unavailable. Alert threshold: above 40%."
             aria-label="Vol: annualized realized volatility from the latest 30 daily returns, using 31 closes. Falls back to quote high and low if history is unavailable. Alert threshold: above 40 percent."
+            [class.indicator-loading]="state.isLoadingStockDetails && stock.realizedVolatilityPercent === null"
             [class.vol-high]="stock.realizedVolatilityPercent !== null && stock.realizedVolatilityPercent > 40"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>Vol</small>{{ stock.realizedVolatilityPercent === null ? (state.isLoadingStockDetails ? '...' : '-') : (stock.realizedVolatilityPercent | number: '1.0-2') + '%' }}</span>
+          ><small>Vol</small>
+            @if (state.isLoadingStockDetails && stock.realizedVolatilityPercent === null) {
+              <i class="position-indicator-skeleton" aria-hidden="true"></i>
+            } @else {
+              {{ stock.realizedVolatilityPercent === null ? '-' : (stock.realizedVolatilityPercent | number: '1.0-2') + '%' }}
+            }
+          </span>
           <span
             class="metric-tooltip risk-metric risk-dd"
             tabindex="0"
             data-tooltip="DD: drawdown from the highest close in the last 30 calendar days to the latest price. Falls back to 52-week high if history is unavailable. Alert threshold: above 20%."
             aria-label="DD: drawdown from the highest close in the last 30 calendar days to the latest price. Falls back to 52-week high if history is unavailable. Alert threshold: above 20 percent."
+            [class.indicator-loading]="state.isLoadingStockDetails && stock.drawdownPercent === null"
             [class.drawdown-high]="stock.drawdownPercent !== null && stock.drawdownPercent > 20"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>DD</small>{{ stock.drawdownPercent === null ? (state.isLoadingStockDetails ? '...' : '-') : (stock.drawdownPercent | number: '1.0-2') + '%' }}</span>
+          ><small>DD</small>
+            @if (state.isLoadingStockDetails && stock.drawdownPercent === null) {
+              <i class="position-indicator-skeleton" aria-hidden="true"></i>
+            } @else {
+              {{ stock.drawdownPercent === null ? '-' : (stock.drawdownPercent | number: '1.0-2') + '%' }}
+            }
+          </span>
         </div>
         }
         <div class="row-actions" (click)="stopRowClick($event)">

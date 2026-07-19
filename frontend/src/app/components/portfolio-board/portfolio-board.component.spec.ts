@@ -184,9 +184,11 @@ describe('PortfolioBoardComponent', () => {
       })],
     }));
 
-    expect(textContent(element.querySelector('.metric-30d'))).toBe('30D...');
-    expect(textContent(element.querySelector('.risk-pe'))).toBe('P/E...');
-    expect(textContent(element.querySelector('.risk-vol'))).toBe('Vol...');
+    expect(textContent(element.querySelector('.metric-30d'))).toBe('30D');
+    expect(element.querySelector('.metric-30d.indicator-loading .position-indicator-skeleton')).not.toBeNull();
+    expect(element.querySelector('.risk-pe.indicator-loading .position-indicator-skeleton')).not.toBeNull();
+    expect(element.querySelector('.risk-vol.indicator-loading .position-indicator-skeleton')).not.toBeNull();
+    expect(element.querySelectorAll('.position-indicator-skeleton')).toHaveSize(6);
   });
 
   it('shows P/E in the position type category tooltip only when available', async () => {

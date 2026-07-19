@@ -112,7 +112,9 @@ describe('RetirementPlannerComponent', () => {
     expect(element.querySelector('.config-metric-card')).not.toBeNull();
     expect(element.querySelector('.target-fund-card')).not.toBeNull();
     expect(normalizedText(element.querySelector('.target-fund-card'))).not.toContain('Actual:');
-    expect(element.querySelector('.current-assets-card')).toBeNull();
+    expect(element.querySelector('.current-assets-card')).not.toBeNull();
+    expect(element.querySelector('.portfolio-summary-skeleton')).not.toBeNull();
+    expect(normalizedText(element.querySelector('.current-assets-card'))).toBe('Portfolio Summary');
     expect(element.querySelector('.chart-wrapper')).toBeNull();
   });
 
@@ -121,7 +123,8 @@ describe('RetirementPlannerComponent', () => {
 
     expect(element.textContent).toContain('Loading portfolio projections...');
     expect(element.querySelector('.config-metric-card')).not.toBeNull();
-    expect(element.querySelector('.current-assets-card')).toBeNull();
+    expect(element.querySelector('.current-assets-card')).not.toBeNull();
+    expect(element.querySelector('.portfolio-summary-skeleton')).not.toBeNull();
     expect(element.querySelector('.chart-wrapper')).toBeNull();
   });
 

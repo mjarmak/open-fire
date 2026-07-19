@@ -14,9 +14,9 @@
   } @else {
     <div class="retirement-content">
       <div class="retirement-metrics-grid">
-        @if (positionsLoaded) {
-        <div class="metric-card current-assets-card">
+        <div class="metric-card current-assets-card" [class.summary-loading]="!positionsLoaded">
           <span class="label">Portfolio Summary</span>
+          @if (positionsLoaded) {
           <strong class="value">{{ formatCompactCurrency(currentPortfolioValue) }}</strong>
           @if (hasNoPortfolioValue) {
             <p class="portfolio-empty-note">
@@ -97,8 +97,20 @@
               <strong>{{ state.investingStartDate || 'N/A' }}</strong>
             </div>
           </div>
+          } @else {
+            <div class="portfolio-summary-skeleton" role="status" aria-label="Loading portfolio summary">
+              <span class="summary-value-skeleton"></span>
+              <div class="assets-subtext-grid">
+                @for (row of portfolioSummarySkeletonRows; track row) {
+                  <div class="subtext-item summary-row-skeleton">
+                    <span></span>
+                    <strong></strong>
+                  </div>
+                }
+              </div>
+            </div>
+          }
         </div>
-        }
 
         <div class="metric-card target-fund-card">
           <span class="label">Target Retirement Fund</span>

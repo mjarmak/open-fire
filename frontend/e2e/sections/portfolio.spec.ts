@@ -749,12 +749,15 @@ test.describe('Portfolio Section', () => {
     await expect(retirementBoard.getByText('Loading retirement plan...')).toBeHidden();
     await expect(retirementBoard.getByText('Loading portfolio projections...')).toBeVisible();
     await expect(retirementBoard.locator('.config-metric-card')).toBeVisible();
+    await expect(retirementBoard.locator('.current-assets-card')).toBeVisible();
+    await expect(retirementBoard.locator('.portfolio-summary-skeleton')).toBeVisible();
     await expect(retirementBoard.getByText('Actual:', { exact: true })).toBeHidden();
     await expect(retirementBoard.locator('.chart-wrapper')).toBeHidden();
     await expect(page.getByRole('heading', { name: 'Portfolio' })).toBeVisible();
 
     await expect(portfolioBoard.getByText('Loading portfolio...')).toBeHidden({ timeout: 5_000 });
     await expect(retirementBoard.getByText('Loading portfolio projections...')).toBeHidden({ timeout: 5_000 });
+    await expect(retirementBoard.locator('.portfolio-summary-skeleton')).toBeHidden();
     await expect(retirementBoard.getByText('Actual:', { exact: true })).toBeVisible();
     await expect(retirementBoard.locator('.chart-wrapper')).toBeVisible();
   });

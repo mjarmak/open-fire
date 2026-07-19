@@ -149,6 +149,16 @@ app-root.light-theme .top-bar .icon-btn {
   }
 }
 
+@keyframes skeleton-loading {
+  from {
+    background-position: 180% 0;
+  }
+
+  to {
+    background-position: -80% 0;
+  }
+}
+
 @keyframes button-shimmer {
   from {
     transform: translateX(-120%);
@@ -1666,6 +1676,26 @@ button[aria-busy="true"]:disabled:not(.icon-btn)::after {
 
 .ticker-metrics .risk-metric small {
   color: var(--position-column-title);
+}
+
+.ticker-metrics .indicator-loading {
+  cursor: progress;
+}
+
+.position-indicator-skeleton {
+  display: block;
+  width: 68%;
+  height: 8px;
+  margin: 3px 0 1px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--position-indicator-neutral) 16%, transparent) 20%,
+    color-mix(in srgb, var(--position-indicator-neutral) 48%, transparent) 50%,
+    color-mix(in srgb, var(--position-indicator-neutral) 16%, transparent) 80%
+  );
+  background-size: 220% 100%;
+  animation: skeleton-loading 1.2s linear infinite;
 }
 
 .ticker-metrics .risk-fear {
@@ -3355,6 +3385,41 @@ button.danger:hover {
     font-size: 0.63rem;
     font-weight: 900;
     line-height: 1;
+  }
+
+  .portfolio-summary-skeleton {
+    display: grid;
+  }
+
+  .summary-value-skeleton,
+  .summary-row-skeleton span,
+  .summary-row-skeleton strong {
+    display: block;
+    border-radius: 4px;
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--muted) 12%, transparent) 20%,
+      color-mix(in srgb, var(--muted) 34%, transparent) 50%,
+      color-mix(in srgb, var(--muted) 12%, transparent) 80%
+    );
+    background-size: 220% 100%;
+    animation: skeleton-loading 1.2s linear infinite;
+  }
+
+  .summary-value-skeleton {
+    width: 42%;
+    height: 26px;
+    margin-bottom: 4px;
+  }
+
+  .summary-row-skeleton span {
+    width: min(100%, 88px);
+    height: 7px;
+  }
+
+  .summary-row-skeleton strong {
+    width: 58px;
+    height: 8px;
   }
 
   .subtext {

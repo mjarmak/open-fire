@@ -52,6 +52,7 @@ export class RetirementPlannerComponent {
   };
   protected readonly wealthProjectionTooltip =
     '30-Year retirement projection comparing realistic, actual, and custom return growth. Values use logarithmic scaling for long-term clarity, and withdrawals are adjusted for inflation.';
+  protected readonly portfolioSummarySkeletonRows = [1, 2, 3, 4, 5, 6, 7];
   private snapshotCacheKey = '';
   private snapshotCache: RetirementSnapshot | null = null;
 
