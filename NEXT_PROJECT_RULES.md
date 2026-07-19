@@ -70,6 +70,11 @@ Use this file as the project rules document for a new repository. Keep it close 
 - Use concise commit messages in imperative style, for example `fix: handle server error feedback`.
 - Before final response, verify the worktree is clean after commit/push.
 
+## Deployment Rules
+
+- Use the deploy script's final output as the deployment verification source.
+- After a successful deploy script run, do not perform separate headless-browser, HTTP endpoint, or container-health checks unless the user explicitly requests them.
+
 ## Final Response Rules
 
 - State what changed, what was verified, and the commit hash when changes were committed.
