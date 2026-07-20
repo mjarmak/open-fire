@@ -1,6 +1,7 @@
 <header class="top-bar">
   <div class="top-left-panel">
     <button
+      #menuButton
       type="button"
       class="secondary icon-btn top-menu-button menu-action"
       title="Menu"
@@ -73,8 +74,17 @@
 </header>
 
 @if (menuOpen) {
-  <div class="modal-backdrop top-menu-backdrop" role="presentation">
-    <section class="edit-dialog top-menu-dialog" role="dialog" aria-modal="true" aria-labelledby="top-menu-title" (click)="$event.stopPropagation()">
+  <div class="modal-backdrop top-menu-backdrop" role="presentation" @dialogBackdrop>
+    <section
+      class="edit-dialog top-menu-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="top-menu-title"
+      [style.left.px]="menuDialogLeft"
+      [style.top.px]="menuDialogTop"
+      @dialogPanel
+      (click)="$event.stopPropagation()"
+    >
       <div class="dialog-heading">
         <h2 id="top-menu-title">Menu</h2>
         <button type="button" class="icon-action" title="Close" aria-label="Close menu" (click)="closeMenu()"></button>

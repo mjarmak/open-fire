@@ -52,6 +52,9 @@ Quality bar:
 
 ## Skill: Frontend UI Change
 
+- Reuse the existing shared dialog animations for modal backdrops and panels.
+- For trigger-based dialogs, anchor the desktop panel to its trigger, clamp it within the viewport, and retain the established mobile dialog layout.
+
 Use for dialogs, forms, dashboards, controls, snackbars, charts, and layout.
 
 Checklist:

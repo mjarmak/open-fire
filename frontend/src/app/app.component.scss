@@ -2319,6 +2319,7 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
 }
 
 .edit-dialog.top-menu-dialog {
+  position: absolute;
   width: min(256px, 100%);
 }
 
@@ -2429,12 +2430,9 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
 }
 
 .modal-backdrop.top-menu-backdrop {
-  align-items: start;
-  justify-items: start;
-  place-items: start;
-  padding-top: 8px;
-  padding-left: 8px;
-  padding-right: 8px;
+  display: block;
+  padding: 0;
+  overflow-y: auto;
 }
 
 .edit-dialog {
@@ -3008,6 +3006,17 @@ button.danger:hover {
     align-items: start;
     padding: 12px;
     overflow-y: auto;
+  }
+
+  .modal-backdrop.top-menu-backdrop {
+    display: grid;
+    justify-items: center;
+    padding: 12px;
+    overflow-y: auto;
+  }
+
+  .edit-dialog.top-menu-dialog {
+    position: static;
   }
 
   .edit-dialog {

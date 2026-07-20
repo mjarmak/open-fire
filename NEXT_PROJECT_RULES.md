@@ -25,6 +25,9 @@ Use this file as the project rules document for a new repository. Keep it close 
 
 ## Frontend Rules
 
+- Reuse the shared dialog backdrop and panel animations so dialogs open and close consistently across the application.
+- Position desktop dialogs opened by a specific control next to that trigger and clamp them within the viewport; preserve the standard centered or full-width dialog layout on mobile.
+
 - Build the actual usable screen first. Do not create marketing or placeholder pages unless requested.
 - Match the existing design system and component patterns.
 - Keep operational apps dense, scannable, and efficient. Avoid decorative layouts that reduce workflow clarity.
