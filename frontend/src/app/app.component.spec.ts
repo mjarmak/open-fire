@@ -291,7 +291,7 @@ describe('AppComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Loading your dashboard...');
   });
 
-  it('labels the GitHub menu link as open source code', () => {
+  it('shows Jenius Apps and source-code links in the header menu', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
 
@@ -299,7 +299,12 @@ describe('AppComponent', () => {
     root.querySelector<HTMLButtonElement>('.top-menu-button')?.click();
     fixture.detectChanges();
 
+    const jeniusAppsLink = root.querySelector<HTMLAnchorElement>('.jenius-apps-menu-action');
     const sourceLink = root.querySelector<HTMLAnchorElement>('.github-menu-action');
+    expect(jeniusAppsLink?.textContent?.trim()).toBe('Jenius Apps');
+    expect(jeniusAppsLink?.getAttribute('href')).toBe('https://jeniusapps.com');
+    expect(jeniusAppsLink?.getAttribute('target')).toBe('_blank');
+    expect(jeniusAppsLink?.getAttribute('aria-label')).toContain('opens in a new tab');
     expect(sourceLink?.textContent?.trim()).toBe('Open Source Code');
     expect(sourceLink?.getAttribute('href')).toBe('https://github.com/mjarmak/open-fire');
     expect(sourceLink?.getAttribute('target')).toBe('_blank');
