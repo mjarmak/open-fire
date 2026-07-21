@@ -1,0 +1,22 @@
+[Unit]
+Description=Watch GitHub and deploy Open Fire
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Environment=REPO_URL=https://github.com/mjarmak/open-fire.git
+Environment=IMAGE_NAMESPACE=jeniustech/open-fire
+Environment=BRANCH=main
+Environment=APP_DIR=/opt/open-fire
+Environment=DEPLOY_DIR=/home/docker_files/open-fire
+Environment=ENV_FILE=/home/docker_files/open-fire/openfire.env.production
+Environment=WATCH_INTERVAL_SECONDS=60
+ExecStart=/home/docker_files/open-fire/deploy-open-fire.sh --watch
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

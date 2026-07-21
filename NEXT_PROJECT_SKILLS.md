@@ -149,6 +149,24 @@ Checklist:
 - Avoid hardcoded registry hosts or namespaces when deployment config should control them.
 - Test script syntax locally where possible.
 
+## Skill: GitHub Auto Deploy Watcher
+
+Use when a Linux server should redeploy automatically after the configured GitHub branch changes.
+
+Checklist:
+
+- Poll the exact remote branch SHA and deploy only when it differs from the last successfully deployed SHA.
+- Run one deployment immediately when the watcher starts.
+- Reuse the normal deployment script so manual and automatic deployments follow the same path.
+- Tag images with the deployed commit SHA; do not reuse a fixed version tag in watch mode.
+- Use an exclusive lock so manual and automatic deployments cannot overlap.
+- Preserve the server environment file and keep credentials out of the repository and systemd unit.
+- Retry temporary GitHub and deployment failures without marking a failed commit as deployed.
+- Keep repository URL, branch, paths, namespace, and polling interval configurable.
+- Set a minimum polling interval to avoid hammering GitHub.
+- Install the watcher as a restartable systemd service and inspect its journal for the deployment result.
+- Verify script syntax, the systemd unit, the initial deployment, and the service's active state.
+
 ## Skill: Code Review
 
 Use when asked to review.

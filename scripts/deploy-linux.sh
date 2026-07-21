@@ -170,6 +170,40 @@ log "Deploying version $VERSION"
   BACKEND_IMAGE="$BACKEND_IMAGE" FRONTEND_IMAGE="$FRONTEND_IMAGE" APP_ENV_FILE="$ENV_FILE" compose_cmd --env-file "$ENV_FILE" -f docker-compose.yml up -d --remove-orphans
 )
 
+log "Waiting for Open Fire containers"
+for container in open_fire_backend open_fire_frontend; do
+  for attempt in {1..30}; do
+    container_state="$(docker inspect --format '{{.State.Status}}' "$container" 2>/dev/null || true)"
+    if [[ "$container_state" == "running" ]]; then
+      break
+    fi
+
+    if (( attempt == 30 )); then
+      echo "$container did not reach the running state." >&2
+      docker logs --tail 80 "$container" >&2 || true
+      exit 1
+    fi
+
+    sleep 2
+  done
+done
+
+sleep 5
+for container in open_fire_backend open_fire_frontend; do
+  container_state="$(docker inspect --format '{{.State.Status}}' "$container" 2>/dev/null || true)"
+  if [[ "$container_state" != "running" ]]; then
+    echo "$container stopped during the readiness check." >&2
+    docker logs --tail 80 "$container" >&2 || true
+    exit 1
+  fi
+done
+
+log "Service status"
+(
+  cd "$DEPLOY_DIR"
+  BACKEND_IMAGE="$BACKEND_IMAGE" FRONTEND_IMAGE="$FRONTEND_IMAGE" APP_ENV_FILE="$ENV_FILE" compose_cmd --env-file "$ENV_FILE" -f docker-compose.yml ps
+)
+
 log "Deployment complete"
 echo "Backend image:  $BACKEND_IMAGE"
 echo "Frontend image: $FRONTEND_IMAGE"

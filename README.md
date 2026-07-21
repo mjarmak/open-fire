@@ -94,8 +94,8 @@ Create a deploy env file from the template and fill in real values:
 
 ```bash
 mkdir -p /home/docker_files/open-fire
-cp docker/openfire.env.production /home/docker_files/open-fire/.env
-nano /home/docker_files/open-fire/.env
+cp docker/openfire.env.production /home/docker_files/open-fire/openfire.env.production
+nano /home/docker_files/open-fire/openfire.env.production
 ```
 
 Build, push, and deploy a version from your Linux server:
@@ -120,6 +120,24 @@ jeniustech/open-fire-frontend:$VERSION
 
 Then it deploys `/home/docker_files/open-fire/docker-compose.yml` with the new image tags.
 
+### Automatic deployment from GitHub
+
+`deploy-open-fire.sh` can run once or poll the `main` branch and redeploy after a successful GitHub update. It reuses `scripts/deploy-linux.sh`, tags both images with the commit SHA, prevents overlapping deploys, and retries temporary failures.
+
+Upload the script and install the included systemd unit:
+
+```bash
+install -m 0755 deploy-open-fire.sh /home/docker_files/open-fire/deploy-open-fire.sh
+install -m 0644 deploy/open-fire-deploy.service /etc/systemd/system/open-fire-deploy.service
+systemd-analyze verify /etc/systemd/system/open-fire-deploy.service
+systemctl daemon-reload
+systemctl enable --now open-fire-deploy.service
+systemctl --no-pager --full status open-fire-deploy.service
+journalctl -u open-fire-deploy.service -f
+```
+
+The production unit keeps the existing environment file and ports (`FRONTEND_PORT=82`, `BACKEND_PORT=8280`) and checks GitHub every 60 seconds. Override the environment values in the unit if another server uses different paths or a different branch.
+
 For Docker Hub, leave `DOCKER_REGISTRY` unset or set it to `docker.io`. Only set `DOCKER_REGISTRY` to a registry hostname such as `ghcr.io` when your `IMAGE_NAMESPACE` uses that registry.
 Docker Hub image names are flattened to `jeniustech/open-fire-backend:$VERSION` and `jeniustech/open-fire-frontend:$VERSION`.
 
@@ -131,7 +149,7 @@ Useful overrides:
 BRANCH=main
 APP_DIR=/opt/open-fire
 DEPLOY_DIR=/home/docker_files/open-fire
-ENV_FILE=/home/docker_files/open-fire/.env
+ENV_FILE=/home/docker_files/open-fire/openfire.env.production
 BACKEND_IMAGE=jeniustech/open-fire-backend:$VERSION
 FRONTEND_IMAGE=jeniustech/open-fire-frontend:$VERSION
 APP_CORS_ALLOWED_ORIGIN_PATTERNS=*
