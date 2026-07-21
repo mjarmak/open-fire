@@ -60,6 +60,7 @@ import { dialogBackdropAnimation, dialogPanelAnimation } from './components/dial
   }
 })
 export class AppComponent implements OnDestroy, OnInit {
+  readonly currentYear = new Date().getFullYear();
   private readonly usernameCookie = 'sma_username';
   private readonly passwordCookie = 'sma_password';
   private readonly usernameStorageKey = 'sma_username';

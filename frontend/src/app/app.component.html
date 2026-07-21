@@ -65,6 +65,27 @@
   }
 </main>
 
+<footer class="company-footer" aria-label="Jenius Apps company information">
+  <div class="company-footer__inner">
+    <div class="company-footer__details">
+      <span>Designed and developed in Belgium.</span>
+      <small>&copy; {{ currentYear }} Jenius Apps</small>
+      <small>VAT BE 0789.424.602</small>
+    </div>
+
+    <a
+      class="company-footer__link"
+      href="https://jeniusapps.com"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Visit Jenius Apps (opens in a new tab)"
+    >
+      Visit Jenius Apps
+      <span aria-hidden="true">&nearr;</span>
+    </a>
+  </div>
+</footer>
+
 <app-login-dialog
   (closeDialog)="closeLoginDialog()"
   (submitDialog)="submitAuthDialog()"

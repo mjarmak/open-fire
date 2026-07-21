@@ -240,6 +240,20 @@ describe('AppComponent', () => {
     expect(compiled.textContent).toContain('OpenFIRE');
   });
 
+  it('shows the Jenius Apps company footer without an address', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+
+    const footer = fixture.nativeElement.querySelector('.company-footer') as HTMLElement;
+    const jeniusAppsLink = footer.querySelector<HTMLAnchorElement>('.company-footer__link');
+
+    expect(footer.textContent).toContain('VAT BE 0789.424.602');
+    expect(footer.textContent).toContain('Designed and developed in Belgium.');
+    expect(footer.textContent).not.toContain('Brussels');
+    expect(jeniusAppsLink?.getAttribute('href')).toBe('https://jeniusapps.com');
+    expect(jeniusAppsLink?.getAttribute('target')).toBe('_blank');
+  });
+
   it('uses generated PNG logo assets for the header and welcome screen', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
