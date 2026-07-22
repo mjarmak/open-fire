@@ -685,6 +685,21 @@ class FinnhubClientTest {
   }
 
   @Test
+  void dailyDirectionUsesFinnhubQuoteWithoutProfileOrHistoryCalls() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    FinnhubClient client = new FinnhubClient(properties(), builder.build());
+
+    server.expect(requestTo(containsString("/api/v1/quote")))
+        .andRespond(withSuccess("""
+            {"c":102,"pc":100,"h":103,"l":99}
+            """, MediaType.APPLICATION_JSON));
+
+    assertThat(client.isAdvancingToday("SPY")).contains(true);
+    server.verify();
+  }
+
+  @Test
   void companyPriceSnapshotDoesNotUseHistoryBackedProviderClientMethods() {
     FinnhubApiService finnhubApiService = mock(FinnhubApiService.class);
     TwelveDataApiService twelveDataApiService = mock(TwelveDataApiService.class);

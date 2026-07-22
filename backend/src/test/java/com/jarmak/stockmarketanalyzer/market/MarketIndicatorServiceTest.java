@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.verify;
@@ -16,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,6 +76,51 @@ class MarketIndicatorServiceTest {
     verify(fredClient, times(1)).latestObservations("BAMLC0A0CM");
     verify(finnhubClient, atLeast(1)).dailyCloses("SPY");
     verify(finnhubClient, atLeast(1)).dailyCloses("TLT");
+  }
+
+  @Test
+  void calculatesBreadthFromCurrentAndPreviousQuotes() {
+    FinnhubClient quoteClient = mock(FinnhubClient.class);
+    MarketIndicatorService quoteService = new MarketIndicatorService(
+        properties(List.of("AAA", "BBB"), List.of()),
+        mock(FredClient.class),
+        quoteClient
+    );
+    when(quoteClient.isAdvancingToday("AAA")).thenReturn(Optional.of(true));
+    when(quoteClient.isAdvancingToday("BBB")).thenReturn(Optional.of(false));
+
+    MarketModels.IndicatorSnapshot breadth = quoteService.indicators().stream()
+        .filter(indicator -> "breadth".equals(indicator.id()))
+        .findFirst()
+        .orElseThrow();
+
+    assertThat(breadth.value()).isEqualByComparingTo("50.0");
+    assertThat(breadth.source()).isEqualTo("Live quote ETF basket");
+    verify(quoteClient, never()).dailyCloses("AAA");
+    verify(quoteClient, never()).dailyCloses("BBB");
+  }
+
+  @Test
+  void normalizesFallbackClosesBeforeCalculatingBreadth() {
+    FinnhubClient fallbackClient = mock(FinnhubClient.class);
+    MarketIndicatorService fallbackService = new MarketIndicatorService(
+        properties(List.of("AAA"), List.of()),
+        mock(FredClient.class),
+        fallbackClient
+    );
+    when(fallbackClient.isAdvancingToday("AAA")).thenReturn(Optional.empty());
+    when(fallbackClient.dailyCloses("AAA")).thenReturn(List.of(
+        new TimeSeriesPoint(LocalDate.of(2026, 5, 30), 102),
+        new TimeSeriesPoint(LocalDate.of(2026, 5, 30), 101),
+        new TimeSeriesPoint(LocalDate.of(2026, 5, 29), 100)
+    ));
+
+    MarketModels.IndicatorSnapshot breadth = fallbackService.indicators().stream()
+        .filter(indicator -> "breadth".equals(indicator.id()))
+        .findFirst()
+        .orElseThrow();
+
+    assertThat(breadth.value()).isEqualByComparingTo("100.0");
   }
 
   @Test

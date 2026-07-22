@@ -130,6 +130,21 @@ public class FinnhubClient {
     );
   }
 
+  public Optional<Boolean> isAdvancingToday(String symbol) {
+    if (!StringUtils.hasText(symbol)) {
+      return Optional.empty();
+    }
+
+    String normalizedSymbol = symbol.trim().toUpperCase();
+    return firstPresent(
+        () -> directionFromCandidate(finnhubApiService.priceQuote(normalizedSymbol)),
+        () -> directionFromCandidate(twelveDataApiService.companyPriceSnapshot(normalizedSymbol)),
+        () -> directionFromCandidate(financialModelingPrepApiService.companyPriceSnapshot(normalizedSymbol)),
+        () -> directionFromCandidate(eodHistoricalDataApiService.companyPriceSnapshot(normalizedSymbol)),
+        () -> directionFromCandidate(alphaVantageApiService.companyPriceSnapshot(normalizedSymbol))
+    );
+  }
+
   public List<TimeSeriesPoint> dailyCloses(String symbol) {
     if (!StringUtils.hasText(symbol)) {
       return List.of();
@@ -239,6 +254,21 @@ public class FinnhubClient {
   ) {
     return candidate.map(value -> MarketSnapshotFactory.fromPriceCandidate(symbol, value))
         .orElse(Optional.empty());
+  }
+
+  private Optional<Boolean> directionFromCandidate(Optional<MarketSnapshotCandidate> candidate) {
+    if (candidate.isEmpty()) {
+      return Optional.empty();
+    }
+
+    BigDecimal latestPrice = candidate.orElseThrow().latestPrice();
+    BigDecimal previousClose = candidate.orElseThrow().previousClose();
+    if (latestPrice == null || latestPrice.signum() <= 0 || previousClose == null || previousClose.signum() <= 0) {
+      return Optional.empty();
+    }
+
+    int comparison = latestPrice.compareTo(previousClose);
+    return comparison == 0 ? Optional.empty() : Optional.of(comparison > 0);
   }
 
   private List<TimeSeriesPoint> fetchDailyCloses(String symbol) {

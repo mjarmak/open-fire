@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -125,11 +126,9 @@ public class MarketIndicatorService {
     int total = 0;
 
     for (String symbol : properties.market().breadthSymbols()) {
-      List<TimeSeriesPoint> closes = finnhubClient.dailyCloses(symbol);
-      if (closes.size() >= 2) {
-        TimeSeriesPoint latest = closes.get(closes.size() - 1);
-        TimeSeriesPoint previous = closes.get(closes.size() - 2);
-        advancing += latest.value() > previous.value() ? 1 : 0;
+      Optional<Boolean> direction = dailyAdvance(symbol);
+      if (direction.isPresent()) {
+        advancing += direction.orElseThrow() ? 1 : 0;
         total++;
       }
     }
@@ -148,10 +147,33 @@ public class MarketIndicatorService {
         "% advancing basket",
         BigDecimal.ZERO,
         breadth >= 55 ? "supportive" : breadth >= 45 ? "neutral" : "risk",
-        "Finnhub ETF basket",
+        "Live quote ETF basket",
         Instant.now(),
-        "Shows whether gains are broad or concentrated across a configurable ETF basket."
+        "Shows whether gains are broad or concentrated across the moving symbols in a configurable ETF basket."
     ));
+  }
+
+  private Optional<Boolean> dailyAdvance(String symbol) {
+    Optional<Boolean> quoteDirection = finnhubClient.isAdvancingToday(symbol);
+    if (quoteDirection.isPresent()) {
+      return quoteDirection;
+    }
+
+    Map<LocalDate, Double> closesByDate = new TreeMap<>();
+    for (TimeSeriesPoint point : finnhubClient.dailyCloses(symbol)) {
+      if (point != null && point.date() != null && Double.isFinite(point.value()) && point.value() > 0) {
+        closesByDate.put(point.date(), point.value());
+      }
+    }
+    if (closesByDate.size() < 2) {
+      return Optional.empty();
+    }
+
+    List<Double> closes = new ArrayList<>(closesByDate.values());
+    double latest = closes.get(closes.size() - 1);
+    double previous = closes.get(closes.size() - 2);
+    int comparison = Double.compare(latest, previous);
+    return comparison == 0 ? Optional.empty() : Optional.of(comparison > 0);
   }
 
   private List<MarketModels.ChartPoint> historicalBreadth(HistoryRange range) {

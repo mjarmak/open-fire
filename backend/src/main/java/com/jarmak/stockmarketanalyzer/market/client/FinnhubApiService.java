@@ -164,25 +164,14 @@ public class FinnhubApiService {
 
   public Optional<MarketSnapshotCandidate> companyPriceSnapshot(String symbol) {
     return cached(snapshotCache, cacheKey("finnhub-price|" + symbol), SNAPSHOT_CACHE_SECONDS, () -> {
-      if (!configured()) {
-        return Optional.empty();
-      }
-
       try {
-        MarketApiUtils.AssetClass assetClass = MarketApiUtils.assetClass(symbol);
-        JsonNode quote = query("/quote", Map.of("symbol", symbol));
-        BigDecimal latestPrice = MarketApiUtils.positiveMetric(quote.path("c"));
-        if (latestPrice == null || latestPrice.signum() <= 0) {
+        Optional<MarketSnapshotCandidate> quoteCandidate = priceQuote(symbol);
+        if (quoteCandidate.isEmpty()) {
           return Optional.empty();
         }
 
-        BigDecimal previousClose = MarketApiUtils.positiveMetric(quote.path("pc"));
-        if (previousClose == null) {
-          previousClose = latestPrice;
-        }
-        BigDecimal dailyHigh = MarketApiUtils.positiveMetric(quote.path("h"));
-        BigDecimal dailyLow = MarketApiUtils.positiveMetric(quote.path("l"));
-
+        MarketSnapshotCandidate quote = quoteCandidate.orElseThrow();
+        MarketApiUtils.AssetClass assetClass = MarketApiUtils.assetClass(symbol);
         String name = symbol;
         String industry = MarketApiUtils.assetClassLabel(assetClass, "");
         BigDecimal marketCap = null;
@@ -206,10 +195,41 @@ public class FinnhubApiService {
             marketCap,
             null,
             null,
+            quote.latestPrice(),
+            quote.previousClose(),
+            quote.dailyHigh(),
+            quote.dailyLow(),
+            null
+        )));
+      } catch (RuntimeException exception) {
+        return Optional.empty();
+      }
+    });
+  }
+
+  public Optional<MarketSnapshotCandidate> priceQuote(String symbol) {
+    return cached(snapshotCache, cacheKey("finnhub-quote|" + symbol), SNAPSHOT_CACHE_SECONDS, () -> {
+      if (!configured()) {
+        return Optional.empty();
+      }
+
+      try {
+        JsonNode quote = query("/quote", Map.of("symbol", symbol));
+        BigDecimal latestPrice = MarketApiUtils.positiveMetric(quote.path("c"));
+        if (latestPrice == null || latestPrice.signum() <= 0) {
+          return Optional.empty();
+        }
+
+        return logSnapshotResult("price quote", symbol, Optional.of(new MarketSnapshotCandidate(
+            symbol,
+            MarketApiUtils.assetClassLabel(MarketApiUtils.assetClass(symbol), ""),
+            null,
+            null,
+            null,
             latestPrice,
-            previousClose,
-            dailyHigh,
-            dailyLow,
+            MarketApiUtils.positiveMetric(quote.path("pc")),
+            MarketApiUtils.positiveMetric(quote.path("h")),
+            MarketApiUtils.positiveMetric(quote.path("l")),
             null
         )));
       } catch (RuntimeException exception) {
