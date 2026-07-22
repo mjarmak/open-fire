@@ -25,6 +25,22 @@ server {
     proxy_set_header Authorization $http_authorization;
   }
 
+  location = /ngsw-worker.js {
+    try_files $uri =404;
+    add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+  }
+
+  location = /ngsw.json {
+    try_files $uri =404;
+    add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+  }
+
+  location = /manifest.webmanifest {
+    try_files $uri =404;
+    default_type application/manifest+json;
+    add_header Cache-Control "public, max-age=3600" always;
+  }
+
   location / {
     try_files $uri $uri/ /index.html;
   }
