@@ -634,6 +634,80 @@ describe('AppComponent', () => {
     expect(app.addDialogOpen).toBeFalse();
   });
 
+  it('loads watchlist indicators after adding a lightweight search result', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    const details$ = new Subject<StockAlert[]>();
+    const savedHolding = {
+      id: 43,
+      symbol: 'MSFT',
+      companyName: 'Microsoft',
+      quantity: 0,
+      averageCost: 0,
+      watchOnly: true,
+    };
+    const price = stockLookupRisk({
+      id: null,
+      symbol: 'MSFT',
+      companyName: 'Microsoft',
+      latestPrice: 420,
+      marketCap: 3_100_000_000_000,
+      peRatio: null,
+      beta: null,
+      realizedVolatilityPercent: null,
+      drawdownPercent: null,
+      fearScore: null,
+      thirtyDayChangePercent: null,
+    });
+    marketDashboardService.saveHolding.and.returnValue(of(savedHolding));
+    marketDashboardService.fetchStocks.and.returnValue(details$);
+    app.username = 'user';
+    app.password = 'password123';
+    app.selectedSymbol = {
+      symbol: 'MSFT',
+      name: 'Microsoft',
+      region: 'US',
+      currency: 'USD',
+      indicators: price,
+    };
+    app.holdingForm = { ...savedHolding, id: null };
+
+    app.saveHolding();
+
+    expect(marketDashboardService.fetchStocks).toHaveBeenCalledOnceWith('user', 'password123');
+    expect(marketDashboardService.isLoadingStockDetails).toBeTrue();
+    expect(app.stocks[0]).toEqual(jasmine.objectContaining({
+      id: 43,
+      watchOnly: true,
+      latestPrice: 420,
+      fearScore: null,
+    }));
+
+    details$.next([stockLookupRisk({
+      id: 43,
+      symbol: 'MSFT',
+      companyName: 'Microsoft',
+      peRatio: 35,
+      beta: 1.1,
+      realizedVolatilityPercent: 24,
+      drawdownPercent: 8,
+      fearScore: 47,
+      thirtyDayChangePercent: 4.5,
+      watchOnly: true,
+    })]);
+    details$.complete();
+
+    expect(app.stocks[0]).toEqual(jasmine.objectContaining({
+      peRatio: 35,
+      beta: 1.1,
+      realizedVolatilityPercent: 24,
+      drawdownPercent: 8,
+      fearScore: 47,
+      thirtyDayChangePercent: 4.5,
+    }));
+    expect(marketDashboardService.isLoadingStockDetails).toBeFalse();
+  });
+
   it('updates an edited position locally without refreshing the full dashboard', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;

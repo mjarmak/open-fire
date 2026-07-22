@@ -1504,6 +1504,7 @@ export class AppComponent implements OnDestroy, OnInit {
       .subscribe({
         next: (savedHolding) => {
           this.applyLocalHoldingUpsert(savedHolding, this.selectedSymbol?.indicators ?? null);
+          this.loadStockDetails(this.dashboardLoadToken);
           this.showSnackbar(`${savedHolding.symbol} saved to portfolio.`);
           this.closeAddPosition();
         },
@@ -1682,6 +1683,9 @@ export class AppComponent implements OnDestroy, OnInit {
       .subscribe({
         next: (savedHolding) => {
           this.applyLocalHoldingUpsert(savedHolding, this.selectedEditSymbol?.indicators ?? null, originalId);
+          if (symbolChanged) {
+            this.loadStockDetails(this.dashboardLoadToken);
+          }
           this.showSnackbar(symbolChanged
             ? `${originalSymbol} changed to ${nextSymbol}.`
             : `${nextSymbol} position updated.`);
