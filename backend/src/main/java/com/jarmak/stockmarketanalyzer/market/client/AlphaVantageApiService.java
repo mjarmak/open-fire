@@ -425,6 +425,9 @@ public class AlphaVantageApiService {
     if (value == null) {
       return (T) List.of();
     }
+    if (value instanceof Optional<?> optional && optional.isEmpty()) {
+      return value;
+    }
     cache.put(key, new CacheEntry<>(value, Instant.now().plusSeconds(ttlSeconds)));
     return value;
   }

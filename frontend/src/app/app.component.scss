@@ -3461,6 +3461,12 @@ button.danger:hover {
     line-height: 1;
   }
 
+  .portfolio-price-unavailable {
+    color: var(--negative-text);
+    border-color: color-mix(in srgb, var(--negative-text) 34%, transparent);
+    background: color-mix(in srgb, var(--negative-text) 9%, transparent);
+  }
+
   .portfolio-summary-skeleton {
     display: grid;
   }

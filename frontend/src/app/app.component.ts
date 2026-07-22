@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterOutlet } from '@angular/router';
-import { finalize, of, switchMap } from 'rxjs';
+import { EMPTY, expand, finalize, of, switchMap, timer } from 'rxjs';
 import { DashboardResponse, IndicatorSnapshot, PortfolioHolding, StockAlert, SymbolSearchResult, UserDcaSettings, UserRetirementSettings } from './market-dashboard.models';
 import { MarketDashboardService } from './market-dashboard.service';
 import { AddPositionDialogComponent } from './components/add-position-dialog/add-position-dialog.component';
@@ -68,6 +68,8 @@ export class AppComponent implements OnDestroy, OnInit {
   private readonly rememberLoginStorageKey = 'sma_remember_login';
   private readonly themeStorageKey = 'sma_theme';
   private readonly loginCookieMaxAgeSeconds = 60 * 60 * 24 * 14;
+  private readonly stockDetailRetryDelayMs = 1000;
+  private readonly stockDetailRetryCount = 1;
   private symbolSearchHandle?: ReturnType<typeof setTimeout>;
   private editSymbolSearchHandle?: ReturnType<typeof setTimeout>;
   private stockLookupSearchHandle?: ReturnType<typeof setTimeout>;
@@ -527,11 +529,24 @@ export class AppComponent implements OnDestroy, OnInit {
 
     this.marketDashboardService.isLoadingStockDetails = true;
     this.marketDashboardService.fetchStocks(this.username, this.password)
-      .pipe(finalize(() => {
-        if (loadToken === this.dashboardLoadToken) {
-          this.marketDashboardService.isLoadingStockDetails = false;
-        }
-      }))
+      .pipe(
+        expand((details, retryIndex) => {
+          const shouldRetry = retryIndex < this.stockDetailRetryCount
+            && this.hasRetryableStockDetailFailure(details);
+          if (!shouldRetry) {
+            return EMPTY;
+          }
+
+          return timer(this.stockDetailRetryDelayMs).pipe(
+            switchMap(() => this.marketDashboardService.fetchStocks(this.username, this.password)),
+          );
+        }),
+        finalize(() => {
+          if (loadToken === this.dashboardLoadToken) {
+            this.marketDashboardService.isLoadingStockDetails = false;
+          }
+        }),
+      )
       .subscribe({
         next: (details) => {
           if (loadToken !== this.dashboardLoadToken) {
@@ -550,6 +565,24 @@ export class AppComponent implements OnDestroy, OnInit {
           }
         },
       });
+  }
+
+  private hasRetryableStockDetailFailure(details: StockAlert[]): boolean {
+    const detailsById = new Map<number, StockAlert>();
+    const detailsBySymbol = new Map<string, StockAlert>();
+    for (const detail of details) {
+      if (detail.id !== null) {
+        detailsById.set(detail.id, detail);
+      }
+      detailsBySymbol.set(detail.symbol.toUpperCase(), detail);
+    }
+
+    return this.stocks.some((stock) => {
+      const detail = stock.id === null
+        ? detailsBySymbol.get(stock.symbol.toUpperCase())
+        : detailsById.get(stock.id) ?? detailsBySymbol.get(stock.symbol.toUpperCase());
+      return !detail || detail.latestPrice === null || detail.latestPrice === undefined;
+    });
   }
 
   private mergeStockDetails(stocks: StockAlert[], details: StockAlert[]): StockAlert[] {

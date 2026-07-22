@@ -193,6 +193,37 @@ describe('RetirementPlannerComponent', () => {
     expect(element.querySelector('.portfolio-empty-note')).toBeNull();
   });
 
+  it('keeps portfolio metrics available for foreign stocks with partial indicators', async () => {
+    const element = await render(createState({
+      stocks: [stock({
+        symbol: '3GP',
+        companyName: 'Xiaomi',
+        peRatio: null,
+        beta: null,
+        realizedVolatilityPercent: null,
+        drawdownPercent: null,
+        marketValue: 40,
+      })],
+    }));
+
+    expect(element.querySelector('.portfolio-price-unavailable')).toBeNull();
+    expect(normalizedText(element.querySelector('.current-assets-card'))).toContain('$40');
+    expect(element.querySelector('.chart-wrapper')).not.toBeNull();
+  });
+
+  it('hides portfolio totals when an owned position price is unavailable', async () => {
+    const element = await render(createState({
+      stocks: [stock({ symbol: 'AAPL', latestPrice: null, marketValue: null })],
+    }));
+
+    const unavailable = element.querySelector('.portfolio-price-unavailable');
+    expect(unavailable).not.toBeNull();
+    expect(normalizedText(unavailable)).toContain('Prices unavailable for AAPL');
+    expect(normalizedText(element.querySelector('.current-assets-card'))).not.toContain('$2K');
+    expect(element.querySelector('.chart-wrapper')).toBeNull();
+    expect(element.textContent).toContain('Portfolio projections are unavailable');
+  });
+
   function normalizedText(element: Element | null): string {
     return (element?.textContent || '').replace(/\s+/g, ' ').trim();
   }

@@ -10,10 +10,14 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class StockAlertService {
+  private static final Logger LOGGER = LoggerFactory.getLogger(StockAlertService.class);
+
   private final AppProperties properties;
   private final FinnhubClient finnhubClient;
   private final PortfolioService portfolioService;
@@ -26,20 +30,44 @@ public class StockAlertService {
 
   public List<StockAlert> evaluateWatchedStocks(BigDecimal vixFearIndex) {
     return portfolioService.holdings().stream()
-        .map(holding -> evaluate(holding, vixFearIndex))
+        .map(holding -> evaluateIndicatorsWithRetry(holding, vixFearIndex))
         .toList();
   }
 
   public List<StockAlert> evaluateWatchedStockPrices() {
     return portfolioService.holdings().stream()
-        .map(this::evaluatePrice)
+        .map(this::evaluatePriceWithRetry)
         .toList();
   }
 
   public List<StockAlert> evaluateWatchedStocksForUser(String username, BigDecimal vixFearIndex) {
     return portfolioService.holdingsForUser(username).stream()
-        .map(holding -> evaluate(holding, vixFearIndex))
+        .map(holding -> evaluateIndicatorsWithRetry(holding, vixFearIndex))
         .toList();
+  }
+
+  private StockAlert evaluateIndicatorsWithRetry(PortfolioHolding holding, BigDecimal vixFearIndex) {
+    StockAlert result = evaluate(holding, vixFearIndex);
+    if (hasPrice(result)) {
+      return result;
+    }
+
+    LOGGER.warn("Indicator snapshot for {} had no price. Retrying once without caching the empty result.", holding.symbol());
+    return evaluate(holding, vixFearIndex);
+  }
+
+  private StockAlert evaluatePriceWithRetry(PortfolioHolding holding) {
+    StockAlert result = evaluatePrice(holding);
+    if (hasPrice(result)) {
+      return result;
+    }
+
+    LOGGER.warn("Price snapshot for {} was unavailable. Retrying once without caching the empty result.", holding.symbol());
+    return evaluatePrice(holding);
+  }
+
+  private boolean hasPrice(StockAlert stock) {
+    return stock.latestPrice() != null && stock.latestPrice().signum() > 0;
   }
 
   public StockAlert preview(String symbol, String companyName) {

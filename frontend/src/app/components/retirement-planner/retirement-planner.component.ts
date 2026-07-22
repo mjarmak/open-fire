@@ -62,8 +62,43 @@ export class RetirementPlannerComponent {
   hoverX = 0;
   hoverY = 0;
 
-  protected get positionsLoaded(): boolean {
+  protected get positionRequestsComplete(): boolean {
     return !this.state.isLoadingStocks && !this.state.isLoadingPortfolio;
+  }
+
+  protected get positionsLoaded(): boolean {
+    return this.positionRequestsComplete && this.missingPositionPriceSymbols.length === 0;
+  }
+
+  protected get positionPricingUnavailable(): boolean {
+    return this.positionRequestsComplete && this.missingPositionPriceSymbols.length > 0;
+  }
+
+  protected get missingPositionPriceLabel(): string {
+    return this.missingPositionPriceSymbols.join(', ');
+  }
+
+  private get missingPositionPriceSymbols(): string[] {
+    return this.state.portfolio
+      .filter((holding) => !holding.watchOnly)
+      .filter((holding) => {
+        const stock = this.state.stocks.find((candidate) =>
+          (holding.id !== null && candidate.id === holding.id)
+            || candidate.symbol.toUpperCase() === holding.symbol.toUpperCase(),
+        );
+        return !stock
+          || stock.latestPrice === null
+          || stock.latestPrice === undefined
+          || stock.marketValue === null
+          || stock.marketValue === undefined
+          || stock.costBasis === null
+          || stock.costBasis === undefined
+          || stock.dayGainLoss === null
+          || stock.dayGainLoss === undefined
+          || stock.unrealizedGainLoss === null
+          || stock.unrealizedGainLoss === undefined;
+      })
+      .map((holding) => holding.symbol);
   }
 
   get currentPortfolioValue(): number {

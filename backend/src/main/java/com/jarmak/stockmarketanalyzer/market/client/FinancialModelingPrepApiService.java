@@ -375,7 +375,7 @@ public class FinancialModelingPrepApiService {
     }
 
     T value = loader.get();
-    if (value == null) {
+    if (value == null || (value instanceof Optional<?> optional && optional.isEmpty())) {
       return emptyValue;
     }
 

@@ -31,6 +31,7 @@ public class FinnhubClient {
   private static final Logger LOGGER = LoggerFactory.getLogger(FinnhubClient.class);
   private static final long SEARCH_CACHE_SECONDS = 600;
   private static final long SNAPSHOT_CACHE_SECONDS = 300;
+  private static final long SNAPSHOT_STALE_FALLBACK_SECONDS = 86_400;
   private static final long CLOSES_CACHE_SECONDS = 900;
   private static final long HISTORY_CACHE_SECONDS = 86_400;
   private static final long SYMBOL_LIST_CACHE_SECONDS = 3600;
@@ -42,6 +43,7 @@ public class FinnhubClient {
   private final EodHistoricalDataApiService eodHistoricalDataApiService;
   private final AlphaVantageApiService alphaVantageApiService;
   private final BinanceApiService binanceApiService;
+  private final long snapshotCacheSeconds;
   private final Map<String, CacheEntry<List<SymbolSearchResult>>> searchCache = new ConcurrentHashMap<>();
   private final Map<String, CacheEntry<Optional<CompanySnapshot>>> snapshotCache = new ConcurrentHashMap<>();
   private final Map<String, CacheEntry<Optional<CompanySnapshot>>> priceSnapshotCache = new ConcurrentHashMap<>();
@@ -69,12 +71,33 @@ public class FinnhubClient {
       AlphaVantageApiService alphaVantageApiService,
       BinanceApiService binanceApiService
   ) {
+    this(
+        finnhubApiService,
+        twelveDataApiService,
+        financialModelingPrepApiService,
+        eodHistoricalDataApiService,
+        alphaVantageApiService,
+        binanceApiService,
+        SNAPSHOT_CACHE_SECONDS
+    );
+  }
+
+  FinnhubClient(
+      FinnhubApiService finnhubApiService,
+      TwelveDataApiService twelveDataApiService,
+      FinancialModelingPrepApiService financialModelingPrepApiService,
+      EodHistoricalDataApiService eodHistoricalDataApiService,
+      AlphaVantageApiService alphaVantageApiService,
+      BinanceApiService binanceApiService,
+      long snapshotCacheSeconds
+  ) {
     this.finnhubApiService = finnhubApiService;
     this.twelveDataApiService = twelveDataApiService;
     this.financialModelingPrepApiService = financialModelingPrepApiService;
     this.eodHistoricalDataApiService = eodHistoricalDataApiService;
     this.alphaVantageApiService = alphaVantageApiService;
     this.binanceApiService = binanceApiService;
+    this.snapshotCacheSeconds = snapshotCacheSeconds;
   }
 
   public Optional<CompanySnapshot> companySnapshot(String symbol) {
@@ -83,7 +106,13 @@ public class FinnhubClient {
     }
 
     String normalizedSymbol = symbol.trim().toUpperCase();
-    return cached(snapshotCache, MarketApiRequestContext.requestCacheSuffix() + "|" + normalizedSymbol, SNAPSHOT_CACHE_SECONDS, () -> fetchCompanySnapshot(normalizedSymbol));
+    return cachedSnapshot(
+        snapshotCache,
+        MarketApiRequestContext.requestCacheSuffix() + "|" + normalizedSymbol,
+        normalizedSymbol,
+        SNAPSHOT_STALE_FALLBACK_SECONDS,
+        () -> fetchCompanySnapshot(normalizedSymbol)
+    );
   }
 
   public Optional<CompanySnapshot> companyPriceSnapshot(String symbol) {
@@ -92,7 +121,13 @@ public class FinnhubClient {
     }
 
     String normalizedSymbol = symbol.trim().toUpperCase();
-    return cached(priceSnapshotCache, MarketApiRequestContext.requestCacheSuffix() + "|" + normalizedSymbol, SNAPSHOT_CACHE_SECONDS, () -> fetchCompanyPriceSnapshot(normalizedSymbol));
+    return cachedSnapshot(
+        priceSnapshotCache,
+        MarketApiRequestContext.requestCacheSuffix() + "|" + normalizedSymbol,
+        normalizedSymbol,
+        0,
+        () -> fetchCompanyPriceSnapshot(normalizedSymbol)
+    );
   }
 
   public List<TimeSeriesPoint> dailyCloses(String symbol) {
@@ -188,11 +223,14 @@ public class FinnhubClient {
       String symbol,
       Optional<MarketSnapshotCandidate> candidate
   ) {
+    if (candidate.isEmpty()) {
+      return Optional.empty();
+    }
+
     List<TimeSeriesPoint> closes = MarketApiUtils.assetClass(symbol) == MarketApiUtils.AssetClass.STOCK
         ? dailyCloses(symbol)
         : List.of();
-    return candidate.map(value -> MarketSnapshotFactory.fromCandidate(symbol, value, closes))
-        .orElse(Optional.empty());
+    return MarketSnapshotFactory.fromCandidate(symbol, candidate.orElseThrow(), closes);
   }
 
   private Optional<CompanySnapshot> fromPriceSnapshotCandidate(
@@ -545,6 +583,37 @@ public class FinnhubClient {
     return value;
   }
 
+  private <T> Optional<T> cachedSnapshot(
+      Map<String, CacheEntry<Optional<T>>> cache,
+      String key,
+      String symbol,
+      long staleFallbackSeconds,
+      java.util.function.Supplier<Optional<T>> loader
+  ) {
+    CacheEntry<Optional<T>> existing = cache.get(key);
+    if (existing != null && !existing.expired()) {
+      return existing.value();
+    }
+
+    Optional<T> value = loader.get();
+    if (value.isPresent()) {
+      cache.put(key, new CacheEntry<>(value, Instant.now().plusSeconds(snapshotCacheSeconds)));
+      return value;
+    }
+
+    if (existing != null
+        && existing.value().isPresent()
+        && !existing.staleFallbackExpired(staleFallbackSeconds)) {
+      LOGGER.warn("All market providers failed for {}. Reusing the last successful snapshot.", symbol);
+      return existing.value();
+    }
+
+    if (existing != null) {
+      cache.remove(key, existing);
+    }
+    return Optional.empty();
+  }
+
   private <T> List<T> cachedNonEmptyList(
       Map<String, CacheEntry<List<T>>> cache,
       String key,
@@ -568,6 +637,10 @@ public class FinnhubClient {
   private record CacheEntry<T>(T value, Instant expiresAt) {
     boolean expired() {
       return Instant.now().isAfter(expiresAt);
+    }
+
+    boolean staleFallbackExpired(long staleFallbackSeconds) {
+      return Instant.now().isAfter(expiresAt.plusSeconds(staleFallbackSeconds));
     }
   }
 }

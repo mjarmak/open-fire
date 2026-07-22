@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -40,6 +41,65 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.client.RestClient;
 
 class FinnhubClientTest {
+  @Test
+  void reusesLastSuccessfulSnapshotWhenEveryProviderTemporarilyFails() {
+    FinnhubApiService finnhub = mock(FinnhubApiService.class);
+    TwelveDataApiService twelveData = mock(TwelveDataApiService.class);
+    FinancialModelingPrepApiService fmp = mock(FinancialModelingPrepApiService.class);
+    EodHistoricalDataApiService eodhd = mock(EodHistoricalDataApiService.class);
+    AlphaVantageApiService alphaVantage = mock(AlphaVantageApiService.class);
+    BinanceApiService binance = mock(BinanceApiService.class);
+    MarketSnapshotCandidate candidate = new MarketSnapshotCandidate(
+        "Test Corp",
+        "Technology",
+        BigDecimal.valueOf(1_000_000_000L),
+        BigDecimal.valueOf(20),
+        BigDecimal.ONE,
+        BigDecimal.valueOf(110),
+        BigDecimal.valueOf(108),
+        BigDecimal.valueOf(111),
+        BigDecimal.valueOf(107),
+        BigDecimal.valueOf(130)
+    );
+    when(finnhub.companySnapshot("TEST")).thenReturn(Optional.of(candidate), Optional.empty());
+    when(finnhub.dailyCloses("TEST")).thenReturn(List.of());
+    when(twelveData.companySnapshot("TEST")).thenReturn(Optional.empty());
+    when(fmp.companySnapshot("TEST")).thenReturn(Optional.empty());
+    when(eodhd.companySnapshot("TEST")).thenReturn(Optional.empty());
+    when(alphaVantage.companySnapshot("TEST")).thenReturn(Optional.empty());
+    FinnhubClient client = new FinnhubClient(finnhub, twelveData, fmp, eodhd, alphaVantage, binance, -1);
+
+    CompanySnapshot first = client.companySnapshot("TEST").orElseThrow();
+    CompanySnapshot staleFallback = client.companySnapshot("TEST").orElseThrow();
+
+    assertThat(staleFallback).isEqualTo(first);
+    verify(finnhub, times(2)).companySnapshot("TEST");
+  }
+
+  @Test
+  void doesNotFetchHistoryWhenNoProviderHasASnapshotCandidate() {
+    FinnhubApiService finnhub = mock(FinnhubApiService.class);
+    TwelveDataApiService twelveData = mock(TwelveDataApiService.class);
+    FinancialModelingPrepApiService fmp = mock(FinancialModelingPrepApiService.class);
+    EodHistoricalDataApiService eodhd = mock(EodHistoricalDataApiService.class);
+    AlphaVantageApiService alphaVantage = mock(AlphaVantageApiService.class);
+    BinanceApiService binance = mock(BinanceApiService.class);
+    when(finnhub.companySnapshot("3GP")).thenReturn(Optional.empty());
+    when(twelveData.companySnapshot("3GP")).thenReturn(Optional.empty());
+    when(fmp.companySnapshot("3GP")).thenReturn(Optional.empty());
+    when(eodhd.companySnapshot("3GP")).thenReturn(Optional.empty());
+    when(alphaVantage.companySnapshot("3GP")).thenReturn(Optional.empty());
+    FinnhubClient client = new FinnhubClient(finnhub, twelveData, fmp, eodhd, alphaVantage, binance);
+
+    assertThat(client.companySnapshot("3GP")).isEmpty();
+
+    verify(finnhub, never()).dailyCloses("3GP");
+    verify(twelveData, never()).dailyCloses("3GP");
+    verify(fmp, never()).dailyCloses("3GP");
+    verify(eodhd, never()).dailyCloses("3GP");
+    verify(alphaVantage, never()).dailyCloses("3GP");
+  }
+
   @Test
   void springCanCreateFinnhubClientWithProductionConstructor() {
     try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {

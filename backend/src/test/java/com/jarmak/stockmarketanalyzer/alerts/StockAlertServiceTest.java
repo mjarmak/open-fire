@@ -3,6 +3,7 @@ package com.jarmak.stockmarketanalyzer.alerts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -18,6 +19,99 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class StockAlertServiceTest {
+  @Test
+  void retriesAnUnavailableIndicatorSnapshotOnce() {
+    FinnhubClient finnhubClient = mock(FinnhubClient.class);
+    PortfolioService portfolioService = mock(PortfolioService.class);
+    StockAlertService service = new StockAlertService(properties(), finnhubClient, portfolioService);
+    when(portfolioService.holdings()).thenReturn(List.of(
+        new PortfolioHolding(1L, "AAPL", "Apple Inc.", BigDecimal.ONE, BigDecimal.valueOf(100), false)
+    ));
+    when(finnhubClient.companySnapshot("AAPL"))
+        .thenReturn(Optional.empty(), Optional.of(new CompanySnapshot(
+            "AAPL",
+            "Apple Inc.",
+            "Technology",
+            BigDecimal.valueOf(3_000_000_000_000L),
+            BigDecimal.valueOf(25),
+            BigDecimal.valueOf(1.1),
+            BigDecimal.valueOf(20),
+            BigDecimal.valueOf(5),
+            BigDecimal.valueOf(110),
+            BigDecimal.valueOf(108),
+            BigDecimal.valueOf(100)
+        )));
+
+    StockAlert alert = service.evaluateWatchedStocks(null).get(0);
+
+    assertThat(alert.latestPrice()).isEqualByComparingTo("110.00");
+    assertThat(alert.peRatio()).isEqualByComparingTo("25.0");
+    verify(finnhubClient, times(2)).companySnapshot("AAPL");
+  }
+
+  @Test
+  void retriesAnUnavailablePortfolioPriceOnce() {
+    AppProperties properties = mock(AppProperties.class);
+    FinnhubClient finnhubClient = mock(FinnhubClient.class);
+    PortfolioService portfolioService = mock(PortfolioService.class);
+    StockAlertService service = new StockAlertService(properties, finnhubClient, portfolioService);
+    when(portfolioService.holdings()).thenReturn(List.of(
+        new PortfolioHolding(1L, "AAPL", "Apple Inc.", BigDecimal.valueOf(2), BigDecimal.valueOf(100), false)
+    ));
+    when(finnhubClient.companyPriceSnapshot("AAPL"))
+        .thenReturn(Optional.empty(), Optional.of(new CompanySnapshot(
+            "AAPL",
+            "Apple Inc.",
+            "Technology",
+            BigDecimal.valueOf(3_000_000_000_000L),
+            null,
+            null,
+            null,
+            null,
+            BigDecimal.valueOf(110),
+            BigDecimal.valueOf(108),
+            null
+        )));
+
+    StockAlert alert = service.evaluateWatchedStockPrices().get(0);
+
+    assertThat(alert.latestPrice()).isEqualByComparingTo("110.00");
+    assertThat(alert.marketValue()).isEqualByComparingTo("220.00");
+    assertThat(alert.unrealizedGainLoss()).isEqualByComparingTo("20.00");
+    verify(finnhubClient, times(2)).companyPriceSnapshot("AAPL");
+  }
+
+  @Test
+  void acceptsPartialForeignStockIndicatorsWithoutRetrying() {
+    FinnhubClient finnhubClient = mock(FinnhubClient.class);
+    PortfolioService portfolioService = mock(PortfolioService.class);
+    StockAlertService service = new StockAlertService(properties(), finnhubClient, portfolioService);
+    when(portfolioService.holdings()).thenReturn(List.of(
+        new PortfolioHolding(2L, "3GP", "Xiaomi", BigDecimal.TEN, BigDecimal.valueOf(3), false)
+    ));
+    when(finnhubClient.companySnapshot("3GP")).thenReturn(Optional.of(new CompanySnapshot(
+        "3GP",
+        "Xiaomi",
+        "Technology",
+        null,
+        null,
+        null,
+        null,
+        null,
+        BigDecimal.valueOf(4),
+        BigDecimal.valueOf(3.9),
+        null
+    )));
+
+    StockAlert alert = service.evaluateWatchedStocks(null).get(0);
+
+    assertThat(alert.latestPrice()).isEqualByComparingTo("4.00");
+    assertThat(alert.marketValue()).isEqualByComparingTo("40.00");
+    assertThat(alert.peRatio()).isNull();
+    assertThat(alert.beta()).isNull();
+    verify(finnhubClient).companySnapshot("3GP");
+  }
+
   @Test
   void calculatesHighRiskPositionIndicatorsAndReasons() {
     FinnhubClient finnhubClient = mock(FinnhubClient.class);

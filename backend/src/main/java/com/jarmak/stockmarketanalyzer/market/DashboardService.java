@@ -87,7 +87,11 @@ public class DashboardService {
     return marketIndicatorService.indicators();
   }
 
-  @Cacheable(cacheNames = CacheConfig.STOCK_ALERTS_CACHE, key = "T(org.springframework.security.core.context.SecurityContextHolder).context.authentication.name")
+  @Cacheable(
+      cacheNames = CacheConfig.STOCK_ALERTS_CACHE,
+      key = "T(org.springframework.security.core.context.SecurityContextHolder).context.authentication.name",
+      unless = "#result.?[latestPrice == null].size() > 0"
+  )
   public List<StockAlert> stocks() {
     return List.copyOf(stockAlertService.evaluateWatchedStocks(null));
   }

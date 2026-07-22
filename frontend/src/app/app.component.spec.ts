@@ -374,6 +374,89 @@ describe('AppComponent', () => {
     expect(marketDashboardService.isLoadingStockDetails).toBeFalse();
   });
 
+  it('retries stock details when a response is missing a required price', fakeAsync(() => {
+    const price = stockLookupRisk({
+      id: 7,
+      symbol: 'AAPL',
+      latestPrice: 110,
+      marketValue: 330,
+      costBasis: 300,
+      peRatio: null,
+      beta: null,
+      realizedVolatilityPercent: null,
+      drawdownPercent: null,
+      fearScore: null,
+      thirtyDayChangePercent: null,
+    });
+    const unavailableDetails = stockLookupRisk({
+      id: 7,
+      symbol: 'AAPL',
+      latestPrice: null,
+      peRatio: null,
+      beta: null,
+      realizedVolatilityPercent: null,
+      drawdownPercent: null,
+      fearScore: null,
+      thirtyDayChangePercent: null,
+      reason: 'Live market data is not available for this symbol yet.',
+    });
+    const completeDetails = stockLookupRisk({ id: 7, symbol: 'AAPL', latestPrice: 110, fearScore: 44 });
+    marketDashboardService.fetchStockPrices.and.returnValue(of([price]));
+    marketDashboardService.fetchStocks.and.returnValues(of([unavailableDetails]), of([completeDetails]));
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.username = 'demoUser';
+    app.password = 'demoPass123';
+
+    app.refreshDashboard();
+
+    expect(marketDashboardService.fetchStocks).toHaveBeenCalledTimes(1);
+    expect(marketDashboardService.isLoadingStockDetails).toBeTrue();
+
+    tick(1000);
+
+    expect(marketDashboardService.fetchStocks).toHaveBeenCalledTimes(2);
+    expect(app.stocks[0].fearScore).toBe(44);
+    expect(marketDashboardService.isLoadingStockDetails).toBeFalse();
+  }));
+
+  it('accepts partial foreign stock details without retrying', () => {
+    const price = stockLookupRisk({
+      id: 8,
+      symbol: '3GP',
+      companyName: 'Xiaomi',
+      latestPrice: 4,
+      marketValue: 40,
+      costBasis: 30,
+    });
+    const partialDetails = stockLookupRisk({
+      id: 8,
+      symbol: '3GP',
+      companyName: 'Xiaomi',
+      latestPrice: 4,
+      peRatio: null,
+      beta: null,
+      realizedVolatilityPercent: null,
+      drawdownPercent: null,
+      fearScore: 12,
+      thirtyDayChangePercent: 0,
+    });
+    marketDashboardService.fetchStockPrices.and.returnValue(of([price]));
+    marketDashboardService.fetchStocks.and.returnValue(of([partialDetails]));
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.username = 'demoUser';
+    app.password = 'demoPass123';
+
+    app.refreshDashboard();
+
+    expect(marketDashboardService.fetchStocks).toHaveBeenCalledTimes(1);
+    expect(app.stocks[0].latestPrice).toBe(4);
+    expect(app.stocks[0].peRatio).toBeNull();
+    expect(app.stocks[0].fearScore).toBe(12);
+    expect(marketDashboardService.isLoadingStockDetails).toBeFalse();
+  });
+
   it('loads DCA settings independently of pending dashboard requests', () => {
     marketDashboardService.fetchIndicators.and.returnValue(NEVER);
     marketDashboardService.fetchStockPrices.and.returnValue(NEVER);

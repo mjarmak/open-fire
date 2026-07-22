@@ -464,6 +464,9 @@ public class FinnhubApiService {
     }
 
     T value = loader.get();
+    if (value instanceof Optional<?> optional && optional.isEmpty()) {
+      return value;
+    }
     cache.put(key, new CacheEntry<>(value, Instant.now().plusSeconds(ttlSeconds)));
     return value;
   }

@@ -97,6 +97,12 @@
               <strong>{{ state.investingStartDate || 'N/A' }}</strong>
             </div>
           </div>
+          } @else if (positionPricingUnavailable) {
+            <strong class="value">-</strong>
+            <p class="portfolio-empty-note portfolio-price-unavailable" role="status">
+              <span class="portfolio-empty-note-icon" aria-hidden="true">!</span>
+              <span>Prices unavailable for {{ missingPositionPriceLabel }}. Portfolio totals are hidden.</span>
+            </p>
           } @else {
             <div class="portfolio-summary-skeleton" role="status" aria-label="Loading portfolio summary">
               <span class="summary-value-skeleton"></span>
@@ -169,10 +175,16 @@
         </div>
       </div>
 
-      @if (!positionsLoaded) {
+      @if (!positionRequestsComplete) {
         <div class="empty-state section-loading retirement-position-loading" role="status" aria-live="polite">
           <div class="loading-spinner" aria-hidden="true"></div>
           <span>Loading portfolio projections...</span>
+        </div>
+      }
+
+      @if (positionPricingUnavailable) {
+        <div class="empty-state retirement-position-loading" role="status" aria-live="polite">
+          <span>Portfolio projections are unavailable while prices are missing for {{ missingPositionPriceLabel }}.</span>
         </div>
       }
 

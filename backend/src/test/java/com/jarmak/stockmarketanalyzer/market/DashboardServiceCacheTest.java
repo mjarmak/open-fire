@@ -2,6 +2,7 @@ package com.jarmak.stockmarketanalyzer.market;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,6 +15,7 @@ import com.jarmak.stockmarketanalyzer.notification.TelegramNotificationService;
 import com.jarmak.stockmarketanalyzer.portfolio.PortfolioService;
 import com.jarmak.stockmarketanalyzer.security.UserAccountService;
 import java.time.Duration;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -35,9 +37,14 @@ class DashboardServiceCacheTest {
   @Autowired
   private StockAlertService stockAlertService;
 
+  @Autowired
+  private CacheManager cacheManager;
+
   @AfterEach
   void clearSecurityContext() {
     SecurityContextHolder.clearContext();
+    cacheManager.getCache(CacheConfig.STOCK_ALERTS_CACHE).clear();
+    reset(stockAlertService);
   }
 
   @Test
@@ -55,6 +62,50 @@ class DashboardServiceCacheTest {
     dashboardService.stocks();
 
     verify(stockAlertService, times(2)).evaluateWatchedStocks(null);
+  }
+
+  @Test
+  void doesNotCacheAStockListWithMissingPrices() {
+    SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken("alice", "password"));
+    MarketModels.StockAlert missingPrice = stock(null);
+    MarketModels.StockAlert complete = stock(BigDecimal.valueOf(110));
+    when(stockAlertService.evaluateWatchedStocks(null))
+        .thenReturn(List.of(missingPrice), List.of(complete));
+
+    List<MarketModels.StockAlert> first = dashboardService.stocks();
+    List<MarketModels.StockAlert> second = dashboardService.stocks();
+
+    assertThat(first.get(0).latestPrice()).isNull();
+    assertThat(second.get(0).latestPrice()).isEqualByComparingTo("110");
+    verify(stockAlertService, times(2)).evaluateWatchedStocks(null);
+  }
+
+  private MarketModels.StockAlert stock(BigDecimal latestPrice) {
+    return new MarketModels.StockAlert(
+        1L,
+        "AAPL",
+        "Apple Inc.",
+        "Technology",
+        BigDecimal.ONE,
+        BigDecimal.valueOf(100),
+        latestPrice,
+        BigDecimal.valueOf(3_000_000_000_000L),
+        null,
+        null,
+        null,
+        null,
+        null,
+        latestPrice,
+        BigDecimal.valueOf(100),
+        null,
+        null,
+        null,
+        null,
+        null,
+        false,
+        false,
+        latestPrice == null ? "Live market data is not available." : "Loaded."
+    );
   }
 
   @Configuration
