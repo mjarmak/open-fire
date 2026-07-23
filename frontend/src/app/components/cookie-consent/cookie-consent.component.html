@@ -1,0 +1,24 @@
+<aside
+  *ngIf="analytics.showPrompt"
+  class="consent-card"
+  role="dialog"
+  aria-labelledby="analytics-consent-title"
+  aria-describedby="analytics-consent-copy"
+>
+  <div class="consent-icon" aria-hidden="true">
+    <svg viewBox="0 0 24 24" focusable="false">
+      <path d="M5 19V9m7 10V5m7 14v-7M3 19h18" />
+    </svg>
+  </div>
+  <div class="consent-copy">
+    <span>Optional analytics</span>
+    <strong id="analytics-consent-title">Help make Jenius Tech better.</strong>
+    <p id="analytics-consent-copy">
+      Google Analytics can measure visits and navigation. It loads only if you accept, and advertising storage stays disabled.
+    </p>
+  </div>
+  <div class="consent-actions">
+    <button class="secondary-action" type="button" (click)="analytics.decline()">No thanks</button>
+    <button class="primary-action" type="button" (click)="analytics.accept()">Accept analytics</button>
+  </div>
+</aside>

@@ -24,6 +24,7 @@ import { StockLookupResultRowComponent } from './components/stock-lookup-result-
 import { TelegramDialogComponent } from './components/telegram-dialog/telegram-dialog.component';
 import { TooltipBodyComponent } from './components/tooltip-body/tooltip-body.component';
 import { dialogBackdropAnimation, dialogPanelAnimation } from './components/dialog.animations';
+import { CookieConsentComponent } from './components/cookie-consent/cookie-consent.component';
 
 @Component({
   selector: 'app-root',
@@ -49,6 +50,7 @@ import { dialogBackdropAnimation, dialogPanelAnimation } from './components/dial
     StockRiskPanelComponent,
     TelegramDialogComponent,
     TooltipBodyComponent,
+    CookieConsentComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
