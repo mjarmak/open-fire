@@ -23,7 +23,7 @@ class TwelveDataApiServiceIntegrationTest extends MarketApiClientIntegrationSupp
   void historyRequestsAndReturnsTheSelectedDateRange(HistoryRange range) {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    TwelveDataApiService service = new TwelveDataApiService(properties(null, "twelve", null), builder.build());
+    TwelveDataApiService service = new TwelveDataApiService(properties(null, "twelve"), builder.build());
 
     Instant start = fixtureStart(range);
     Instant end = fixtureEnd();
@@ -49,7 +49,7 @@ class TwelveDataApiServiceIntegrationTest extends MarketApiClientIntegrationSupp
   void rateLimitSkipDoesNotCacheEmptyHistory() throws Exception {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    TwelveDataApiService service = new TwelveDataApiService(properties(null, "twelve", null), builder.build());
+    TwelveDataApiService service = new TwelveDataApiService(properties(null, "twelve"), builder.build());
     HistoryRange range = HistoryRange.ONE_YEAR;
     Instant start = fixtureStart(range);
     Instant end = fixtureEnd();

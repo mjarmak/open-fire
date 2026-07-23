@@ -79,6 +79,41 @@ class MarketIndicatorServiceTest {
   }
 
   @Test
+  void returnsAllFiveMarketIndicatorsWhenSourceDataIsAvailable() {
+    FredClient completeFredClient = mock(FredClient.class);
+    FinnhubClient completeMarketClient = mock(FinnhubClient.class);
+    MarketIndicatorService completeService = new MarketIndicatorService(
+        properties(List.of("SPY"), List.of("SPY", "TLT")),
+        completeFredClient,
+        completeMarketClient
+    );
+    when(completeFredClient.latestObservations("VIXCLS")).thenReturn(List.of(
+        new TimeSeriesPoint(LocalDate.of(2026, 5, 30), 18.0),
+        new TimeSeriesPoint(LocalDate.of(2026, 5, 29), 17.0)
+    ));
+    when(completeFredClient.latestObservations("BAMLC0A0CM")).thenReturn(List.of(
+        new TimeSeriesPoint(LocalDate.of(2026, 5, 30), 1.1),
+        new TimeSeriesPoint(LocalDate.of(2026, 5, 29), 1.0)
+    ));
+    when(completeMarketClient.isAdvancingToday("SPY")).thenReturn(Optional.of(true));
+    when(completeMarketClient.dailyCloses("SPY")).thenReturn(dailyCloses(100, 1));
+    when(completeMarketClient.dailyCloses("TLT")).thenReturn(dailyCloses(200, -1));
+
+    List<MarketModels.IndicatorSnapshot> indicators = completeService.indicators();
+
+    assertThat(indicators).extracting(MarketModels.IndicatorSnapshot::id)
+        .containsExactly("vix", "fear-greed", "breadth", "credit", "correlation");
+    assertThat(indicators).extracting(MarketModels.IndicatorSnapshot::name)
+        .containsExactly(
+            "Fear Index / VIX",
+            "Fear & Greed Index",
+            "Market Breadth",
+            "Credit Market",
+            "Cross-Asset Correlation"
+        );
+  }
+
+  @Test
   void calculatesBreadthFromCurrentAndPreviousQuotes() {
     FinnhubClient quoteClient = mock(FinnhubClient.class);
     MarketIndicatorService quoteService = new MarketIndicatorService(
@@ -233,15 +268,21 @@ class MarketIndicatorServiceTest {
     return new MarketModels.ChartPoint(java.time.Instant.parse(timestamp), BigDecimal.valueOf(value));
   }
 
+  private static List<TimeSeriesPoint> dailyCloses(double startingValue, double dailyChange) {
+    return java.util.stream.IntStream.range(0, 12)
+        .mapToObj(index -> new TimeSeriesPoint(
+            LocalDate.of(2026, 5, 1).plusDays(index),
+            startingValue + dailyChange * index
+        ))
+        .toList();
+  }
+
   private static AppProperties properties(List<String> breadthSymbols, List<String> crossAssetSymbols) {
     return new AppProperties(
         null,
         new AppProperties.Market(
             "fred",
             "finnhub",
-            null,
-            null,
-            null,
             null,
             breadthSymbols,
             crossAssetSymbols,

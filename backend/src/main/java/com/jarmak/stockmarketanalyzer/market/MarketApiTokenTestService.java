@@ -77,38 +77,6 @@ public class MarketApiTokenTestService {
               .build())
           .retrieve()
           .body(JsonNode.class);
-      case MarketApiProvider.FINANCIAL_MODELING_PREP -> restClient.get()
-          .uri(uriBuilder -> uriBuilder
-              .scheme("https")
-              .host("financialmodelingprep.com")
-              .path("/stable/search-symbol")
-              .queryParam("query", TEST_SYMBOL)
-              .queryParam("limit", "1")
-              .queryParam("apikey", apiKey)
-              .build())
-          .retrieve()
-          .body(JsonNode.class);
-      case MarketApiProvider.ALPHA_VANTAGE -> restClient.get()
-          .uri(uriBuilder -> uriBuilder
-              .scheme("https")
-              .host("www.alphavantage.co")
-              .path("/query")
-              .queryParam("function", "SYMBOL_SEARCH")
-              .queryParam("keywords", TEST_SYMBOL)
-              .queryParam("apikey", apiKey)
-              .build())
-          .retrieve()
-          .body(JsonNode.class);
-      case MarketApiProvider.EODHD -> restClient.get()
-          .uri(uriBuilder -> uriBuilder
-              .scheme("https")
-              .host("eodhd.com")
-              .pathSegment("api", "search", TEST_SYMBOL)
-              .queryParam("api_token", apiKey)
-              .queryParam("fmt", "json")
-              .build())
-          .retrieve()
-          .body(JsonNode.class);
       default -> null;
     };
   }
@@ -121,8 +89,6 @@ public class MarketApiTokenTestService {
     return switch (provider) {
       case MarketApiProvider.FINNHUB -> response.path("result").isArray() && !response.path("result").isEmpty();
       case MarketApiProvider.TWELVE_DATA -> arrayWithValues(response.path("data")) || arrayWithValues(response.path("symbols"));
-      case MarketApiProvider.FINANCIAL_MODELING_PREP, MarketApiProvider.EODHD -> response.isArray() && !response.isEmpty();
-      case MarketApiProvider.ALPHA_VANTAGE -> response.path("bestMatches").isArray() && !response.path("bestMatches").isEmpty();
       default -> false;
     };
   }
@@ -161,9 +127,6 @@ public class MarketApiTokenTestService {
     return switch (provider) {
       case MarketApiProvider.FINNHUB -> "Finnhub";
       case MarketApiProvider.TWELVE_DATA -> "Twelve Data";
-      case MarketApiProvider.FINANCIAL_MODELING_PREP -> "Financial Modeling Prep";
-      case MarketApiProvider.ALPHA_VANTAGE -> "Alpha Vantage";
-      case MarketApiProvider.EODHD -> "EODHD";
       default -> "Market data API";
     };
   }

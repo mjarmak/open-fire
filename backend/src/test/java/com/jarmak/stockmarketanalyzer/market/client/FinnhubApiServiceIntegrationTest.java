@@ -20,7 +20,7 @@ class FinnhubApiServiceIntegrationTest extends MarketApiClientIntegrationSupport
   void historyRequestsAndReturnsTheSelectedDateRange(HistoryRange range) {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    FinnhubApiService service = new FinnhubApiService(properties("finnhub", null, null), builder.build());
+    FinnhubApiService service = new FinnhubApiService(properties("finnhub", null), builder.build());
 
     Instant start = fixtureStart(range);
     Instant end = fixtureEnd();

@@ -110,18 +110,6 @@ public final class MarketApiUtils {
         .replace("-", "/");
   }
 
-  public static String toAlphaVantageSymbol(String symbol) {
-    String normalized = symbol == null ? "" : symbol.trim().toUpperCase();
-    if (!StringUtils.hasText(normalized)) {
-      return "";
-    }
-
-    if (normalized.contains(":")) {
-      normalized = normalized.substring(normalized.indexOf(':') + 1);
-    }
-    return normalized.replace("/", "").replace("-", "").replace("_", "");
-  }
-
   public static String normalizeSearchText(String value) {
     return (value == null ? "" : value)
         .toLowerCase()

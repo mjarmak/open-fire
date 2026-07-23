@@ -14,9 +14,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class MarketApiRequestInterceptor implements HandlerInterceptor {
   static final String FINNHUB_TOKEN_HEADER = "X-OpenFire-Api-Token-Finnhub";
   static final String TWELVE_DATA_TOKEN_HEADER = "X-OpenFire-Api-Token-TwelveData";
-  static final String FINANCIAL_MODELING_PREP_TOKEN_HEADER = "X-OpenFire-Api-Token-Fmp";
-  static final String ALPHA_VANTAGE_TOKEN_HEADER = "X-OpenFire-Api-Token-AlphaVantage";
-  static final String EODHD_TOKEN_HEADER = "X-OpenFire-Api-Token-Eodhd";
 
   @Override
   public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
@@ -33,9 +30,6 @@ public class MarketApiRequestInterceptor implements HandlerInterceptor {
     Map<String, String> tokens = new LinkedHashMap<>();
     addToken(tokens, MarketApiProvider.FINNHUB, request.getHeader(FINNHUB_TOKEN_HEADER));
     addToken(tokens, MarketApiProvider.TWELVE_DATA, request.getHeader(TWELVE_DATA_TOKEN_HEADER));
-    addToken(tokens, MarketApiProvider.FINANCIAL_MODELING_PREP, request.getHeader(FINANCIAL_MODELING_PREP_TOKEN_HEADER));
-    addToken(tokens, MarketApiProvider.ALPHA_VANTAGE, request.getHeader(ALPHA_VANTAGE_TOKEN_HEADER));
-    addToken(tokens, MarketApiProvider.EODHD, request.getHeader(EODHD_TOKEN_HEADER));
     return tokens;
   }
 

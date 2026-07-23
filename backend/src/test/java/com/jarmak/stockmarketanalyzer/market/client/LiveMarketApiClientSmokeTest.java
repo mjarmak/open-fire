@@ -23,7 +23,7 @@ class LiveMarketApiClientSmokeTest {
   @Test
   void finnhubLivePriceSnapshotReturnsAStockPriceAndSearchFields() {
     String apiKey = liveApiKey("FINNHUB_API_KEY");
-    FinnhubApiService service = new FinnhubApiService(properties(null, apiKey, null, null, null, null), RestClient.create());
+    FinnhubApiService service = new FinnhubApiService(properties(null, apiKey, null), RestClient.create());
 
     Optional<MarketSnapshotCandidate> snapshot = service.companyPriceSnapshot(STOCK_SYMBOL);
     List<SymbolSearchResult> results = service.searchSymbols(STOCK_SYMBOL);
@@ -35,19 +35,7 @@ class LiveMarketApiClientSmokeTest {
   @Test
   void twelveDataLivePriceSnapshotReturnsAStockPriceAndSearchFields() {
     String apiKey = liveApiKey("TWELVEDATA_API_KEY");
-    TwelveDataApiService service = new TwelveDataApiService(properties(null, null, apiKey, null, null, null), RestClient.create());
-
-    Optional<MarketSnapshotCandidate> snapshot = service.companyPriceSnapshot(STOCK_SYMBOL);
-    List<SymbolSearchResult> results = service.searchSymbols(STOCK_SYMBOL);
-
-    assertStockPriceSnapshot(snapshot);
-    assertSearchMinimumFields(results);
-  }
-
-  @Test
-  void alphaVantageLivePriceSnapshotReturnsAStockPriceAndSearchFields() {
-    String apiKey = liveApiKey("ALPHA_VANTAGE_API_KEY");
-    AlphaVantageApiService service = new AlphaVantageApiService(properties(null, null, null, apiKey, null, null), RestClient.create());
+    TwelveDataApiService service = new TwelveDataApiService(properties(null, null, apiKey), RestClient.create());
 
     Optional<MarketSnapshotCandidate> snapshot = service.companyPriceSnapshot(STOCK_SYMBOL);
     List<SymbolSearchResult> results = service.searchSymbols(STOCK_SYMBOL);
@@ -59,38 +47,12 @@ class LiveMarketApiClientSmokeTest {
   @Test
   void fredLiveLatestObservationsReturnsMacroData() {
     String apiKey = liveApiKey("FRED_API_KEY");
-    FredClient client = new FredClient(properties(apiKey, null, null, null, null, null), RestClient.create());
+    FredClient client = new FredClient(properties(apiKey, null, null), RestClient.create());
 
     List<TimeSeriesPoint> observations = client.latestObservations(FRED_SERIES);
 
     assertThat(observations).isNotEmpty();
     assertThat(observations.get(0).value()).isPositive();
-  }
-
-  @Test
-  void financialModelingPrepLivePriceSnapshotReturnsAStockPriceAndSearchFields() {
-    String apiKey = liveApiKey("FINANCIAL_MODELING_PREP_API_KEY");
-    FinancialModelingPrepApiService service =
-        new FinancialModelingPrepApiService(properties(null, null, null, null, apiKey, null), RestClient.create());
-
-    Optional<MarketSnapshotCandidate> snapshot = service.companyPriceSnapshot(STOCK_SYMBOL);
-    List<SymbolSearchResult> results = service.searchSymbols(STOCK_SYMBOL);
-
-    assertStockPriceSnapshot(snapshot);
-    assertSearchMinimumFields(results);
-  }
-
-  @Test
-  void eodHistoricalDataLivePriceSnapshotReturnsAStockPriceAndSearchFields() {
-    String apiKey = liveApiKey("EODHD_API_KEY");
-    EodHistoricalDataApiService service =
-        new EodHistoricalDataApiService(properties(null, null, null, null, null, apiKey), RestClient.create());
-
-    Optional<MarketSnapshotCandidate> snapshot = service.companyPriceSnapshot(STOCK_SYMBOL);
-    List<SymbolSearchResult> results = service.searchSymbols(STOCK_SYMBOL);
-
-    assertStockPriceSnapshot(snapshot);
-    assertSearchMinimumFields(results);
   }
 
   @Test
@@ -156,10 +118,7 @@ class LiveMarketApiClientSmokeTest {
   private AppProperties properties(
       String fredApiKey,
       String finnhubApiKey,
-      String twelveDataApiKey,
-      String alphaVantageApiKey,
-      String financialModelingPrepApiKey,
-      String eodHistoricalDataApiKey
+      String twelveDataApiKey
   ) {
     return new AppProperties(
         null,
@@ -167,9 +126,6 @@ class LiveMarketApiClientSmokeTest {
             fredApiKey,
             finnhubApiKey,
             twelveDataApiKey,
-            alphaVantageApiKey,
-            financialModelingPrepApiKey,
-            eodHistoricalDataApiKey,
             List.of(),
             List.of(),
             BigDecimal.valueOf(2_000_000_000L),

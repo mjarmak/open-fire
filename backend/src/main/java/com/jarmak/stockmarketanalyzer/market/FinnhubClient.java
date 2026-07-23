@@ -1,10 +1,7 @@
 package com.jarmak.stockmarketanalyzer.market;
 
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
-import com.jarmak.stockmarketanalyzer.market.client.AlphaVantageApiService;
 import com.jarmak.stockmarketanalyzer.market.client.BinanceApiService;
-import com.jarmak.stockmarketanalyzer.market.client.EodHistoricalDataApiService;
-import com.jarmak.stockmarketanalyzer.market.client.FinancialModelingPrepApiService;
 import com.jarmak.stockmarketanalyzer.market.client.FinnhubApiService;
 import com.jarmak.stockmarketanalyzer.market.client.TwelveDataApiService;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
@@ -39,9 +36,6 @@ public class FinnhubClient {
 
   private final FinnhubApiService finnhubApiService;
   private final TwelveDataApiService twelveDataApiService;
-  private final FinancialModelingPrepApiService financialModelingPrepApiService;
-  private final EodHistoricalDataApiService eodHistoricalDataApiService;
-  private final AlphaVantageApiService alphaVantageApiService;
   private final BinanceApiService binanceApiService;
   private final long snapshotCacheSeconds;
   private final Map<String, CacheEntry<List<SymbolSearchResult>>> searchCache = new ConcurrentHashMap<>();
@@ -56,9 +50,6 @@ public class FinnhubClient {
     this(
         new FinnhubApiService(properties, restClient),
         new TwelveDataApiService(properties, restClient),
-        new FinancialModelingPrepApiService(properties, restClient),
-        new EodHistoricalDataApiService(properties, restClient),
-        new AlphaVantageApiService(properties, restClient),
         new BinanceApiService(restClient)
     );
   }
@@ -66,17 +57,11 @@ public class FinnhubClient {
   FinnhubClient(
       FinnhubApiService finnhubApiService,
       TwelveDataApiService twelveDataApiService,
-      FinancialModelingPrepApiService financialModelingPrepApiService,
-      EodHistoricalDataApiService eodHistoricalDataApiService,
-      AlphaVantageApiService alphaVantageApiService,
       BinanceApiService binanceApiService
   ) {
     this(
         finnhubApiService,
         twelveDataApiService,
-        financialModelingPrepApiService,
-        eodHistoricalDataApiService,
-        alphaVantageApiService,
         binanceApiService,
         SNAPSHOT_CACHE_SECONDS
     );
@@ -85,17 +70,11 @@ public class FinnhubClient {
   FinnhubClient(
       FinnhubApiService finnhubApiService,
       TwelveDataApiService twelveDataApiService,
-      FinancialModelingPrepApiService financialModelingPrepApiService,
-      EodHistoricalDataApiService eodHistoricalDataApiService,
-      AlphaVantageApiService alphaVantageApiService,
       BinanceApiService binanceApiService,
       long snapshotCacheSeconds
   ) {
     this.finnhubApiService = finnhubApiService;
     this.twelveDataApiService = twelveDataApiService;
-    this.financialModelingPrepApiService = financialModelingPrepApiService;
-    this.eodHistoricalDataApiService = eodHistoricalDataApiService;
-    this.alphaVantageApiService = alphaVantageApiService;
     this.binanceApiService = binanceApiService;
     this.snapshotCacheSeconds = snapshotCacheSeconds;
   }
@@ -138,10 +117,7 @@ public class FinnhubClient {
     String normalizedSymbol = symbol.trim().toUpperCase();
     return firstPresent(
         () -> directionFromCandidate(finnhubApiService.priceQuote(normalizedSymbol)),
-        () -> directionFromCandidate(twelveDataApiService.companyPriceSnapshot(normalizedSymbol)),
-        () -> directionFromCandidate(financialModelingPrepApiService.companyPriceSnapshot(normalizedSymbol)),
-        () -> directionFromCandidate(eodHistoricalDataApiService.companyPriceSnapshot(normalizedSymbol)),
-        () -> directionFromCandidate(alphaVantageApiService.companyPriceSnapshot(normalizedSymbol))
+        () -> directionFromCandidate(twelveDataApiService.companyPriceSnapshot(normalizedSymbol))
     );
   }
 
@@ -217,20 +193,14 @@ public class FinnhubClient {
   private Optional<CompanySnapshot> fetchCompanySnapshot(String symbol) {
     return firstPresent(
         () -> fromSnapshotCandidate(symbol, finnhubApiService.companySnapshot(symbol)),
-        () -> fromSnapshotCandidate(symbol, twelveDataApiService.companySnapshot(symbol)),
-        () -> fromSnapshotCandidate(symbol, financialModelingPrepApiService.companySnapshot(symbol)),
-        () -> fromSnapshotCandidate(symbol, eodHistoricalDataApiService.companySnapshot(symbol)),
-        () -> fromSnapshotCandidate(symbol, alphaVantageApiService.companySnapshot(symbol))
+        () -> fromSnapshotCandidate(symbol, twelveDataApiService.companySnapshot(symbol))
     );
   }
 
   private Optional<CompanySnapshot> fetchCompanyPriceSnapshot(String symbol) {
     return firstPresent(
         () -> fromPriceSnapshotCandidate(symbol, finnhubApiService.companyPriceSnapshot(symbol)),
-        () -> fromPriceSnapshotCandidate(symbol, twelveDataApiService.companyPriceSnapshot(symbol)),
-        () -> fromPriceSnapshotCandidate(symbol, financialModelingPrepApiService.companyPriceSnapshot(symbol)),
-        () -> fromPriceSnapshotCandidate(symbol, eodHistoricalDataApiService.companyPriceSnapshot(symbol)),
-        () -> fromPriceSnapshotCandidate(symbol, alphaVantageApiService.companyPriceSnapshot(symbol))
+        () -> fromPriceSnapshotCandidate(symbol, twelveDataApiService.companyPriceSnapshot(symbol))
     );
   }
 
@@ -276,19 +246,13 @@ public class FinnhubClient {
       return firstNonEmpty(
           () -> binanceApiService.dailyCloses(symbol),
           () -> finnhubApiService.dailyCloses(symbol),
-          () -> twelveDataApiService.dailyCloses(symbol),
-          () -> financialModelingPrepApiService.dailyCloses(symbol),
-          () -> eodHistoricalDataApiService.dailyCloses(symbol),
-          () -> alphaVantageApiService.dailyCloses(symbol)
+          () -> twelveDataApiService.dailyCloses(symbol)
       );
     }
 
     return firstNonEmpty(
         () -> finnhubApiService.dailyCloses(symbol),
-        () -> twelveDataApiService.dailyCloses(symbol),
-        () -> financialModelingPrepApiService.dailyCloses(symbol),
-        () -> eodHistoricalDataApiService.dailyCloses(symbol),
-        () -> alphaVantageApiService.dailyCloses(symbol)
+        () -> twelveDataApiService.dailyCloses(symbol)
     );
   }
 
@@ -297,19 +261,13 @@ public class FinnhubClient {
       return firstNonEmpty(
           () -> binanceApiService.historicalCandles(symbol, range),
           () -> finnhubApiService.historicalCandles(symbol, range),
-          () -> twelveDataApiService.historicalCandles(symbol, range),
-          () -> financialModelingPrepApiService.historicalCandles(symbol, range),
-          () -> eodHistoricalDataApiService.historicalCandles(symbol, range),
-          () -> alphaVantageApiService.historicalCandles(symbol, range)
+          () -> twelveDataApiService.historicalCandles(symbol, range)
       );
     }
 
     return firstNonEmpty(
         () -> finnhubApiService.historicalCandles(symbol, range),
-        () -> twelveDataApiService.historicalCandles(symbol, range),
-        () -> financialModelingPrepApiService.historicalCandles(symbol, range),
-        () -> eodHistoricalDataApiService.historicalCandles(symbol, range),
-        () -> alphaVantageApiService.historicalCandles(symbol, range)
+        () -> twelveDataApiService.historicalCandles(symbol, range)
     );
   }
 
@@ -340,27 +298,7 @@ public class FinnhubClient {
     } catch (RuntimeException ignored) {
       // keep trying alternate providers
     }
-    try {
-      List<SymbolSearchResult> symbols = fetchSymbolsFromFinancialModelingPrep(keywords);
-      if (!symbols.isEmpty()) {
-        return symbols;
-      }
-    } catch (RuntimeException ignored) {
-      // keep trying alternate providers
-    }
-    try {
-      List<SymbolSearchResult> symbols = fetchSymbolsFromEodHistoricalData(keywords);
-      if (!symbols.isEmpty()) {
-        return symbols;
-      }
-    } catch (RuntimeException ignored) {
-      // keep trying alternate providers
-    }
-    try {
-      return fetchSymbolsFromAlphaVantage(keywords);
-    } catch (RuntimeException exception) {
-      return List.of();
-    }
+    return List.of();
   }
 
   private List<SymbolSearchResult> fetchSymbolsFromFinnhub(String keywords) {
@@ -413,30 +351,15 @@ public class FinnhubClient {
   }
 
   private boolean hasSecondarySearchProvider() {
-    return twelveDataApiService.configured()
-        || financialModelingPrepApiService.configured()
-        || eodHistoricalDataApiService.configured()
-        || alphaVantageApiService.configured();
+    return twelveDataApiService.configured();
   }
 
   private List<SymbolSearchResult> fetchSymbolsFromTwelveData(String keywords) {
     return sortAndLimitSearchResults(twelveDataApiService.searchSymbols(keywords), keywords);
   }
 
-  private List<SymbolSearchResult> fetchSymbolsFromAlphaVantage(String keywords) {
-    return sortAndLimitSearchResults(alphaVantageApiService.searchSymbols(keywords), keywords);
-  }
-
   private List<SymbolSearchResult> fetchSymbolsFromBinance(String keywords) {
     return sortAndLimitSearchResults(binanceApiService.searchSymbols(keywords), keywords);
-  }
-
-  private List<SymbolSearchResult> fetchSymbolsFromFinancialModelingPrep(String keywords) {
-    return sortAndLimitSearchResults(financialModelingPrepApiService.searchSymbols(keywords), keywords);
-  }
-
-  private List<SymbolSearchResult> fetchSymbolsFromEodHistoricalData(String keywords) {
-    return sortAndLimitSearchResults(eodHistoricalDataApiService.searchSymbols(keywords), keywords);
   }
 
   private List<SymbolSearchResult> matchingSymbols(String type, String keywords) {

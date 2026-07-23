@@ -7,16 +7,10 @@ import org.springframework.util.StringUtils;
 public final class MarketApiProvider {
   public static final String FINNHUB = "finnhub";
   public static final String TWELVE_DATA = "twelvedata";
-  public static final String FINANCIAL_MODELING_PREP = "fmp";
-  public static final String ALPHA_VANTAGE = "alphavantage";
-  public static final String EODHD = "eodhd";
 
   public static final List<String> DEFAULT_ENABLED = List.of(
       FINNHUB,
-      TWELVE_DATA,
-      FINANCIAL_MODELING_PREP,
-      ALPHA_VANTAGE,
-      EODHD
+      TWELVE_DATA
   );
 
   private MarketApiProvider() {
@@ -31,9 +25,6 @@ public final class MarketApiProvider {
     return switch (normalized) {
       case "finnhub" -> FINNHUB;
       case "twelvedata" -> TWELVE_DATA;
-      case "financialmodelingprep", "fmp" -> FINANCIAL_MODELING_PREP;
-      case "alphavantage" -> ALPHA_VANTAGE;
-      case "eodhistoricaldata", "eodhd" -> EODHD;
       default -> "";
     };
   }

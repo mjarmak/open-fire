@@ -21,7 +21,12 @@ export interface FeedbackResponse {
 }
 
 const DEFAULT_GLOBAL_INDICATOR_CHART_RANGE = '1y';
-type MarketApiProviderId = 'finnhub' | 'twelvedata' | 'fmp' | 'alphavantage' | 'eodhd';
+const RETIRED_MARKET_API_TOKEN_STORAGE_KEYS = [
+  'openfire_market_api_token_fmp',
+  'openfire_market_api_token_alphavantage',
+  'openfire_market_api_token_eodhd',
+] as const;
+type MarketApiProviderId = 'finnhub' | 'twelvedata';
 
 export interface MarketApiProviderOption {
   id: MarketApiProviderId;
@@ -66,33 +71,6 @@ export class MarketDashboardService {
       signupUrl: 'https://twelvedata.com/pricing',
       tokenHeader: 'X-OpenFire-Api-Token-TwelveData',
       storageKey: 'openfire_market_api_token_twelvedata',
-    },
-    {
-      id: 'fmp',
-      name: 'Financial Modeling Prep',
-      tokenLabel: 'FMP API key',
-      limit: 'Free plan: 250 API calls per day.',
-      signupUrl: 'https://site.financialmodelingprep.com/developer/docs/pricing',
-      tokenHeader: 'X-OpenFire-Api-Token-Fmp',
-      storageKey: 'openfire_market_api_token_fmp',
-    },
-    {
-      id: 'alphavantage',
-      name: 'Alpha Vantage',
-      tokenLabel: 'Alpha Vantage API key',
-      limit: 'Free plan: 25 API requests per day.',
-      signupUrl: 'https://www.alphavantage.co/support/#api-key',
-      tokenHeader: 'X-OpenFire-Api-Token-AlphaVantage',
-      storageKey: 'openfire_market_api_token_alphavantage',
-    },
-    {
-      id: 'eodhd',
-      name: 'EODHD',
-      tokenLabel: 'EODHD API token',
-      limit: 'Free plan: 20 API calls per day.',
-      signupUrl: 'https://eodhd.com/pricing',
-      tokenHeader: 'X-OpenFire-Api-Token-Eodhd',
-      storageKey: 'openfire_market_api_token_eodhd',
     },
   ];
   readonly notificationDayOptions: ReadonlyArray<{ value: string; label: string }> = [
@@ -356,6 +334,9 @@ export class MarketDashboardService {
 
   loadMarketApiTokenDraftsFromBrowser(): void {
     const storage = this.browserStorage();
+    for (const storageKey of RETIRED_MARKET_API_TOKEN_STORAGE_KEYS) {
+      storage?.removeItem(storageKey);
+    }
     this.draftMarketApiTokens = Object.fromEntries(
       this.marketApiProviders.map((provider) => [provider.id, storage?.getItem(provider.storageKey) ?? '']),
     );

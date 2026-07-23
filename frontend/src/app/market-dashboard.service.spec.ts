@@ -85,14 +85,26 @@ describe('MarketDashboardService', () => {
 
   it('sends browser-stored market API tokens only with market data requests', () => {
     localStorage.setItem('openfire_market_api_token_finnhub', 'user-finnhub-token');
-    localStorage.setItem('openfire_market_api_token_eodhd', 'user-eodhd-token');
+    localStorage.setItem('openfire_market_api_token_twelvedata', 'user-twelve-token');
 
     service.searchSymbols('user', 'password123', 'app', false, true).subscribe();
 
     const searchRequest = http.expectOne((candidate) => candidate.url === '/api/symbols/search');
     expect(searchRequest.request.headers.get('X-OpenFire-Api-Token-Finnhub')).toBe('user-finnhub-token');
-    expect(searchRequest.request.headers.get('X-OpenFire-Api-Token-Eodhd')).toBe('user-eodhd-token');
+    expect(searchRequest.request.headers.get('X-OpenFire-Api-Token-TwelveData')).toBe('user-twelve-token');
     searchRequest.flush([]);
+  });
+
+  it('removes browser tokens for retired market API providers', () => {
+    localStorage.setItem('openfire_market_api_token_fmp', 'fmp-token');
+    localStorage.setItem('openfire_market_api_token_alphavantage', 'alpha-token');
+    localStorage.setItem('openfire_market_api_token_eodhd', 'eodhd-token');
+
+    service.loadMarketApiTokenDraftsFromBrowser();
+
+    expect(localStorage.getItem('openfire_market_api_token_fmp')).toBeNull();
+    expect(localStorage.getItem('openfire_market_api_token_alphavantage')).toBeNull();
+    expect(localStorage.getItem('openfire_market_api_token_eodhd')).toBeNull();
   });
 
   it('loads and saves market API token drafts in local storage', () => {

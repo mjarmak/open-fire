@@ -1237,8 +1237,7 @@ describe('AppComponent', () => {
     app.isLoggedIn = true;
     app.marketDashboardService.draftMarketApiTokens = {
       finnhub: '  finnhub-token  ',
-      twelvedata: '',
-      eodhd: 'eodhd-token',
+      twelvedata: 'twelve-token',
     };
     const createObjectUrlSpy = spyOn(URL, 'createObjectURL').and.returnValue('blob:openfire-api-tokens');
     const revokeObjectUrlSpy = spyOn(URL, 'revokeObjectURL').and.stub();
@@ -1255,7 +1254,7 @@ describe('AppComponent', () => {
     expect(exported.exportedAt).toEqual(jasmine.any(String));
     expect(exported.tokens).toEqual([
       { provider: 'finnhub', name: 'Finnhub', token: 'finnhub-token' },
-      { provider: 'eodhd', name: 'EODHD', token: 'eodhd-token' },
+      { provider: 'twelvedata', name: 'Twelve Data', token: 'twelve-token' },
     ]);
     const clickedLink = clickSpy.calls.mostRecent().object as HTMLAnchorElement;
     expect(clickedLink.download).toMatch(/^openfire-api-tokens-\d{4}-\d{2}-\d{2}\.json$/);

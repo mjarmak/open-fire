@@ -411,9 +411,6 @@ public class DashboardController {
     return switch (provider) {
       case MarketApiProvider.FINNHUB -> request.getHeader(MarketApiRequestInterceptor.FINNHUB_TOKEN_HEADER);
       case MarketApiProvider.TWELVE_DATA -> request.getHeader(MarketApiRequestInterceptor.TWELVE_DATA_TOKEN_HEADER);
-      case MarketApiProvider.FINANCIAL_MODELING_PREP -> request.getHeader(MarketApiRequestInterceptor.FINANCIAL_MODELING_PREP_TOKEN_HEADER);
-      case MarketApiProvider.ALPHA_VANTAGE -> request.getHeader(MarketApiRequestInterceptor.ALPHA_VANTAGE_TOKEN_HEADER);
-      case MarketApiProvider.EODHD -> request.getHeader(MarketApiRequestInterceptor.EODHD_TOKEN_HEADER);
       default -> "";
     };
   }

@@ -293,7 +293,7 @@ public class MarketIndicatorService {
         "avg abs corr",
         BigDecimal.ZERO,
         averageCorrelation < 0.45 ? "diversified" : averageCorrelation < 0.70 ? "watch" : "risk",
-        "Finnhub SPY/TLT/GLD/UUP closes",
+        "Market-data SPY/TLT/GLD/UUP closes",
         Instant.now(),
         "Rising correlation can mean diversification is weakening during stress."
     ));

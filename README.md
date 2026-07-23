@@ -237,7 +237,6 @@ The backend reads provider credentials from environment variables:
 $env:FRED_API_KEY="your-fred-key"
 $env:FINNHUB_API_KEY="your-finnhub-key"
 $env:TWELVEDATA_API_KEY="your-twelvedata-key"     # optional fallback
-$env:ALPHA_VANTAGE_API_KEY="your-alpha-vantage-key" # optional fallback
 $env:LOGGING_LEVEL="INFO"                         # optional: DEBUG, INFO, WARN, ERROR
 $env:TELEGRAM_BOT_TOKEN="your-telegram-bot-token"
 $env:TELEGRAM_OWNER_CHAT_ID="your-owner-chat-id"
@@ -251,13 +250,11 @@ Where to get them:
   https://finnhub.io/register
 - **TWELVEDATA_API_KEY**: create a Twelve Data account and create a free/paid API token from the developer portal.
   https://twelvedata.com
-- **ALPHA_VANTAGE_API_KEY**: create a free Alpha Vantage account and request your API key.
-  https://www.alphavantage.co/support/#api-key
 - **LOGGING_LEVEL**: controls backend app and HTTP client logging with one value. Defaults to `INFO`; use `DEBUG` while diagnosing provider/API calls.
 - **TELEGRAM_BOT_TOKEN**: message [@BotFather](https://t.me/botfather) in Telegram, run `/newbot`, and keep the token it returns.
 - **TELEGRAM_OWNER_CHAT_ID**: the Telegram chat ID that receives user feedback messages. Start the bot from your owner account, call `getUpdates` with the bot token, and copy `message.chat.id`.
 
-Only set the keys your deployment needs; the app will use Finnhub first, then fall back to Twelve Data, then Alpha Vantage for symbol search.
+Only set the keys your deployment needs; the app uses Finnhub first and falls back to Twelve Data for stock data.
 
 ## Manual Portfolio
 

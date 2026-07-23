@@ -19,16 +19,12 @@ import ch.qos.logback.core.read.ListAppender;
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.ChartPoint;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.SymbolSearchResult;
-import com.jarmak.stockmarketanalyzer.market.client.AlphaVantageApiService;
 import com.jarmak.stockmarketanalyzer.market.client.BinanceApiService;
-import com.jarmak.stockmarketanalyzer.market.client.EodHistoricalDataApiService;
-import com.jarmak.stockmarketanalyzer.market.client.FinancialModelingPrepApiService;
 import com.jarmak.stockmarketanalyzer.market.client.FinnhubApiService;
 import com.jarmak.stockmarketanalyzer.market.client.TwelveDataApiService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -45,9 +41,6 @@ class FinnhubClientTest {
   void reusesLastSuccessfulSnapshotWhenEveryProviderTemporarilyFails() {
     FinnhubApiService finnhub = mock(FinnhubApiService.class);
     TwelveDataApiService twelveData = mock(TwelveDataApiService.class);
-    FinancialModelingPrepApiService fmp = mock(FinancialModelingPrepApiService.class);
-    EodHistoricalDataApiService eodhd = mock(EodHistoricalDataApiService.class);
-    AlphaVantageApiService alphaVantage = mock(AlphaVantageApiService.class);
     BinanceApiService binance = mock(BinanceApiService.class);
     MarketSnapshotCandidate candidate = new MarketSnapshotCandidate(
         "Test Corp",
@@ -64,10 +57,7 @@ class FinnhubClientTest {
     when(finnhub.companySnapshot("TEST")).thenReturn(Optional.of(candidate), Optional.empty());
     when(finnhub.dailyCloses("TEST")).thenReturn(List.of());
     when(twelveData.companySnapshot("TEST")).thenReturn(Optional.empty());
-    when(fmp.companySnapshot("TEST")).thenReturn(Optional.empty());
-    when(eodhd.companySnapshot("TEST")).thenReturn(Optional.empty());
-    when(alphaVantage.companySnapshot("TEST")).thenReturn(Optional.empty());
-    FinnhubClient client = new FinnhubClient(finnhub, twelveData, fmp, eodhd, alphaVantage, binance, -1);
+    FinnhubClient client = new FinnhubClient(finnhub, twelveData, binance, -1);
 
     CompanySnapshot first = client.companySnapshot("TEST").orElseThrow();
     CompanySnapshot staleFallback = client.companySnapshot("TEST").orElseThrow();
@@ -80,24 +70,15 @@ class FinnhubClientTest {
   void doesNotFetchHistoryWhenNoProviderHasASnapshotCandidate() {
     FinnhubApiService finnhub = mock(FinnhubApiService.class);
     TwelveDataApiService twelveData = mock(TwelveDataApiService.class);
-    FinancialModelingPrepApiService fmp = mock(FinancialModelingPrepApiService.class);
-    EodHistoricalDataApiService eodhd = mock(EodHistoricalDataApiService.class);
-    AlphaVantageApiService alphaVantage = mock(AlphaVantageApiService.class);
     BinanceApiService binance = mock(BinanceApiService.class);
     when(finnhub.companySnapshot("3GP")).thenReturn(Optional.empty());
     when(twelveData.companySnapshot("3GP")).thenReturn(Optional.empty());
-    when(fmp.companySnapshot("3GP")).thenReturn(Optional.empty());
-    when(eodhd.companySnapshot("3GP")).thenReturn(Optional.empty());
-    when(alphaVantage.companySnapshot("3GP")).thenReturn(Optional.empty());
-    FinnhubClient client = new FinnhubClient(finnhub, twelveData, fmp, eodhd, alphaVantage, binance);
+    FinnhubClient client = new FinnhubClient(finnhub, twelveData, binance);
 
     assertThat(client.companySnapshot("3GP")).isEmpty();
 
     verify(finnhub, never()).dailyCloses("3GP");
     verify(twelveData, never()).dailyCloses("3GP");
-    verify(fmp, never()).dailyCloses("3GP");
-    verify(eodhd, never()).dailyCloses("3GP");
-    verify(alphaVantage, never()).dailyCloses("3GP");
   }
 
   @Test
@@ -235,7 +216,7 @@ class FinnhubClientTest {
   void searchIncludesBinanceCryptoSymbolsWhenSecondaryProvidersAreConfigured() {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    FinnhubClient client = new FinnhubClient(properties("finnhub", "twelve", "alpha"), builder.build());
+    FinnhubClient client = new FinnhubClient(properties("finnhub", "twelve"), builder.build());
 
     server.expect(requestTo(containsString("/api/v1/search")))
         .andRespond(withSuccess("{\"result\":[]}", MediaType.APPLICATION_JSON));
@@ -259,7 +240,7 @@ class FinnhubClientTest {
   void searchFallsBackToTwelveDataWhenFinnhubIsUnavailable() {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    FinnhubClient client = new FinnhubClient(properties(null, "twelve", null), builder.build());
+    FinnhubClient client = new FinnhubClient(properties(null, "twelve"), builder.build());
 
     server.expect(requestTo(containsString("/symbol_search")))
         .andRespond(withSuccess("""
@@ -389,10 +370,10 @@ class FinnhubClientTest {
   }
 
   @Test
-  void historicalCandlesUsesTwelveDataBeforeAlphaVantageWhenConfigured() {
+  void historicalCandlesUsesTwelveDataWhenFinnhubIsUnavailable() {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    FinnhubClient client = new FinnhubClient(properties("finnhub", "twelve", "alpha"), builder.build());
+    FinnhubClient client = new FinnhubClient(properties("finnhub", "twelve"), builder.build());
 
     server.expect(requestTo(containsString("/api/v1/stock/candle")))
         .andRespond(withSuccess("""
@@ -417,95 +398,10 @@ class FinnhubClientTest {
   }
 
   @Test
-  void historicalCandlesUsesAlphaVantageWhenTwelveDataUnavailable() {
-    RestClient.Builder builder = RestClient.builder();
-    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    FinnhubClient client = new FinnhubClient(properties("finnhub", "twelve", "alpha"), builder.build());
-
-    server.expect(requestTo(containsString("/api/v1/stock/candle")))
-        .andRespond(withSuccess("""
-            {"s":"no_data"}
-            """, MediaType.APPLICATION_JSON));
-    server.expect(requestTo(containsString("/time_series")))
-        .andRespond(withSuccess("""
-            {"status":"error","message":"No data for symbol."}
-            """, MediaType.APPLICATION_JSON));
-    LocalDate latest = LocalDate.now(ZoneOffset.UTC).minusDays(1);
-    String priorCloseDate = latest.minusDays(1).format(DateTimeFormatter.ISO_DATE);
-    String latestDate = latest.format(DateTimeFormatter.ISO_DATE);
-    server.expect(requestTo(containsString("/query")))
-        .andRespond(withSuccess("""
-            {"Time Series (Daily)": {
-                "%s": {"4. close":"201"},
-                "%s": {"4. close":"205"}
-            }
-            }""".formatted(priorCloseDate, latestDate), MediaType.APPLICATION_JSON));
-
-    List<ChartPoint> points = client.historicalCandles("AAPL", HistoryRange.ONE_MONTH);
-
-    assertThat(points).hasSize(2);
-    assertThat(points).extracting(ChartPoint::value)
-        .containsExactly(BigDecimal.valueOf(201), BigDecimal.valueOf(205));
-    server.verify();
-  }
-
-  @Test
-  void historicalCandlesUsesFinancialModelingPrepBeforeEodhdAndAlphaVantageWhenConfigured() {
-    RestClient.Builder builder = RestClient.builder();
-    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    FinnhubClient client = new FinnhubClient(properties("finnhub", "twelve", "alpha", "fmp", "eodhd"), builder.build());
-
-    server.expect(requestTo(containsString("/api/v1/stock/candle")))
-        .andRespond(withSuccess("""
-            {"s":"no_data"}
-            """, MediaType.APPLICATION_JSON));
-    server.expect(requestTo(containsString("/time_series")))
-        .andRespond(withSuccess("""
-            {"status":"error","message":"No data for symbol."}
-            """, MediaType.APPLICATION_JSON));
-    server.expect(requestTo(containsString("/stable/historical-price-eod/full")))
-        .andRespond(withSuccess(currentDailyHistoryPayload("401", "405"), MediaType.APPLICATION_JSON));
-
-    List<ChartPoint> points = client.historicalCandles("AAPL", HistoryRange.ONE_MONTH);
-
-    assertThat(points).hasSize(2);
-    assertThat(points).extracting(ChartPoint::value)
-        .containsExactly(BigDecimal.valueOf(401), BigDecimal.valueOf(405));
-    server.verify();
-  }
-
-  @Test
-  void historicalCandlesUsesEodhdWhenFinancialModelingPrepIsUnavailable() {
-    RestClient.Builder builder = RestClient.builder();
-    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    FinnhubClient client = new FinnhubClient(properties("finnhub", "twelve", "alpha", "fmp", "eodhd"), builder.build());
-
-    server.expect(requestTo(containsString("/api/v1/stock/candle")))
-        .andRespond(withSuccess("""
-            {"s":"no_data"}
-            """, MediaType.APPLICATION_JSON));
-    server.expect(requestTo(containsString("/time_series")))
-        .andRespond(withSuccess("""
-            {"status":"error","message":"No data for symbol."}
-            """, MediaType.APPLICATION_JSON));
-    server.expect(requestTo(containsString("/stable/historical-price-eod/full")))
-        .andRespond(withSuccess("[]", MediaType.APPLICATION_JSON));
-    server.expect(requestTo(containsString("/api/eod/AAPL.US")))
-        .andRespond(withSuccess(currentDailyHistoryPayload("501", "505"), MediaType.APPLICATION_JSON));
-
-    List<ChartPoint> points = client.historicalCandles("AAPL", HistoryRange.ONE_MONTH);
-
-    assertThat(points).hasSize(2);
-    assertThat(points).extracting(ChartPoint::value)
-        .containsExactly(BigDecimal.valueOf(501), BigDecimal.valueOf(505));
-    server.verify();
-  }
-
-  @Test
   void historicalCandlesPreservesDottedSymbolWhenCallingTwelveData() {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    FinnhubClient client = new FinnhubClient(properties("finnhub", "twelve", null), builder.build());
+    FinnhubClient client = new FinnhubClient(properties("finnhub", "twelve"), builder.build());
 
     server.expect(requestTo(containsString("/api/v1/stock/candle")))
         .andRespond(withSuccess("""
@@ -610,7 +506,7 @@ class FinnhubClientTest {
   void historicalCandlesBackOffTwelveDataFallbackAfterRateLimit() {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    FinnhubClient client = new FinnhubClient(properties("finnhub", "twelve", "alpha"), builder.build());
+    FinnhubClient client = new FinnhubClient(properties("finnhub", "twelve"), builder.build());
 
     server.expect(requestTo(containsString("/api/v1/stock/candle")))
         .andRespond(withSuccess("""
@@ -620,38 +516,24 @@ class FinnhubClientTest {
         .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS).body("""
             {"code":429,"message":"Rate limited","status":"error"}
             """));
-    LocalDate latest = LocalDate.now(ZoneOffset.UTC).minusDays(1);
-    String priorCloseDate = latest.minusDays(1).format(DateTimeFormatter.ISO_DATE);
-    String latestDate = latest.format(DateTimeFormatter.ISO_DATE);
-    server.expect(requestTo(containsString("/query")))
-        .andRespond(withSuccess("""
-            {"Time Series (Daily)": {
-                "%s": {"4. close":"201"},
-                "%s": {"4. close":"205"}
-            }
-            }""".formatted(priorCloseDate, latestDate), MediaType.APPLICATION_JSON));
-
     server.expect(requestTo(containsString("/api/v1/stock/candle")))
         .andRespond(withSuccess("""
             {"s":"no_data"}
             """, MediaType.APPLICATION_JSON));
-    server.expect(requestTo(containsString("/query")))
+    server.expect(requestTo(containsString("/api/v1/stock/candle")))
         .andRespond(withSuccess("""
-            {"Time Series (Daily)": {
-                "%s": {"4. close":"301"},
-                "%s": {"4. close":"305"}
-            }
-            }""".formatted(priorCloseDate, latestDate), MediaType.APPLICATION_JSON));
+            {"s":"no_data"}
+            """, MediaType.APPLICATION_JSON));
+    server.expect(requestTo(containsString("/api/v1/stock/candle")))
+        .andRespond(withSuccess("""
+            {"s":"no_data"}
+            """, MediaType.APPLICATION_JSON));
 
     List<ChartPoint> first = client.historicalCandles("AAPL", HistoryRange.ONE_MONTH);
     List<ChartPoint> second = client.historicalCandles("MSFT", HistoryRange.ONE_MONTH);
 
-    assertThat(first).hasSize(2);
-    assertThat(first).extracting(ChartPoint::value)
-        .containsExactly(BigDecimal.valueOf(201), BigDecimal.valueOf(205));
-    assertThat(second).hasSize(2);
-    assertThat(second).extracting(ChartPoint::value)
-        .containsExactly(BigDecimal.valueOf(301), BigDecimal.valueOf(305));
+    assertThat(first).isEmpty();
+    assertThat(second).isEmpty();
     server.verify();
   }
 
@@ -703,16 +585,10 @@ class FinnhubClientTest {
   void companyPriceSnapshotDoesNotUseHistoryBackedProviderClientMethods() {
     FinnhubApiService finnhubApiService = mock(FinnhubApiService.class);
     TwelveDataApiService twelveDataApiService = mock(TwelveDataApiService.class);
-    FinancialModelingPrepApiService financialModelingPrepApiService = mock(FinancialModelingPrepApiService.class);
-    EodHistoricalDataApiService eodHistoricalDataApiService = mock(EodHistoricalDataApiService.class);
-    AlphaVantageApiService alphaVantageApiService = mock(AlphaVantageApiService.class);
     BinanceApiService binanceApiService = mock(BinanceApiService.class);
     FinnhubClient client = new FinnhubClient(
         finnhubApiService,
         twelveDataApiService,
-        financialModelingPrepApiService,
-        eodHistoricalDataApiService,
-        alphaVantageApiService,
         binanceApiService
     );
 
@@ -739,22 +615,13 @@ class FinnhubClientTest {
     verify(twelveDataApiService, never()).companySnapshot(anyString());
     verify(twelveDataApiService, never()).dailyCloses(anyString());
     verify(twelveDataApiService, never()).historicalCandles(anyString(), org.mockito.ArgumentMatchers.any(HistoryRange.class));
-    verify(financialModelingPrepApiService, never()).companySnapshot(anyString());
-    verify(financialModelingPrepApiService, never()).dailyCloses(anyString());
-    verify(financialModelingPrepApiService, never()).historicalCandles(anyString(), org.mockito.ArgumentMatchers.any(HistoryRange.class));
-    verify(eodHistoricalDataApiService, never()).companySnapshot(anyString());
-    verify(eodHistoricalDataApiService, never()).dailyCloses(anyString());
-    verify(eodHistoricalDataApiService, never()).historicalCandles(anyString(), org.mockito.ArgumentMatchers.any(HistoryRange.class));
-    verify(alphaVantageApiService, never()).companySnapshot(anyString());
-    verify(alphaVantageApiService, never()).dailyCloses(anyString());
-    verify(alphaVantageApiService, never()).historicalCandles(anyString(), org.mockito.ArgumentMatchers.any(HistoryRange.class));
   }
 
   @Test
   void companyPriceSnapshotUsesTwelveDataPriceDetailsWithoutIndicatorFields() {
     RestClient.Builder builder = RestClient.builder();
     MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    FinnhubClient client = new FinnhubClient(properties(null, "twelve", null), builder.build());
+    FinnhubClient client = new FinnhubClient(properties(null, "twelve"), builder.build());
 
     server.expect(requestTo(containsString("/quote")))
         .andRespond(withSuccess("""
@@ -767,35 +634,6 @@ class FinnhubClientTest {
     server.expect(requestTo(containsString("/quote")))
         .andRespond(withSuccess("""
             {"name":"Apple Inc","market_cap":"3000000000000","pe_ratio":"44","beta":"1.2"}
-            """, MediaType.APPLICATION_JSON));
-
-    CompanySnapshot snapshot = client.companyPriceSnapshot("AAPL").orElseThrow();
-
-    assertThat(snapshot.name()).isEqualTo("Apple Inc");
-    assertThat(snapshot.marketCap()).isEqualByComparingTo("3000000000000");
-    assertThat(snapshot.latestPrice()).isEqualByComparingTo("190");
-    assertThat(snapshot.previousClose()).isEqualByComparingTo("188");
-    assertThat(snapshot.peRatio()).isNull();
-    assertThat(snapshot.beta()).isNull();
-    assertThat(snapshot.realizedVolatilityPercent()).isNull();
-    assertThat(snapshot.drawdownPercent()).isNull();
-    assertThat(snapshot.priceThirtyDaysAgo()).isNull();
-    server.verify();
-  }
-
-  @Test
-  void companyPriceSnapshotUsesAlphaVantagePriceDetailsWithoutIndicatorFields() {
-    RestClient.Builder builder = RestClient.builder();
-    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-    FinnhubClient client = new FinnhubClient(properties(null, null, "alpha"), builder.build());
-
-    server.expect(requestTo(containsString("function=GLOBAL_QUOTE")))
-        .andRespond(withSuccess("""
-            {"Global Quote":{"01. symbol":"AAPL","03. high":"191","04. low":"186","05. price":"190","08. previous close":"188"}}
-            """, MediaType.APPLICATION_JSON));
-    server.expect(requestTo(containsString("function=OVERVIEW")))
-        .andRespond(withSuccess("""
-            {"Name":"Apple Inc","Industry":"Technology","MarketCapitalization":"3000000000000","PERatio":"44","Beta":"1.2"}
             """, MediaType.APPLICATION_JSON));
 
     CompanySnapshot snapshot = client.companyPriceSnapshot("AAPL").orElseThrow();
@@ -911,29 +749,16 @@ class FinnhubClientTest {
   }
 
   private AppProperties properties() {
-    return properties("finnhub", null, null);
+    return properties("finnhub", null);
   }
 
-  private AppProperties properties(String finnhubApiKey, String twelveDataApiKey, String alphaVantageApiKey) {
-    return properties(finnhubApiKey, twelveDataApiKey, alphaVantageApiKey, null, null);
-  }
-
-  private AppProperties properties(
-      String finnhubApiKey,
-      String twelveDataApiKey,
-      String alphaVantageApiKey,
-      String financialModelingPrepApiKey,
-      String eodHistoricalDataApiKey
-  ) {
+  private AppProperties properties(String finnhubApiKey, String twelveDataApiKey) {
     return new AppProperties(
         null,
         new AppProperties.Market(
             "fred",
             finnhubApiKey,
             twelveDataApiKey,
-            alphaVantageApiKey,
-            financialModelingPrepApiKey,
-            eodHistoricalDataApiKey,
             List.of(),
             List.of(),
             BigDecimal.valueOf(2_000_000_000L),
@@ -948,21 +773,6 @@ class FinnhubClientTest {
         null,
         null,
         null
-    );
-  }
-
-  private String currentDailyHistoryPayload(String firstClose, String secondClose) {
-    LocalDate latest = LocalDate.now(ZoneOffset.UTC).minusDays(1);
-    return """
-        [
-          {"date":"%s","close":"%s"},
-          {"date":"%s","close":"%s"}
-        ]
-        """.formatted(
-        latest.minusDays(1).format(DateTimeFormatter.ISO_DATE),
-        firstClose,
-        latest.format(DateTimeFormatter.ISO_DATE),
-        secondClose
     );
   }
 

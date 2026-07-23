@@ -4,9 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.jarmak.stockmarketanalyzer.config.AppProperties;
-import com.jarmak.stockmarketanalyzer.market.client.AlphaVantageApiService;
-import com.jarmak.stockmarketanalyzer.market.client.EodHistoricalDataApiService;
-import com.jarmak.stockmarketanalyzer.market.client.FinancialModelingPrepApiService;
 import com.jarmak.stockmarketanalyzer.market.client.FinnhubApiService;
 import com.jarmak.stockmarketanalyzer.market.client.TwelveDataApiService;
 import java.math.BigDecimal;
@@ -27,7 +24,7 @@ class MarketApiPositionRiskSmokeTest {
   @Test
   void finnhubLiveSnapshotProducesCalculatedPositionRiskIndicators() {
     String apiKey = liveApiKey("FINNHUB_API_KEY");
-    FinnhubApiService service = new FinnhubApiService(properties(apiKey, null, null, null, null), RestClient.create());
+    FinnhubApiService service = new FinnhubApiService(properties(apiKey, null), RestClient.create());
 
     assertLiveRiskIndicators(service.companySnapshot(STOCK_SYMBOL), service.dailyCloses(STOCK_SYMBOL));
   }
@@ -35,32 +32,7 @@ class MarketApiPositionRiskSmokeTest {
   @Test
   void twelveDataLiveSnapshotProducesCalculatedPositionRiskIndicators() {
     String apiKey = liveApiKey("TWELVEDATA_API_KEY");
-    TwelveDataApiService service = new TwelveDataApiService(properties(null, apiKey, null, null, null), RestClient.create());
-
-    assertLiveRiskIndicators(service.companySnapshot(STOCK_SYMBOL), service.dailyCloses(STOCK_SYMBOL));
-  }
-
-  @Test
-  void financialModelingPrepLiveSnapshotProducesCalculatedPositionRiskIndicators() {
-    String apiKey = liveApiKey("FINANCIAL_MODELING_PREP_API_KEY");
-    FinancialModelingPrepApiService service =
-        new FinancialModelingPrepApiService(properties(null, null, null, apiKey, null), RestClient.create());
-
-    assertLiveRiskIndicators(service.companySnapshot(STOCK_SYMBOL), service.dailyCloses(STOCK_SYMBOL));
-  }
-
-  @Test
-  void eodHistoricalDataLiveSnapshotProducesCalculatedPositionRiskIndicators() {
-    String apiKey = liveApiKey("EODHD_API_KEY");
-    EodHistoricalDataApiService service = new EodHistoricalDataApiService(properties(null, null, null, null, apiKey), RestClient.create());
-
-    assertLiveRiskIndicators(service.companySnapshot(STOCK_SYMBOL), service.dailyCloses(STOCK_SYMBOL));
-  }
-
-  @Test
-  void alphaVantageLiveSnapshotProducesCalculatedPositionRiskIndicators() {
-    String apiKey = liveApiKey("ALPHA_VANTAGE_API_KEY");
-    AlphaVantageApiService service = new AlphaVantageApiService(properties(null, null, apiKey, null, null), RestClient.create());
+    TwelveDataApiService service = new TwelveDataApiService(properties(null, apiKey), RestClient.create());
 
     assertLiveRiskIndicators(service.companySnapshot(STOCK_SYMBOL), service.dailyCloses(STOCK_SYMBOL));
   }
@@ -159,10 +131,7 @@ class MarketApiPositionRiskSmokeTest {
 
   private AppProperties properties(
       String finnhubApiKey,
-      String twelveDataApiKey,
-      String alphaVantageApiKey,
-      String financialModelingPrepApiKey,
-      String eodHistoricalDataApiKey
+      String twelveDataApiKey
   ) {
     return new AppProperties(
         null,
@@ -170,9 +139,6 @@ class MarketApiPositionRiskSmokeTest {
             "fred",
             finnhubApiKey,
             twelveDataApiKey,
-            alphaVantageApiKey,
-            financialModelingPrepApiKey,
-            eodHistoricalDataApiKey,
             List.of(),
             List.of(),
             BigDecimal.valueOf(2_000_000_000L),

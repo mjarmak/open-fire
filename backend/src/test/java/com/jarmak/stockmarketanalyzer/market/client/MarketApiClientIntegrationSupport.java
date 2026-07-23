@@ -47,20 +47,6 @@ abstract class MarketApiClientIntegrationSupport {
     assertThat(Math.abs(requestedDays - range.lookback().toDays())).isLessThanOrEqualTo(1);
   }
 
-  protected void assertFromToDateRequestRange(MultiValueMap<String, String> params, HistoryRange range) {
-    LocalDate startDate = LocalDate.parse(params.getFirst("from"));
-    LocalDate endDate = LocalDate.parse(params.getFirst("to"));
-
-    if (range.allTime()) {
-      assertThat(startDate).isEqualTo(LocalDate.of(1970, 1, 1));
-      assertThat(Math.abs(ChronoUnit.DAYS.between(endDate, LocalDate.now(ZoneOffset.UTC)))).isLessThanOrEqualTo(1);
-      return;
-    }
-
-    long requestedDays = ChronoUnit.DAYS.between(startDate, endDate);
-    assertThat(Math.abs(requestedDays - range.lookback().toDays())).isLessThanOrEqualTo(1);
-  }
-
   protected void assertReturnedRange(List<ChartPoint> points, HistoryRange range) {
     assertThat(points).hasSize(2);
     assertThat(points).extracting(ChartPoint::value)
@@ -128,55 +114,9 @@ abstract class MarketApiClientIntegrationSupport {
         """.formatted(providerDateTime(end), providerDateTime(start));
   }
 
-  protected String alphaVantageHistoryPayload(HistoryRange range, Instant start, Instant end) {
-    String key = range == HistoryRange.ONE_HOUR || range == HistoryRange.ONE_DAY
-        ? "Time Series (%s)".formatted(alphaVantageInterval(range))
-        : "Time Series (Daily)";
-    return """
-        {
-          "%s": {
-            "%s": {"4. close":"110"},
-            "%s": {"4. close":"100"}
-          }
-        }
-        """.formatted(key, providerDateTime(end), providerDateTime(start));
-  }
-
-  protected String financialModelingPrepHistoryPayload(Instant start, Instant end) {
-    return """
-        [
-          {"date":"%s","close":100},
-          {"date":"%s","close":110}
-        ]
-        """.formatted(providerDateTime(start), providerDateTime(end));
-  }
-
-  protected String eodHistoricalDataHistoryPayload(HistoryRange range, Instant start, Instant end) {
-    if (range == HistoryRange.ONE_HOUR || range == HistoryRange.ONE_DAY) {
-      return """
-          [
-            {"datetime":"%s","close":100},
-            {"datetime":"%s","close":110}
-          ]
-          """.formatted(providerDateTime(start), providerDateTime(end));
-    }
-
-    return """
-        [
-          {"date":"%s","close":100},
-          {"date":"%s","close":110}
-        ]
-        """.formatted(providerDate(start), providerDate(end));
-  }
-
   protected String providerDateTime(Instant instant) {
     return LocalDateTime.ofInstant(instant, ZoneOffset.UTC)
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-  }
-
-  protected String providerDate(Instant instant) {
-    return LocalDateTime.ofInstant(instant, ZoneOffset.UTC).toLocalDate()
-        .format(DateTimeFormatter.ISO_DATE);
   }
 
   protected String twelveDataInterval(HistoryRange range) {
@@ -200,27 +140,6 @@ abstract class MarketApiClientIntegrationSupport {
     };
   }
 
-  protected String alphaVantageFunction(HistoryRange range) {
-    return range == HistoryRange.ONE_HOUR || range == HistoryRange.ONE_DAY
-        ? "TIME_SERIES_INTRADAY"
-        : "TIME_SERIES_DAILY";
-  }
-
-  protected String alphaVantageInterval(HistoryRange range) {
-    return switch (range) {
-      case ONE_HOUR -> "5min";
-      case ONE_DAY -> "30min";
-      default -> "1day";
-    };
-  }
-
-  protected String alphaVantageOutputSize(HistoryRange range) {
-    return switch (range) {
-      case ONE_HOUR, ONE_DAY, FIVE_DAYS, ONE_MONTH -> "compact";
-      case ONE_YEAR, FIVE_YEARS, TEN_YEARS, ALL -> "full";
-    };
-  }
-
   protected MultiValueMap<String, String> queryParams(String uri) {
     return UriComponentsBuilder.fromUriString(uri).build().getQueryParams();
   }
@@ -231,26 +150,13 @@ abstract class MarketApiClientIntegrationSupport {
     ((Map<?, ?>) field.get(service)).clear();
   }
 
-  protected AppProperties properties(String finnhubApiKey, String twelveDataApiKey, String alphaVantageApiKey) {
-    return properties(finnhubApiKey, twelveDataApiKey, alphaVantageApiKey, null, null);
-  }
-
-  protected AppProperties properties(
-      String finnhubApiKey,
-      String twelveDataApiKey,
-      String alphaVantageApiKey,
-      String financialModelingPrepApiKey,
-      String eodHistoricalDataApiKey
-  ) {
+  protected AppProperties properties(String finnhubApiKey, String twelveDataApiKey) {
     return new AppProperties(
         null,
         new AppProperties.Market(
             "fred",
             finnhubApiKey,
             twelveDataApiKey,
-            alphaVantageApiKey,
-            financialModelingPrepApiKey,
-            eodHistoricalDataApiKey,
             List.of(),
             List.of(),
             BigDecimal.valueOf(2_000_000_000L),

@@ -7,6 +7,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.util.MultiValueMap;
@@ -49,6 +50,20 @@ class MarketApiTokenTestServiceTest {
     server.verify();
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"fmp", "alphavantage", "eodhd"})
+  void rejectsRetiredProviders(String provider) {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    MarketApiTokenTestService service = new MarketApiTokenTestService(builder.build());
+
+    MarketApiTokenTestService.MarketApiTokenTestResult result = service.test(provider, "draft-token");
+
+    assertThat(result.success()).isFalse();
+    assertThat(result.message()).isEqualTo("Unknown market data API.");
+    server.verify();
+  }
+
   static Stream<ProviderFixture> providerFixtures() {
     return Stream.of(
         new ProviderFixture(
@@ -67,33 +82,6 @@ class MarketApiTokenTestServiceTest {
             "apikey",
             """
                 {"data":[{"symbol":"AAPL"}]}
-                """
-        ),
-        new ProviderFixture(
-            MarketApiProvider.FINANCIAL_MODELING_PREP,
-            "financialmodelingprep.com",
-            "/stable/search-symbol",
-            "apikey",
-            """
-                [{"symbol":"AAPL"}]
-                """
-        ),
-        new ProviderFixture(
-            MarketApiProvider.ALPHA_VANTAGE,
-            "www.alphavantage.co",
-            "/query",
-            "apikey",
-            """
-                {"bestMatches":[{"1. symbol":"AAPL"}]}
-                """
-        ),
-        new ProviderFixture(
-            MarketApiProvider.EODHD,
-            "eodhd.com",
-            "/api/search/AAPL",
-            "api_token",
-            """
-                [{"Code":"AAPL"}]
                 """
         )
     );

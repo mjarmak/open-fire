@@ -6,11 +6,23 @@ This document maps the external market-data endpoints currently used by OpenFIRE
 
 | App flow | Internal method | Provider order | Notes |
 | --- | --- | --- | --- |
-| Symbol search | `FinnhubClient.searchSymbols` | Finnhub, then Twelve Data, then Alpha Vantage | Returns ticker metadata only: symbol, name, region/type, currency. |
-| Search price details | `FinnhubClient.companyPriceSnapshot` | Finnhub, then Twelve Data, then Alpha Vantage | Lightweight path for `/symbols/search` enrichment. Returns price and market cap only. It must not call daily closes or history. |
-| Alerts / portfolio rows / stock preview | `FinnhubClient.companySnapshot` | Finnhub, then Twelve Data, then Alpha Vantage | Full snapshot path. Can call daily closes to calculate 30D change, realized volatility, and drawdown. |
-| Position chart history | `FinnhubClient.historicalCandles` | Finnhub, then Twelve Data, then Alpha Vantage | Returns chart points for the selected range. |
+| Symbol search | `FinnhubClient.searchSymbols` | Finnhub, then Twelve Data | Returns ticker metadata only: symbol, name, region/type, currency. |
+| Search price details | `FinnhubClient.companyPriceSnapshot` | Finnhub, then Twelve Data | Lightweight path for `/symbols/search` enrichment. Returns price and market cap only. It must not call daily closes or history. |
+| Alerts / portfolio rows / stock preview | `FinnhubClient.companySnapshot` | Finnhub, then Twelve Data | Full snapshot path. Can call daily closes to calculate 30D change, realized volatility, and drawdown. |
+| Position chart history | `FinnhubClient.historicalCandles` | Finnhub, then Twelve Data | Returns chart points for the selected range. |
 | Macro indicators | `FredClient` plus selected market history | FRED for macro series; FinnhubClient history/closes for breadth/correlation assets | Used for macro gauges and histories. |
+
+## Market Indicator Contract
+
+When all source data is available, `MarketIndicatorService.indicators` returns these five indicators in order:
+
+| ID | Display name | Source |
+| --- | --- | --- |
+| `vix` | Fear Index / VIX | FRED `VIXCLS` |
+| `fear-greed` | Fear & Greed Index | Internal composite of VIX, credit, breadth, and correlation |
+| `breadth` | Market Breadth | Live quote direction for the configured ETF basket, with daily closes as fallback |
+| `credit` | Credit Market | FRED `BAMLC0A0CM` |
+| `correlation` | Cross-Asset Correlation | Daily closes for the configured cross-asset basket |
 
 ## Finnhub
 
@@ -52,24 +64,11 @@ Notes:
 - Symbols are normalized for Twelve Data by removing provider prefixes and converting separators like `_` or `-` to `/`.
 - Twelve Data has a short rate-limit backoff. While backed off, the client skips requests and returns no data.
 
-## Alpha Vantage
+## Binance
 
-Base URL: `https://www.alphavantage.co/query`
+Base URL: `https://api.binance.com`
 
-| App operation | Function / endpoint | Parameters | Fields read | Output fields populated |
-| --- | --- | --- | --- | --- |
-| Symbol search | `function=SYMBOL_SEARCH` | `keywords`, `apikey` | `bestMatches[]`: `1. symbol`, `2. name`, `3. type`, `8. currency` | `SymbolSearchResult.symbol`, `name`, `region`, `currency` |
-| Lightweight price snapshot | `function=GLOBAL_QUOTE` | `symbol`, `apikey` | `Global Quote.05. price`, `08. previous close`, `03. high`, `04. low`, `01. symbol` | `latestPrice`, `previousClose`, `dailyHigh`, `dailyLow`, fallback `name` |
-| Lightweight metadata | `function=OVERVIEW` | `symbol`, `apikey` | `Name`, `Industry`, `MarketCapitalization` | `name`, `industry`, `marketCap` |
-| Full snapshot quote | `function=GLOBAL_QUOTE` | `symbol`, `apikey` | Same quote fields as lightweight snapshot | Price fields |
-| Full snapshot metadata | `function=OVERVIEW` | `symbol`, `apikey` | `Name`, `Industry`, `MarketCapitalization`, `PERatio`, `Beta`, `52WeekHigh` | `name`, `industry`, `marketCap`, `peRatio`, `beta`, `fiftyTwoWeekHigh` |
-| Daily closes | `function=TIME_SERIES_DAILY` | `symbol`, `outputsize=compact`, `apikey` | `Time Series (Daily).*["4. close"]` | `TimeSeriesPoint.date`, `value` |
-| Intraday chart history | `function=TIME_SERIES_INTRADAY` | `symbol`, `interval`, `outputsize`, `apikey` | `Time Series (<interval>).*["4. close"]` | `ChartPoint.timestamp`, `value` |
-| Daily chart history | `function=TIME_SERIES_DAILY` | `symbol`, `outputsize`, `apikey` | `Time Series (Daily).*["4. close"]` | `ChartPoint.timestamp`, `value` |
-
-Notes:
-- Symbols are normalized for Alpha Vantage by removing provider prefixes and stripping `/`, `-`, and `_`.
-- Intraday ranges use `TIME_SERIES_INTRADAY`; longer ranges use `TIME_SERIES_DAILY`.
+Binance is used without an API token for supported crypto symbol search and historical candles. Stock requests do not fall back to Binance.
 
 ## FRED
 
@@ -88,13 +87,13 @@ Notes:
 
 ### `SymbolSearchResult`
 
-| Field | Finnhub | Twelve Data | Alpha Vantage |
-| --- | --- | --- | --- |
-| `symbol` | `result[].symbol` | `data[].symbol` or `symbols[].symbol` | `bestMatches[].1. symbol` |
-| `name` | `result[].description` | `instrument_name` or `name` | `bestMatches[].2. name` |
-| `region` | `result[].type` | `type` | `bestMatches[].3. type` |
-| `currency` | `result[].currency` | `currency` | `bestMatches[].8. currency` |
-| `indicators` | Added only by internal enrichment | Added only by internal enrichment | Added only by internal enrichment |
+| Field | Finnhub | Twelve Data |
+| --- | --- | --- |
+| `symbol` | `result[].symbol` | `data[].symbol` or `symbols[].symbol` |
+| `name` | `result[].description` | `instrument_name` or `name` |
+| `region` | `result[].type` | `type` |
+| `currency` | `result[].currency` | `currency` |
+| `indicators` | Added only by internal enrichment | Added only by internal enrichment |
 
 ### `StockAlert` / `CompanySnapshot`
 
@@ -110,7 +109,3 @@ Notes:
 | `drawdownPercent` | No | Yes, calculated from daily closes or high fallback |
 | `fearScore` | No | Yes |
 | `thirtyDayChangePercent` | No | Yes, calculated from daily closes |
-
-## Configured But Not Currently Used
-
-`financialModelingPrepApiKey` and `eodHistoricalDataApiKey` exist in `AppProperties.Market`, but there are no active provider clients using them yet.

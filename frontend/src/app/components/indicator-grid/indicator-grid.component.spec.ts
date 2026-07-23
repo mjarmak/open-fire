@@ -177,6 +177,29 @@ describe('IndicatorGridComponent', () => {
     expect(compactIndicators.find((item) => textContent(item.querySelector('h2')) === 'Cross-Asset Correlation')?.getAttribute('data-tooltip')).toContain('Risk threshold: 0.7 avg abs correlation or above.');
   });
 
+  it('renders all five market indicators when the API returns the complete set', async () => {
+    const element = await render(createState({
+      indicators: [
+        indicator(),
+        indicator({ id: 'fear-greed', name: 'Fear & Greed Index' }),
+        indicator({ id: 'breadth', name: 'Market Breadth' }),
+        indicator({ id: 'credit', name: 'Credit Market' }),
+        indicator({ id: 'correlation', name: 'Cross-Asset Correlation' }),
+      ],
+    }));
+    const titles = Array.from(
+      element.querySelectorAll<HTMLElement>('.compact-indicator:not(.retirement-progress-indicator) h2')
+    ).map(textContent);
+
+    expect(titles).toEqual([
+      'Fear Index / VIX',
+      'Fear & Greed Index',
+      'Market Breadth',
+      'Credit Market',
+      'Cross-Asset Correlation',
+    ]);
+  });
+
   it('places gauge risk color bands on the side where each indicator becomes risky', async () => {
     const element = await render(createState({
       indicators: [
