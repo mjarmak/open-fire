@@ -19,6 +19,15 @@ export class StockLookupResultRowComponent {
     this.add.emit(this.result);
   }
 
+  protected get isCryptoResult(): boolean {
+    const symbol = this.result.symbol?.trim().toUpperCase() ?? '';
+    const region = this.result.region?.trim().toLowerCase() ?? '';
+    return region.includes('crypto')
+      || symbol.startsWith('BINANCE:')
+      || symbol.endsWith('-USD')
+      || symbol.endsWith('USDT');
+  }
+
   protected formatPrice(value: number | null | undefined): string {
     if (value === null || value === undefined) {
       return '-';

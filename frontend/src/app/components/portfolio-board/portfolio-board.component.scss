@@ -1,0 +1,19 @@
+.stock-row.no-position-indicators {
+  grid-template-columns: minmax(0, 1fr) auto;
+  cursor: default;
+}
+
+.stock-row.no-position-indicators > .row-actions {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.position-title-market-cap {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.position-title-market-cap .position-title-label {
+  margin-right: 0;
+}

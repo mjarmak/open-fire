@@ -7,6 +7,8 @@
 </div>
 <div class="ticker-metrics stock-lookup-price-metrics">
   <span><small>Price</small>{{ formatPrice(result.indicators?.latestPrice) }}</span>
-  <span><small>Market Cap</small>{{ formatMarketCap(result.indicators?.marketCap) }}</span>
+  @if (!isCryptoResult) {
+    <span><small>Market Cap</small>{{ formatMarketCap(result.indicators?.marketCap) }}</span>
+  }
 </div>
 <button type="button" class="stock-lookup-add-button" (click)="addResult()">Add</button>

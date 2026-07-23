@@ -91,4 +91,24 @@ describe('StockLookupResultRowComponent', () => {
 
     expect(emitted).toEqual([result]);
   });
+
+  it('hides market cap for crypto search results', async () => {
+    const { element } = await render({
+      symbol: 'BINANCE:BTCUSDT',
+      name: 'Bitcoin / USDT',
+      region: 'Crypto',
+      currency: 'USDT',
+      indicators: stock({
+        symbol: 'BINANCE:BTCUSDT',
+        companyName: 'Bitcoin / USDT',
+        positionType: 'Crypto',
+        marketCap: 1_000_000_000,
+      }),
+    });
+
+    expect(element.textContent).toContain('Price');
+    expect(element.textContent).toContain('$198.20');
+    expect(element.textContent).not.toContain('Market Cap');
+    expect(element.textContent).not.toContain('$1B');
+  });
 });

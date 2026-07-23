@@ -121,10 +121,11 @@
         class="stock-row"
         [class.alerting]="stock.alert"
         [class.watch-only-row]="stock.watchOnly"
+        [class.no-position-indicators]="isCryptoPosition(stock)"
         [class.collapsed-row]="isCollapsed(stock)"
         [class.menu-open]="isActionDialogOpen(stock)"
         [class.chart-open]="isPositionChartOpen(stock)"
-        [attr.aria-expanded]="stock.watchOnly ? null : !isCollapsed(stock)"
+        [attr.aria-expanded]="stock.watchOnly || isCryptoPosition(stock) ? null : !isCollapsed(stock)"
         tabindex="0"
         (click)="toggleCollapsedFromRow(stock, $event)"
         (keydown)="handleRowKeydown(stock, $event)"
@@ -214,8 +215,12 @@
                 <span class="position-title-label">Current</span>
                 @if (stock.watchOnly) {
                   <span class="position-title-factor position-title-current-price-factor">{{ formatMoney(stock.latestPrice) }}</span>
-                  <span class="position-title-label">Market Cap</span>
-                  <span class="position-title-factor">{{ formatMoney(stock.marketCap) }}</span>
+                  @if (!isCryptoPosition(stock)) {
+                    <span class="position-title-market-cap">
+                      <span class="position-title-label">Market Cap</span>
+                      <span class="position-title-factor">{{ formatMoney(stock.marketCap) }}</span>
+                    </span>
+                  }
                 } @else {
                   <span class="position-title-factor position-title-quantity-factor">{{ formatQuantity(stock.quantity) }}</span> × <span class="position-title-factor position-title-current-price-factor">{{ formatMoney(stock.latestPrice) }}</span> =
                   <strong class="position-title-value">{{ formatMoney(calculatePositionMarketValue(stock)) }}</strong>
@@ -255,7 +260,7 @@
               }
             </div>
         </div>
-        @if (!isCollapsed(stock)) {
+        @if (!isCollapsed(stock) && !isCryptoPosition(stock)) {
         <div class="ticker-metrics" @positionColumns>
           <span
             class="metric-tooltip metric-30d"

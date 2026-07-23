@@ -667,10 +667,48 @@ describe('PortfolioBoardComponent', () => {
     expect(textContent(positionLines)).toContain('$25');
     expect(textContent(positionLines)).toContain('Market Cap');
     expect(textContent(positionLines)).toContain('$1B');
+    expect(positionLines?.querySelector('.position-title-market-cap')).not.toBeNull();
     expect(textContent(positionLines)).not.toContain('Original');
     expect(textContent(positionLines)).not.toContain('=');
     expect(positionLines?.getAttribute('data-tooltip')).toContain('latest available price');
     expect(positionLines?.getAttribute('data-tooltip')).toContain('market cap');
+  });
+
+  it('hides unavailable market cap and risk indicators for crypto rows', async () => {
+    const cryptoWatch = stock({
+      id: 2,
+      symbol: 'BINANCE:BTCUSDT',
+      companyName: 'Bitcoin / USDT',
+      positionType: 'Crypto',
+      watchOnly: true,
+    });
+    const cryptoPosition = stock({
+      id: 3,
+      symbol: 'ETH-USD',
+      companyName: 'Ethereum',
+      positionType: 'Crypto',
+      watchOnly: false,
+    });
+    const { fixture, element } = await render(createState({ stocks: [cryptoWatch, cryptoPosition] }));
+    const watchRow = positionRow(element, 'BINANCE:BTCUSDT');
+    const position = positionRow(element, 'ETH-USD');
+
+    expect(watchRow.querySelector('.position-title-current-price-factor')).not.toBeNull();
+    expect(watchRow.querySelector('.position-title-market-cap')).toBeNull();
+    expect(textContent(watchRow.querySelector('.position-title-lines'))).not.toContain('Market Cap');
+    expect(watchRow.querySelector('.ticker-metrics')).toBeNull();
+    expect(watchRow.querySelector('.risk-metric')).toBeNull();
+    expect(watchRow.querySelector('.position-title-lines')?.getAttribute('data-tooltip')).not.toContain('market cap');
+
+    expect(position.classList.contains('no-position-indicators')).toBeTrue();
+    expect(position.getAttribute('aria-expanded')).toBeNull();
+    expect(position.querySelector('.ticker-metrics')).toBeNull();
+    expect(position.querySelector('.position-expand-hint')).toBeNull();
+
+    position.click();
+    fixture.detectChanges();
+
+    expect(position.classList.contains('collapsed-row')).toBeFalse();
   });
 
   it('hides current total percent when unrealized percent is unavailable', async () => {

@@ -22,6 +22,7 @@ type PositionFilter = 'all' | 'positions' | 'watchlist';
   standalone: true,
   imports: [CommonModule, RangeTrendChartComponent],
   templateUrl: './portfolio-board.component.html',
+  styleUrl: './portfolio-board.component.scss',
   animations: [
     trigger('positionColumns', [
       transition(':enter', [
@@ -197,6 +198,10 @@ export class PortfolioBoardComponent implements OnInit {
     return this.typeColors[this.hashString(label) % this.typeColors.length];
   }
 
+  isCryptoPosition(stock: StockAlert): boolean {
+    return this.resolvePositionType(stock) === 'Crypto';
+  }
+
   getPieCategoryTooltip(category: string): string {
     const stocks = this.state.stocks
       .filter((stock) => !stock.watchOnly && this.resolvePositionType(stock) === category)
@@ -222,14 +227,14 @@ export class PortfolioBoardComponent implements OnInit {
   }
 
   isCollapsed(stock: StockAlert): boolean {
-    if (stock.watchOnly) {
+    if (stock.watchOnly || this.isCryptoPosition(stock)) {
       return false;
     }
     return this.collapsedSymbols.has(this.positionRowKey(stock));
   }
 
   toggleCollapsed(stock: StockAlert): void {
-    if (stock.watchOnly) {
+    if (stock.watchOnly || this.isCryptoPosition(stock)) {
       this.collapsedSymbols.delete(this.positionRowKey(stock));
       this.persistCollapsedState();
       return;
@@ -250,7 +255,7 @@ export class PortfolioBoardComponent implements OnInit {
     }
 
     this.actionDialogRowKey = null;
-    if (!stock.watchOnly) {
+    if (!stock.watchOnly && !this.isCryptoPosition(stock)) {
       this.toggleCollapsed(stock);
     }
   }
@@ -491,7 +496,9 @@ export class PortfolioBoardComponent implements OnInit {
 
   protected getPositionLinesTooltip(stock?: StockAlert): string {
     if (stock?.watchOnly) {
-      return 'Current shows the latest available price and market cap.';
+      return this.isCryptoPosition(stock)
+        ? 'Current shows the latest available price.'
+        : 'Current shows the latest available price and market cap.';
     }
 
     return 'Current shows the current market value and unrealized return.\nOriginal shows the invested cost based on the average price.';
