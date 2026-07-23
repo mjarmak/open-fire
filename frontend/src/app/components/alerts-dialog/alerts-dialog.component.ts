@@ -24,7 +24,9 @@ export class AlertsDialogComponent {
   }
 
   protected get isLoadingAlerts(): boolean {
-    return this.state.isLoadingStocks || this.state.isLoadingIndicators;
+    return this.state.isLoadingStocks
+      || this.state.isLoadingIndicators
+      || this.state.isLoadingStockDetails;
   }
 
   protected stockRowKey(stock: StockAlert): string {

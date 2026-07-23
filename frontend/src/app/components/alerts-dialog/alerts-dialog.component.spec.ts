@@ -42,6 +42,7 @@ describe('AlertsDialogComponent', () => {
       alertsDialogOpen: true,
       isLoadingStocks: false,
       isLoadingIndicators: false,
+      isLoadingStockDetails: false,
       stocks: [],
       ...overrides,
     } as MarketDashboardService;
@@ -71,8 +72,16 @@ describe('AlertsDialogComponent', () => {
     expect(element.textContent).not.toContain('No active alerts right now.');
   });
 
-  it('shows a loading skeleton instead of the empty message while risk indicators are loading', async () => {
+  it('shows a loading skeleton instead of the empty message while macro risk indicators are loading', async () => {
     const { element } = await render({ isLoadingIndicators: true });
+
+    expect(element.querySelector('.alerts-loading-skeleton[role="status"]')).not.toBeNull();
+    expect(element.querySelectorAll('.alert-item-skeleton')).toHaveSize(4);
+    expect(element.textContent).not.toContain('No active alerts right now.');
+  });
+
+  it('shows a loading skeleton instead of the empty message while position risk details are loading', async () => {
+    const { element } = await render({ isLoadingStockDetails: true });
 
     expect(element.querySelector('.alerts-loading-skeleton[role="status"]')).not.toBeNull();
     expect(element.querySelectorAll('.alert-item-skeleton')).toHaveSize(4);
