@@ -1174,6 +1174,8 @@ describe('AppComponent', () => {
     expect(app.marketDashboardService.apiTokenDialogOpen).toBeTrue();
     expect(root.textContent).toContain('We do not store your API tokens in our system');
     expect(root.textContent).toContain('Finnhub');
+    expect(root.textContent).toContain('Primary source for stock search, quotes, company details, risk inputs, and price history.');
+    expect(root.textContent).toContain('Fallback source for stock search, quotes, company details, and price history when Finnhub has no usable data.');
     expect(root.querySelector('a[href="https://finnhub.io/register"]')).not.toBeNull();
     expect(root.querySelector('input[type="checkbox"]')).toBeNull();
 

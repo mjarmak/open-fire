@@ -32,6 +32,7 @@ export interface MarketApiProviderOption {
   id: MarketApiProviderId;
   name: string;
   tokenLabel: string;
+  description: string;
   limit: string;
   signupUrl: string;
   tokenHeader: string;
@@ -58,6 +59,7 @@ export class MarketDashboardService {
       id: 'finnhub',
       name: 'Finnhub',
       tokenLabel: 'Finnhub API token',
+      description: 'Primary source for stock search, quotes, company details, risk inputs, and price history.',
       limit: 'Free plan: 60 API calls per minute.',
       signupUrl: 'https://finnhub.io/register',
       tokenHeader: 'X-OpenFire-Api-Token-Finnhub',
@@ -67,6 +69,7 @@ export class MarketDashboardService {
       id: 'twelvedata',
       name: 'Twelve Data',
       tokenLabel: 'Twelve Data API key',
+      description: 'Fallback source for stock search, quotes, company details, and price history when Finnhub has no usable data.',
       limit: 'Free plan: 8 API credits per minute, 800 per day.',
       signupUrl: 'https://twelvedata.com/pricing',
       tokenHeader: 'X-OpenFire-Api-Token-TwelveData',
