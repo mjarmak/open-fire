@@ -2873,14 +2873,24 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
   color: var(--text);
 }
 
+.modal-backdrop.alerts-backdrop {
+  align-items: start;
+  justify-items: center;
+}
+
 .alerts-dialog {
+  grid-template-rows: auto minmax(0, 1fr);
   width: min(720px, 100%);
+  height: calc(100dvh - 40px);
+  max-height: calc(100dvh - 40px);
+  overflow: hidden;
 }
 
 .alerts-list {
   display: grid;
+  align-content: start;
   gap: 8px;
-  max-height: min(58dvh, 520px);
+  min-height: 0;
   overflow: auto;
   padding-right: 2px;
 }
@@ -3091,6 +3101,12 @@ button.danger:hover {
     margin: 0 auto;
     overflow: auto;
     padding: 16px;
+  }
+
+  .alerts-dialog {
+    height: calc(100dvh - 24px);
+    max-height: calc(100dvh - 24px);
+    overflow: hidden;
   }
 
   .dialog-heading {

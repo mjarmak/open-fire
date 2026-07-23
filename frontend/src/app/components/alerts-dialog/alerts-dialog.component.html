@@ -1,5 +1,5 @@
 @if (state.alertsDialogOpen) {
-  <div class="modal-backdrop" role="presentation" @dialogBackdrop>
+  <div class="modal-backdrop alerts-backdrop" role="presentation" @dialogBackdrop>
     <section class="edit-dialog alerts-dialog" role="dialog" aria-modal="true" aria-labelledby="alerts-dialog-title" @dialogPanel (click)="$event.stopPropagation()">
       <div class="dialog-heading">
         <div>
