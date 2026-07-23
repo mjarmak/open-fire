@@ -11,7 +11,20 @@
         </div>
       </div>
 
-      @if (alertingStocks.length === 0) {
+      @if (isLoadingAlerts) {
+        <div class="alerts-loading-skeleton" role="status" aria-label="Loading active alerts">
+          @for (row of [1, 2, 3, 4]; track row) {
+            <article class="alert-item alert-item-skeleton" aria-hidden="true">
+              <div class="alert-item-head">
+                <span class="alert-skeleton-pill"></span>
+                <span class="alert-skeleton-line short"></span>
+              </div>
+              <span class="alert-skeleton-line"></span>
+              <span class="alert-skeleton-line medium"></span>
+            </article>
+          }
+        </div>
+      } @else if (alertingStocks.length === 0) {
         <div class="empty-state">No active alerts right now.</div>
       } @else {
         <div class="alerts-list" role="list" aria-label="Triggered stock alerts">

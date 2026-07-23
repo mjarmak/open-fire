@@ -2895,6 +2895,14 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
   padding-right: 2px;
 }
 
+.alerts-loading-skeleton {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .alert-item {
   display: grid;
   gap: 4px;
@@ -2902,6 +2910,44 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
   border: 1px solid var(--status-risk);
   border-radius: 8px;
   background: var(--metric-bg);
+}
+
+.alert-item-skeleton {
+  border-color: var(--border);
+  pointer-events: none;
+}
+
+.alert-skeleton-pill,
+.alert-skeleton-line {
+  display: block;
+  height: 11px;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      90deg,
+      var(--metric-bg),
+      color-mix(in srgb, var(--metric-bg) 58%, var(--text) 16%),
+      var(--metric-bg)
+    );
+  background-size: 180% 100%;
+  animation: skeleton-loading 1.2s linear infinite;
+}
+
+.alert-skeleton-pill {
+  width: 58px;
+  height: 18px;
+}
+
+.alert-skeleton-line {
+  width: 100%;
+}
+
+.alert-skeleton-line.medium {
+  width: 70%;
+}
+
+.alert-skeleton-line.short {
+  width: min(180px, 46%);
 }
 
 .alert-item-head {

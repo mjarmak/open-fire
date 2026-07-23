@@ -23,6 +23,10 @@ export class AlertsDialogComponent {
       .sort((left, right) => left.symbol.localeCompare(right.symbol));
   }
 
+  protected get isLoadingAlerts(): boolean {
+    return this.state.isLoadingStocks || this.state.isLoadingIndicators;
+  }
+
   protected stockRowKey(stock: StockAlert): string {
     return String(stock.id ?? stock.symbol);
   }
