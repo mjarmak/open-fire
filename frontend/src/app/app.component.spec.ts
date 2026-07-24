@@ -41,6 +41,8 @@ describe('AppComponent', () => {
 
   beforeEach(async () => {
     localStorage.clear();
+    document.cookie = 'sma_username=; Max-Age=0; Path=/; SameSite=Lax';
+    document.cookie = 'sma_password=; Max-Age=0; Path=/; SameSite=Lax';
     marketDashboardService = jasmine.createSpyObj<MarketDashboardService>('MarketDashboardService', [
       'createUser',
       'fetchDashboard',
@@ -538,7 +540,7 @@ describe('AppComponent', () => {
     expect(app.isLoadingRetirement).toBeFalse();
   });
 
-  it('logout clears stored username/password but keeps remember-login preference', () => {
+  it('logout clears stored login data but keeps the remember-username preference', () => {
     localStorage.setItem('sma_username', 'demoUser');
     localStorage.setItem('sma_password', 'demoPass123');
     localStorage.setItem('sma_remember_login', 'true');
@@ -556,6 +558,40 @@ describe('AppComponent', () => {
     expect(localStorage.getItem('sma_remember_login')).toBe('true');
     expect(app.username).toBe('');
     expect(app.password).toBe('');
+  });
+
+  it('removes legacy passwords and restores only a remembered username', () => {
+    localStorage.setItem('sma_username', 'demoUser');
+    localStorage.setItem('sma_password', 'legacyPassword123');
+    localStorage.setItem('sma_remember_login', 'true');
+    document.cookie = 'sma_password=legacyCookiePassword; Path=/; SameSite=Lax';
+
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+
+    app.ngOnInit();
+
+    expect(app.username).toBe('demoUser');
+    expect(app.password).toBe('');
+    expect(localStorage.getItem('sma_username')).toBe('demoUser');
+    expect(localStorage.getItem('sma_password')).toBeNull();
+    expect(document.cookie).not.toContain('sma_password=');
+    expect(marketDashboardService.fetchIndicators).not.toHaveBeenCalled();
+  });
+
+  it('never persists a password after a successful login', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    app.username = 'demoUser';
+    app.password = 'demoPass123';
+    app.rememberLogin = true;
+
+    app.refreshDashboard(true);
+
+    expect(localStorage.getItem('sma_username')).toBe('demoUser');
+    expect(localStorage.getItem('sma_password')).toBeNull();
+    expect(document.cookie).not.toContain('sma_username=');
+    expect(document.cookie).not.toContain('sma_password=');
   });
 
   it('keeps the user logged in when only one dashboard request returns unauthorized', () => {

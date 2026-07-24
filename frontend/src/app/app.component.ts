@@ -69,7 +69,6 @@ export class AppComponent implements OnDestroy, OnInit {
   private readonly passwordStorageKey = 'sma_password';
   private readonly rememberLoginStorageKey = 'sma_remember_login';
   private readonly themeStorageKey = 'sma_theme';
-  private readonly loginCookieMaxAgeSeconds = 60 * 60 * 24 * 14;
   private readonly stockDetailRetryDelayMs = 1000;
   private readonly stockDetailRetryCount = 1;
   private symbolSearchHandle?: ReturnType<typeof setTimeout>;
@@ -743,31 +742,34 @@ export class AppComponent implements OnDestroy, OnInit {
     const storedRemember = localStorage.getItem(this.rememberLoginStorageKey);
     this.rememberLogin = storedRemember !== 'false';
     const storedUsername = localStorage.getItem(this.usernameStorageKey) || this.readCookie(this.usernameCookie);
-    const storedPassword = localStorage.getItem(this.passwordStorageKey) || this.readCookie(this.passwordCookie);
-    if (!storedUsername || !storedPassword) {
+    this.clearLegacyCredentialPersistence();
+
+    if (!this.rememberLogin || !storedUsername) {
+      localStorage.removeItem(this.usernameStorageKey);
       return;
     }
 
     this.username = storedUsername;
-    this.password = storedPassword;
-    this.refreshDashboard();
+    localStorage.setItem(this.usernameStorageKey, storedUsername);
   }
 
   private storeLoginCredentials(): void {
     localStorage.setItem(this.rememberLoginStorageKey, String(this.rememberLogin));
+    this.clearLegacyCredentialPersistence();
     if (!this.rememberLogin) {
-      this.clearLoginCredentials();
+      localStorage.removeItem(this.usernameStorageKey);
       return;
     }
 
     localStorage.setItem(this.usernameStorageKey, this.username);
-    localStorage.setItem(this.passwordStorageKey, this.password);
-    this.writeCookie(this.usernameCookie, this.username);
-    this.writeCookie(this.passwordCookie, this.password);
   }
 
   private clearLoginCredentials(): void {
     localStorage.removeItem(this.usernameStorageKey);
+    this.clearLegacyCredentialPersistence();
+  }
+
+  private clearLegacyCredentialPersistence(): void {
     localStorage.removeItem(this.passwordStorageKey);
     this.deleteCookie(this.usernameCookie);
     this.deleteCookie(this.passwordCookie);
@@ -779,11 +781,6 @@ export class AppComponent implements OnDestroy, OnInit {
       .split('; ')
       .find((item) => item.startsWith(prefix));
     return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : '';
-  }
-
-  private writeCookie(name: string, value: string): void {
-    const secure = location.protocol === 'https:' ? '; Secure' : '';
-    document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${this.loginCookieMaxAgeSeconds}; Path=/; SameSite=Lax${secure}`;
   }
 
   private deleteCookie(name: string): void {
