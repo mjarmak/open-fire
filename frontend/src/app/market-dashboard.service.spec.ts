@@ -95,6 +95,14 @@ describe('MarketDashboardService', () => {
     searchRequest.flush([]);
   });
 
+  it('uses the existing server session when restoring a remembered login without a password', () => {
+    service.fetchIndicators('demoUser', '').subscribe();
+
+    const request = http.expectOne('/api/indicators');
+    expect(request.request.headers.has('Authorization')).toBeFalse();
+    request.flush([]);
+  });
+
   it('removes browser tokens for retired market API providers', () => {
     localStorage.setItem('openfire_market_api_token_fmp', 'fmp-token');
     localStorage.setItem('openfire_market_api_token_alphavantage', 'alpha-token');

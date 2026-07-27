@@ -683,6 +683,9 @@ export class MarketDashboardService {
   }
 
   private basicAuth(username: string, password: string): HttpHeaders {
+    if (!password) {
+      return new HttpHeaders();
+    }
     return new HttpHeaders({
       Authorization: `Basic ${btoa(`${username}:${password}`)}`,
     });

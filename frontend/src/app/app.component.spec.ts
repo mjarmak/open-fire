@@ -576,7 +576,10 @@ describe('AppComponent', () => {
     expect(localStorage.getItem('sma_username')).toBe('demoUser');
     expect(localStorage.getItem('sma_password')).toBeNull();
     expect(document.cookie).not.toContain('sma_password=');
-    expect(marketDashboardService.fetchIndicators).not.toHaveBeenCalled();
+    expect(marketDashboardService.fetchIndicators).toHaveBeenCalledOnceWith('demoUser', '');
+    expect(marketDashboardService.fetchStockPrices).toHaveBeenCalledOnceWith('demoUser', '');
+    expect(marketDashboardService.fetchPortfolio).toHaveBeenCalledOnceWith('demoUser', '');
+    expect(marketDashboardService.notificationStatus).toHaveBeenCalledOnceWith('demoUser', '');
   });
 
   it('never persists a password after a successful login', () => {

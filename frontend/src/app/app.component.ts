@@ -251,6 +251,9 @@ export class AppComponent implements OnDestroy, OnInit {
   ngOnInit(): void {
     this.restoreTheme();
     this.restoreLoginCredentials();
+    if (this.canUseSavedSession) {
+      this.refreshDashboard();
+    }
   }
 
   ngOnDestroy(): void {
@@ -335,6 +338,14 @@ export class AppComponent implements OnDestroy, OnInit {
     return this.username.trim().length >= 3 && this.password.length >= 8;
   }
 
+  private get canUseSavedSession(): boolean {
+    return this.username.trim().length >= 3 && this.password.length === 0;
+  }
+
+  private get canLoadDashboard(): boolean {
+    return this.authCredentialsValid || this.canUseSavedSession;
+  }
+
   get canSubmitAuth(): boolean {
     return this.authCredentialsValid && !this.isLoading;
   }
@@ -386,7 +397,7 @@ export class AppComponent implements OnDestroy, OnInit {
   }
 
   refreshDashboard(clearCredentialsOnAuthFailure = false): void {
-    if (!this.authCredentialsValid) {
+    if (!this.canLoadDashboard) {
       this.showSnackbar('Enter a username and password before logging in.', 'error');
       return;
     }
@@ -1263,7 +1274,7 @@ export class AppComponent implements OnDestroy, OnInit {
   }
 
   loadDcaSettingsSilently(loadToken = this.dashboardLoadToken): void {
-    if (!this.authCredentialsValid) {
+    if (!this.canLoadDashboard) {
       return;
     }
 
@@ -1328,7 +1339,7 @@ export class AppComponent implements OnDestroy, OnInit {
   }
 
   loadRetirementSettingsSilently(loadToken = this.dashboardLoadToken): void {
-    if (!this.authCredentialsValid) return;
+    if (!this.canLoadDashboard) return;
     this.isLoadingRetirement = true;
     this.hasLoadedRetirementSettings = false;
     this.marketDashboardService.retirementSettings(this.username, this.password)
