@@ -71,7 +71,9 @@ test.describe('Header Section', () => {
     await expect(middlePanel.locator('.brand-mark')).toHaveAttribute('srcset', /openfire-logo-96\.png 2x/);
     await expect(middlePanel).toContainText('OpenFIRE');
     await expect(middlePanel).toHaveAttribute('href', 'https://jeniusapps.com/projects/open-fire');
-    await expect(middlePanel).toHaveAttribute('aria-label', 'Open the Open Fire page on Jenius Apps');
+    await expect(middlePanel).toHaveAttribute('target', '_blank');
+    await expect(middlePanel).toHaveAttribute('rel', 'noopener noreferrer');
+    await expect(middlePanel).toHaveAttribute('aria-label', 'Open the Open Fire page on Jenius Apps in a new tab');
 
     const topBarBox = await topBar.boundingBox();
     const middleBox = await middlePanel.boundingBox();
