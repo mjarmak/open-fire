@@ -379,6 +379,9 @@ app-root.light-theme .top-bar .icon-btn {
   padding: 2px 8px;
   justify-self: center;
   pointer-events: auto;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .connection-panel {

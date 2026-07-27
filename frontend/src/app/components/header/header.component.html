@@ -12,7 +12,11 @@
     ></button>
   </div>
 
-  <div class="top-middle-panel" aria-label="OpenFIRE">
+  <a
+    class="top-middle-panel"
+    href="https://jeniusapps.com/projects/open-fire"
+    aria-label="Open the Open Fire page on Jenius Apps"
+  >
     <img
       class="brand-mark"
       src="openfire-logo-48.png"
@@ -22,7 +26,7 @@
       height="36"
     />
     <strong class="top-bar-title">OpenFIRE</strong>
-  </div>
+  </a>
 
   <div class="connection-panel" [class.login-only]="!state.isLoggedIn">
     @if (state.isLoggedIn) {
