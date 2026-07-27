@@ -52,6 +52,7 @@ Use this file as the project rules document for a new repository. Keep it close 
 - Add or update tests for every meaningful behavior change.
 - Use mocked data to validate math and branching deterministically.
 - Use live API smoke tests only behind explicit environment gates.
+- Run Playwright tests with 5 workers by default (`--workers=5`) unless a test explicitly requires serial execution.
 - For bug fixes, add a regression test that fails before the fix and passes after it.
 - Run targeted tests first, then the relevant full suite before committing.
 - If a test cannot be run, state the exact reason and what was verified instead.
