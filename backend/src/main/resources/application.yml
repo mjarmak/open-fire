@@ -35,6 +35,12 @@ app:
 spring:
   application:
     name: open-fire-backend
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URL:https://auth.jeniusapps.com/auth/realms/jenius}
+          jwk-set-uri: ${OIDC_JWKS_URL:https://auth.jeniusapps.com/auth/realms/jenius/protocol/openid-connect/certs}
 
 logging:
   level:

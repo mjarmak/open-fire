@@ -2,13 +2,27 @@ package com.jarmak.stockmarketanalyzer.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 class SecurityConfigTest {
+  @Test
+  void jwtPrincipalUsesJeniusPreferredUsername() {
+    Instant now = Instant.now();
+    Jwt jwt = new Jwt(
+        "token", now, now.plusSeconds(300), Map.of("alg", "none"),
+        Map.of("sub", "jenius-subject-1", "preferred_username", "alice"));
+
+    assertThat(new SecurityConfig().jwtAuthenticationConverter().convert(jwt).getName())
+        .isEqualTo("alice");
+  }
+
   @Test
   void corsAllowsConfiguredCloudOriginForWritePreflight() {
     SecurityConfig securityConfig = new SecurityConfig();

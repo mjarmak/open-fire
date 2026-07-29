@@ -38,6 +38,7 @@ import com.jarmak.stockmarketanalyzer.notification.TelegramNotificationService;
 import com.jarmak.stockmarketanalyzer.portfolio.PortfolioService;
 import com.jarmak.stockmarketanalyzer.security.UserAccountService;
 import com.jarmak.stockmarketanalyzer.security.UserAccountService.DuplicateUsernameException;
+import com.jarmak.stockmarketanalyzer.security.JeniusUserProvisioningFilter;
 import com.jarmak.stockmarketanalyzer.security.UserAccountService.UserAccount;
 import com.jarmak.stockmarketanalyzer.security.UserAccountService.UserDcaSettings;
 import com.jarmak.stockmarketanalyzer.security.UserAccountService.UserRegistrationUnavailableException;
@@ -83,6 +84,9 @@ class DashboardControllerIntegrationTest {
 
   @MockBean
   private UserAccountService userAccountService;
+
+  @MockBean
+  private JeniusUserProvisioningFilter jeniusUserProvisioningFilter;
 
   @MockBean
   private StockAlertService stockAlertService;

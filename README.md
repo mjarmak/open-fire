@@ -30,10 +30,19 @@ mvn -f backend/pom.xml spring-boot:run
 
 Open the Angular app at `http://localhost:4200`.
 
-Default basic auth:
+## Jenius Authentication
 
-- Username: `admin`
-- Password: `admin123`
+Open Fire authenticates through the shared Jenius realm at `https://auth.jeniusapps.com/auth/realms/jenius`.
+The Angular client uses Authorization Code with PKCE and sends bearer tokens to the Spring resource server.
+The public Keycloak client ID is `open-fire`; it has no client secret.
+
+The first request from a Jenius user creates a local Open Fire user row. If a local row already has the same
+`preferred_username`, it is linked to that Jenius account so the existing portfolio and settings are preserved.
+
+The Linux deployment script creates or updates the `open-fire` client in the existing `jenius` realm. It accepts
+`KEYCLOAK_ADMIN_USERNAME` and `KEYCLOAK_ADMIN_PASSWORD` from the deploy env file, or reuses the standard Keycloak
+admin variables already present inside the shared auth container. Redirect URIs are configured for
+`https://openfire.jeniusapps.com`, `http://localhost:4200`, and `http://127.0.0.1:4200`.
 
 ## Tailscale And Network Access
 
@@ -190,9 +199,11 @@ POSTGRES_USER=admin
 POSTGRES_PASSWORD=G@#$g4G#dwsfgfs
 FRED_API_KEY=your-fred-key
 FINNHUB_API_KEY=your-finnhub-key
-APP_BASIC_USER=admin
-APP_PASSWORD_SALT=open-fire-fixed-salt
-APP_PASSWORD_HASH=generated-hash
+JENIUS_KEYCLOAK_REALM=jenius
+KEYCLOAK_CONTAINER=innovilyse_auth
+SHARED_SERVICES_NETWORK=docker_files_default
+OIDC_ISSUER_URL=https://auth.jeniusapps.com/auth/realms/jenius
+OIDC_JWKS_URL=https://auth.jeniusapps.com/auth/realms/jenius/protocol/openid-connect/certs
 ```
 
 Optional Telegram variables:

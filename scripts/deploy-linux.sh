@@ -143,7 +143,7 @@ EOF
   exit 2
 fi
 
-if grep -Eq '^(POSTGRES_PASSWORD=change-me|FRED_API_KEY=your-fred-key|FINNHUB_API_KEY=your-finnhub-key|APP_PASSWORD_HASH=generated-salted-sha256-hash)$' "$ENV_FILE"; then
+if grep -Eq '^(POSTGRES_PASSWORD=change-me|FRED_API_KEY=your-fred-key|FINNHUB_API_KEY=your-finnhub-key|APP_PASSWORD_HASH=generated-salted-sha256-hash|KEYCLOAK_ADMIN_PASSWORD=your_existing_keycloak_admin_password)$' "$ENV_FILE"; then
   cat >&2 <<EOF
 $ENV_FILE still contains template placeholders.
 Fill in the required deploy values, then rerun this script.
@@ -151,6 +151,75 @@ EOF
   exit 2
 fi
 
+env_value() {
+  local key="$1"
+  local line
+  line="$(grep -E "^${key}=" "$ENV_FILE" | tail -n 1 || true)"
+  printf '%s\n' "${line#*=}"
+}
+
+KEYCLOAK_CONTAINER="${KEYCLOAK_CONTAINER:-$(env_value KEYCLOAK_CONTAINER)}"
+JENIUS_KEYCLOAK_REALM="${JENIUS_KEYCLOAK_REALM:-$(env_value JENIUS_KEYCLOAK_REALM)}"
+KEYCLOAK_ADMIN_USERNAME="${KEYCLOAK_ADMIN_USERNAME:-$(env_value KEYCLOAK_ADMIN_USERNAME)}"
+KEYCLOAK_ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:-$(env_value KEYCLOAK_ADMIN_PASSWORD)}"
+SHARED_SERVICES_NETWORK="${SHARED_SERVICES_NETWORK:-$(env_value SHARED_SERVICES_NETWORK)}"
+KEYCLOAK_CONTAINER="${KEYCLOAK_CONTAINER:-innovilyse_auth}"
+JENIUS_KEYCLOAK_REALM="${JENIUS_KEYCLOAK_REALM:-jenius}"
+SHARED_SERVICES_NETWORK="${SHARED_SERVICES_NETWORK:-docker_files_default}"
+
+if ! docker network inspect "$SHARED_SERVICES_NETWORK" >/dev/null 2>&1; then
+  echo "Missing shared Docker network: $SHARED_SERVICES_NETWORK" >&2
+  exit 1
+fi
+if ! docker inspect "$KEYCLOAK_CONTAINER" >/dev/null 2>&1; then
+  echo "Shared Jenius Auth container is not running: $KEYCLOAK_CONTAINER" >&2
+  exit 1
+fi
+
+log "Ensuring the Open Fire public PKCE client exists in Jenius Auth"
+docker exec \
+  -e OPEN_FIRE_KC_ADMIN="$KEYCLOAK_ADMIN_USERNAME" \
+  -e OPEN_FIRE_KC_PASSWORD="$KEYCLOAK_ADMIN_PASSWORD" \
+  -e OPEN_FIRE_KC_REALM="$JENIUS_KEYCLOAK_REALM" \
+  "$KEYCLOAK_CONTAINER" sh -eu -c '
+    kc_admin="${OPEN_FIRE_KC_ADMIN:-${KEYCLOAK_USER:-${KEYCLOAK_ADMIN:-}}}"
+    kc_password="${OPEN_FIRE_KC_PASSWORD:-${KEYCLOAK_PASSWORD:-${KEYCLOAK_ADMIN_PASSWORD:-}}}"
+    if [ -z "$kc_admin" ] || [ -z "$kc_password" ]; then
+      echo "Keycloak admin credentials are missing. Set KEYCLOAK_ADMIN_USERNAME and KEYCLOAK_ADMIN_PASSWORD in the Open Fire env file." >&2
+      exit 2
+    fi
+    if [ -x /opt/keycloak/bin/kcadm.sh ]; then
+      kcadm=/opt/keycloak/bin/kcadm.sh
+    elif [ -x /opt/jboss/keycloak/bin/kcadm.sh ]; then
+      kcadm=/opt/jboss/keycloak/bin/kcadm.sh
+    else
+      echo "Could not find kcadm.sh in the shared Keycloak container." >&2
+      exit 1
+    fi
+    config_file=/tmp/open-fire-kcadm.config
+    "$kcadm" config credentials --config "$config_file" \
+      --server http://localhost:8080/auth --realm master \
+      --user "$kc_admin" --password "$kc_password" >/dev/null
+    client_uuid="$("$kcadm" get clients --config "$config_file" -r "$OPEN_FIRE_KC_REALM" \
+      -q clientId=open-fire --fields id --format csv --noquotes | head -n 1)"
+    if [ -z "$client_uuid" ]; then
+      "$kcadm" create clients --config "$config_file" -r "$OPEN_FIRE_KC_REALM" \
+        -s clientId=open-fire -s protocol=openid-connect -s publicClient=true \
+        -s standardFlowEnabled=true -s implicitFlowEnabled=false \
+        -s directAccessGrantsEnabled=false >/dev/null
+      client_uuid="$("$kcadm" get clients --config "$config_file" -r "$OPEN_FIRE_KC_REALM" \
+        -q clientId=open-fire --fields id --format csv --noquotes | head -n 1)"
+    fi
+    "$kcadm" update "clients/$client_uuid" --config "$config_file" -r "$OPEN_FIRE_KC_REALM" \
+      -s clientId=open-fire \
+      -s '"'"'name=Open Fire'"'"' \
+      -s enabled=true -s publicClient=true -s standardFlowEnabled=true \
+      -s implicitFlowEnabled=false -s directAccessGrantsEnabled=false \
+      -s '"'"'redirectUris=["https://openfire.jeniusapps.com/*","http://localhost:4200/*","http://127.0.0.1:4200/*"]'"'"' \
+      -s '"'"'webOrigins=["https://openfire.jeniusapps.com","http://localhost:4200","http://127.0.0.1:4200"]'"'"' \
+      -s '"'"'attributes={"pkce.code.challenge.method":"S256"}'"'"'
+    rm -f "$config_file"
+  '
 log "Building backend image $BACKEND_IMAGE"
 docker build --pull -f "$APP_DIR/backend/Dockerfile" -t "$BACKEND_IMAGE" "$APP_DIR"
 

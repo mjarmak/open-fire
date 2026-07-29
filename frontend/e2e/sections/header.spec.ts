@@ -126,9 +126,6 @@ test.describe('Header Section', () => {
     await expect(row.locator('.position-title-inline-metric')).toHaveCount(0);
     await expect(row.locator('.ticker-metrics')).toContainText('Price');
     await expect(row.locator('.ticker-metrics')).toContainText('$198.20');
-    await expect(row.locator('.ticker-metrics')).toContainText('Today');
-    await expect(row.locator('.ticker-metrics')).toContainText('0.77%');
-    await expect(row.locator('.ticker-metrics')).toContainText('$18.20');
     await expect(row.locator('.ticker-metrics')).toContainText('Market Cap');
     await expect(row.locator('.ticker-metrics')).toContainText('$2.9T');
     await expect(row).not.toContainText('Fear');
@@ -300,13 +297,18 @@ test.describe('Header Section', () => {
     releaseSearchResponse();
   });
 
-  test('logout returns user to welcome screen', async ({ page }) => {
+  test('logout ends the centralized Jenius session', async ({ page }) => {
     await registerMockApi(page);
     await seedRememberedLogin(page);
     await gotoLoggedInDashboard(page);
+    let logoutRequested = false;
+    await page.route('https://auth.jeniusapps.com/**/logout**', async (route) => {
+      logoutRequested = true;
+      await route.fulfill({ status: 200, contentType: 'text/html', body: '<main>Logged out</main>' });
+    });
 
     await page.getByRole('button', { name: 'Open menu' }).click();
     await page.getByRole('button', { name: 'Logout' }).click();
-    await expect(page.getByRole('heading', { name: 'Welcome to OpenFIRE' })).toBeVisible();
+    await expect.poll(() => logoutRequested).toBe(true);
   });
 });

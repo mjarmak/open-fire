@@ -2,6 +2,7 @@ package com.jarmak.stockmarketanalyzer.config;
 
 import com.jarmak.stockmarketanalyzer.database.DatabaseService;
 import com.jarmak.stockmarketanalyzer.security.DatabaseUserDetailsService;
+import com.jarmak.stockmarketanalyzer.security.JeniusUserProvisioningFilter;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,7 +14,9 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -23,18 +26,27 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableWebSecurity
 public class SecurityConfig {
   @Bean
-  SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+  SecurityFilterChain securityFilterChain(HttpSecurity http, JeniusUserProvisioningFilter provisioningFilter) throws Exception {
     return http
         .csrf(AbstractHttpConfigurer::disable)
         .cors(Customizer.withDefaults())
         .authorizeHttpRequests(auth -> auth
             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-            .requestMatchers(HttpMethod.POST, "/api/users", "/api/users/**").permitAll()
             .requestMatchers("/actuator/health").permitAll()
             .anyRequest().authenticated()
         )
-        .httpBasic(httpBasic -> httpBasic.securityContextRepository(new HttpSessionSecurityContextRepository()))
+        .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())))
+        .addFilterAfter(provisioningFilter, BearerTokenAuthenticationFilter.class)
         .build();
+  }
+
+  @Bean
+  JwtAuthenticationConverter jwtAuthenticationConverter() {
+    JwtGrantedAuthoritiesConverter authorities = new JwtGrantedAuthoritiesConverter();
+    JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+    converter.setPrincipalClaimName("preferred_username");
+    converter.setJwtGrantedAuthoritiesConverter(authorities);
+    return converter;
   }
 
   @Bean

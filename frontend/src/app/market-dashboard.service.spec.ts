@@ -38,7 +38,7 @@ describe('MarketDashboardService', () => {
     service.fetchStockPrices('user', 'password123').subscribe();
 
     const request = http.expectOne('/api/stocks/prices');
-    expect(request.request.headers.get('Authorization')).toBe(`Basic ${btoa('user:password123')}`);
+    expect(request.request.headers.has('Authorization')).toBeFalse();
     request.flush([]);
   });
 
@@ -53,7 +53,7 @@ describe('MarketDashboardService', () => {
     );
     expect(request.request.params.has('includeIndicators')).toBeFalse();
     expect(request.request.params.has('includePriceDetails')).toBeFalse();
-    expect(request.request.headers.get('Authorization')).toBe(`Basic ${btoa('user:password123')}`);
+    expect(request.request.headers.has('Authorization')).toBeFalse();
 
     request.flush([]);
   });
@@ -143,7 +143,7 @@ describe('MarketDashboardService', () => {
 
     const request = http.expectOne('/api/users/me/market-apis/finnhub/test');
     expect(request.request.method).toBe('POST');
-    expect(request.request.headers.get('Authorization')).toBe(`Basic ${btoa('user:password123')}`);
+    expect(request.request.headers.has('Authorization')).toBeFalse();
     expect(request.request.headers.get('X-OpenFire-Api-Token-Finnhub')).toBe('draft-token');
     expect(localStorage.getItem('openfire_market_api_token_finnhub')).toBeNull();
     request.flush({
@@ -198,7 +198,7 @@ describe('MarketDashboardService', () => {
 
     service.ensureGlobalIndicatorChart('vix');
     const firstRequest = expectVixHistoryRequest();
-    expect(firstRequest.request.headers.get('Authorization')).toBe(`Basic ${btoa('user:password123')}`);
+    expect(firstRequest.request.headers.has('Authorization')).toBeFalse();
     firstRequest.flush({ id: 'vix', range: '1y', points: [] });
 
     expect(service.globalIndicatorChartPoints('vix')).toEqual([]);

@@ -1,15 +1,17 @@
 import { ElementRef } from '@angular/core';
-import { TestBed, fakeAsync, tick } from '@angular/core/testing';
+import { TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { NEVER, of, Subject, throwError } from 'rxjs';
 import { AppComponent } from './app.component';
 import { StockAlert, SymbolSearchResult } from './market-dashboard.models';
 import { MarketDashboardService } from './market-dashboard.service';
+import { JeniusAuthService } from './jenius-auth.service';
 
 describe('AppComponent', () => {
   let marketDashboardService: jasmine.SpyObj<MarketDashboardService>;
 
+  let jeniusAuthService: jasmine.SpyObj<JeniusAuthService>;
   function stockLookupRisk(overrides: Partial<StockAlert> = {}): StockAlert {
     return {
       id: null,
@@ -43,6 +45,13 @@ describe('AppComponent', () => {
     localStorage.clear();
     document.cookie = 'sma_username=; Max-Age=0; Path=/; SameSite=Lax';
     document.cookie = 'sma_password=; Max-Age=0; Path=/; SameSite=Lax';
+    jeniusAuthService = jasmine.createSpyObj<JeniusAuthService>('JeniusAuthService', [
+      'initialize',
+      'startLogin',
+      'startRegistration',
+      'logout',
+    ]);
+    jeniusAuthService.initialize.and.resolveTo(null);
     marketDashboardService = jasmine.createSpyObj<MarketDashboardService>('MarketDashboardService', [
       'createUser',
       'fetchDashboard',
@@ -219,6 +228,7 @@ describe('AppComponent', () => {
       providers: [
         { provide: MarketDashboardService, useValue: marketDashboardService },
         provideNoopAnimations(),
+        { provide: JeniusAuthService, useValue: jeniusAuthService },
       ],
     }).compileComponents();
   });
@@ -560,27 +570,36 @@ describe('AppComponent', () => {
     expect(app.password).toBe('');
   });
 
-  it('removes legacy passwords and restores only a remembered username', () => {
+  it('clears legacy credentials and loads the authenticated Jenius user', fakeAsync(() => {
     localStorage.setItem('sma_username', 'demoUser');
     localStorage.setItem('sma_password', 'legacyPassword123');
     localStorage.setItem('sma_remember_login', 'true');
     document.cookie = 'sma_password=legacyCookiePassword; Path=/; SameSite=Lax';
+    jeniusAuthService.initialize.and.callFake(() => {
+      localStorage.removeItem('sma_username');
+      localStorage.removeItem('sma_password');
+      localStorage.removeItem('sma_remember_login');
+      document.cookie = 'sma_password=; Max-Age=0; Path=/; SameSite=Lax';
+      return Promise.resolve({ username: 'demoUser', userId: 'jenius-user-id' });
+    });
+
 
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
 
     app.ngOnInit();
 
+    flushMicrotasks();
     expect(app.username).toBe('demoUser');
     expect(app.password).toBe('');
-    expect(localStorage.getItem('sma_username')).toBe('demoUser');
+    expect(localStorage.getItem('sma_username')).toBeNull();
     expect(localStorage.getItem('sma_password')).toBeNull();
     expect(document.cookie).not.toContain('sma_password=');
     expect(marketDashboardService.fetchIndicators).toHaveBeenCalledOnceWith('demoUser', '');
     expect(marketDashboardService.fetchStockPrices).toHaveBeenCalledOnceWith('demoUser', '');
     expect(marketDashboardService.fetchPortfolio).toHaveBeenCalledOnceWith('demoUser', '');
     expect(marketDashboardService.notificationStatus).toHaveBeenCalledOnceWith('demoUser', '');
-  });
+  }));
 
   it('never persists a password after a successful login', () => {
     const fixture = TestBed.createComponent(AppComponent);
@@ -591,7 +610,7 @@ describe('AppComponent', () => {
 
     app.refreshDashboard(true);
 
-    expect(localStorage.getItem('sma_username')).toBe('demoUser');
+    expect(localStorage.getItem('sma_username')).toBeNull();
     expect(localStorage.getItem('sma_password')).toBeNull();
     expect(document.cookie).not.toContain('sma_username=');
     expect(document.cookie).not.toContain('sma_password=');

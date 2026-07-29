@@ -29,7 +29,7 @@
       (editPosition)="openEditPosition($event)"
       (deletePosition)="confirmDelete($event)"
     />
-  } @else if (isLoading && authCredentialsValid) {
+  } @else if (isLoading) {
     <section class="welcome-shell loading-shell" aria-label="Loading dashboard">
       <div class="welcome-animated-bg" aria-hidden="true"></div>
       <div class="welcome-content">

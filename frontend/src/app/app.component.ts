@@ -16,6 +16,7 @@ import { EditPositionDialogComponent } from './components/edit-position-dialog/e
 import { HeaderComponent } from './components/header/header.component';
 import { IndicatorGridComponent } from './components/indicator-grid/indicator-grid.component';
 import { LoginDialogComponent } from './components/login-dialog/login-dialog.component';
+import { JeniusAuthService } from './jenius-auth.service';
 import { PortfolioBoardComponent } from './components/portfolio-board/portfolio-board.component';
 import { RetirementPlannerComponent } from './components/retirement-planner/retirement-planner.component';
 import { RetirementSettingsDialogComponent } from './components/retirement-settings-dialog/retirement-settings-dialog.component';
@@ -83,7 +84,10 @@ export class AppComponent implements OnDestroy, OnInit {
   private feedbackInputElement?: ElementRef<HTMLTextAreaElement>;
   private feedbackInputSelectionPending = false;
 
-  constructor(public readonly marketDashboardService: MarketDashboardService) {}
+  constructor(
+    public readonly marketDashboardService: MarketDashboardService,
+    private readonly jeniusAuth: JeniusAuthService,
+  ) {}
 
   @ViewChild('stockLookupQueryInput')
   private set stockLookupQueryInput(input: ElementRef<HTMLInputElement> | undefined) {
@@ -250,10 +254,16 @@ export class AppComponent implements OnDestroy, OnInit {
 
   ngOnInit(): void {
     this.restoreTheme();
-    this.restoreLoginCredentials();
-    if (this.canUseSavedSession) {
+    this.isLoading = true;
+    void this.jeniusAuth.initialize().then((user) => {
+      if (!user) {
+        this.isLoading = false;
+        return;
+      }
+      this.username = user.username;
+      this.password = '';
       this.refreshDashboard();
-    }
+    });
   }
 
   ngOnDestroy(): void {
@@ -460,7 +470,6 @@ export class AppComponent implements OnDestroy, OnInit {
       successfulCalls++;
       this.isLoggedIn = true;
       this.loginDialogOpen = false;
-      this.storeLoginCredentials();
     };
     const handleLoadError = (section: string) => (error: HttpErrorResponse) => {
       if (loadToken !== this.dashboardLoadToken) {
@@ -664,13 +673,11 @@ export class AppComponent implements OnDestroy, OnInit {
   }
 
   openLoginDialog(): void {
-    this.authDialogMode = 'login';
-    this.loginDialogOpen = true;
+    void this.jeniusAuth.startLogin('/');
   }
 
   openCreateUserDialog(): void {
-    this.authDialogMode = 'create';
-    this.loginDialogOpen = true;
+    void this.jeniusAuth.startRegistration('/');
   }
 
   closeLoginDialog(): void {
@@ -715,6 +722,7 @@ export class AppComponent implements OnDestroy, OnInit {
     this.marketDashboardService.clearMarketApiTokenVisibility();
     this.marketDashboardService.clearMarketApiTokenTestStates();
     this.dashboard = this.emptyDashboard();
+    this.jeniusAuth.logout();
   }
 
   submitAuthDialog(): void {

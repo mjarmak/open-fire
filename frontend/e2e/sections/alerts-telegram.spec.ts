@@ -25,7 +25,7 @@ test.describe('Alerts & Telegram Section', () => {
     await telegramDialog.getByLabel('Chat ID').fill('123456789');
     await telegramDialog.getByRole('button', { name: 'Save' }).click();
     await expect(telegramDialog).toBeHidden();
-    await expect(page.getByText('Telegram chat ID saved.')).toBeVisible();
+    await expect(page.getByText('Telegram settings saved.')).toBeVisible();
   });
 
   test('runs telegram test action', async ({ page }) => {

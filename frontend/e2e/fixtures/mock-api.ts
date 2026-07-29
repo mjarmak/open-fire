@@ -204,11 +204,7 @@ function decodeBasicAuth(authHeader: string | undefined): { username: string; pa
 }
 
 function authorized(state: MockApiState, authHeader: string | undefined): boolean {
-  const creds = decodeBasicAuth(authHeader);
-  if (!creds) {
-    return false;
-  }
-  return state.users[creds.username] === creds.password;
+  return Boolean(authHeader?.startsWith('Bearer '));
 }
 
 function normalizeHolding(raw: PortfolioHolding): PortfolioHolding {
@@ -347,6 +343,17 @@ function rangeDurationMs(range: string): number {
   }
 }
 
+function mockJeniusAccessToken(username = DEFAULT_USERNAME): string {
+  const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url');
+  const payload = Buffer.from(JSON.stringify({
+    sub: `jenius-${username.toLowerCase()}`,
+    preferred_username: username,
+    email: `${username.toLowerCase()}@example.com`,
+    exp: Math.floor(Date.now() / 1000) + 3600,
+  })).toString('base64url');
+  return `${header}.${payload}.mock-signature`;
+}
+
 export async function registerMockApi(page: Page, initial?: Partial<MockApiState>): Promise<MockApiController> {
   const state: MockApiState = {
     ...defaultState(),
@@ -358,9 +365,14 @@ export async function registerMockApi(page: Page, initial?: Partial<MockApiState
   };
   const calls: Record<string, number> = {};
 
+  await page.addInitScript((token) => {
+    sessionStorage.setItem('open.fire.dev.access-token', token);
+    localStorage.setItem('jeniusapps-analytics-consent', 'denied');
+  }, mockJeniusAccessToken());
   await page.route('**/api/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+
     const method = request.method().toUpperCase();
     const path = url.pathname.replace(/^\/api/, '');
     const authHeader = request.headers()['authorization'];
@@ -391,6 +403,10 @@ export async function registerMockApi(page: Page, initial?: Partial<MockApiState
 
     if (method === 'GET' && path === '/indicators') {
       await route.fulfill({ status: 200, json: state.indicators });
+      return;
+    }
+    if (method === 'GET' && path === '/stocks/prices') {
+      await route.fulfill({ status: 200, json: state.stocks });
       return;
     }
     if (method === 'GET' && path === '/stocks') {
@@ -562,11 +578,8 @@ export async function registerMockApi(page: Page, initial?: Partial<MockApiState
 }
 
 export async function seedRememberedLogin(page: Page, username = DEFAULT_USERNAME, password = DEFAULT_PASSWORD): Promise<void> {
-  await page.addInitScript((auth) => {
-    localStorage.setItem('sma_remember_login', 'true');
-    localStorage.setItem('sma_username', auth.username);
-    localStorage.setItem('sma_password', auth.password);
-  }, { username, password });
+  void page;
+  void username;
 }
 
 export async function gotoLoggedInDashboard(page: Page): Promise<void> {
