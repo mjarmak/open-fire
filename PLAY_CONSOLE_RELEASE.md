@@ -2,14 +2,15 @@
 
 ## App Identity
 
-- Developer account: To confirm in Play Console
+- Developer account: Jenius Tech (`7637583026798485268`)
+- Play Console app ID: `4972903310775044639`
 - Package: `com.jenius.openfire`
 - App name: OpenFIRE
 - Default language: English (United States)
 - App/game: App
 - Category: Finance
-- Price: Awaiting explicit confirmation
-- Countries/regions: Awaiting explicit confirmation
+- Price: Free
+- Countries/regions: All available countries/regions authorized; selection pending release setup
 - Target SDK: 36
 - Minimum SDK: 21
 - Privacy policy: https://jeniusapps.com/privacy-policy
@@ -31,7 +32,7 @@
 - Listing source: `store-listing/PLAY_STORE_LISTING.md`
 - Icon: `frontend/public/openfire-logo-dark-v2-512.png`
 - Feature graphic: `store-listing/assets/feature-graphic.png`
-- Phone screenshots: Pending capture
+- Phone screenshots: `store-listing/assets/phone-welcome.png`, `store-listing/assets/phone-dashboard.png`
 - Tablet screenshots: Pending Play Console requirement check
 - Release notes: `store-listing/PLAY_STORE_LISTING.md`
 
@@ -45,8 +46,8 @@
 - Government: Not a government app
 - Health: No health features
 - Financial features: Portfolio tracking and financial education/planning; no transactions, lending, banking, crypto exchange, or financial advice
-- Data safety: Pending exact artifact and backend review
-- Account deletion: Pending verification of the Jenius account-deletion flow and required URL
+- Data safety: In progress; account identity, portfolio/configuration data, optional analytics, Telegram settings, and feedback are in scope
+- Account deletion: https://openfire.jeniusapps.com/account-deletion/ (deployment pending)
 - Permissions/sensitive APIs: No sensitive Android permissions; only the app-scoped dynamic receiver permission is present in the merged manifest
 - Foreground services: None
 - Review video: Not expected; pending Console requirements
@@ -54,6 +55,7 @@
 ## Release Status
 
 - Track: Production requested; Console eligibility pending
+- Play app record: Created
 - Uploaded: No
 - Previewed/confirmed: No
 - Submitted: No
@@ -61,4 +63,4 @@
 - Approved: No
 - Rollout: None
 - Public listing URL: Pending
-- Remaining blockers: Listing graphics/screenshots, Console app setup and declarations, explicit price/country scope
+- Remaining blockers: Reviewer sign-in account, IARC terms confirmation/content rating, remaining Data Safety and audience forms, AAB upload, country selection, and release review
