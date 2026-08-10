@@ -60,6 +60,10 @@
         />
         <h2>Welcome to OpenFIRE</h2>
         <p>Please log in to view your market dashboard, portfolio, alerts, and retirement planner.</p>
+        <div class="welcome-actions" aria-label="Authentication options">
+          <button type="button" (click)="openLoginDialog()">Login</button>
+          <button type="button" class="secondary" (click)="openCreateUserDialog()">Register</button>
+        </div>
       </div>
     </section>
   }

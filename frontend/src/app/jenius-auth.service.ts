@@ -53,10 +53,7 @@ export class JeniusAuthService {
       }
     }
 
-    if (!this.accessToken) {
-      await this.startLogin(location.pathname + location.search + location.hash);
-      return null;
-    }
+    if (!this.accessToken) return null;
     return this.currentUser();
   }
 

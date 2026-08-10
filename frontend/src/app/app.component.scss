@@ -384,6 +384,28 @@ app-root.light-theme .top-bar .icon-btn {
   cursor: pointer;
 }
 
+.welcome-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.welcome-actions button {
+  min-width: 112px;
+}
+
+@media (max-width: 420px) {
+  .welcome-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .welcome-actions button {
+    width: 100%;
+  }
+}
+
 .connection-panel {
   display: flex;
   flex-wrap: wrap;

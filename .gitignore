@@ -10,3 +10,11 @@ frontend/.angular/
 frontend/dist/
 
 *.log
+# Android Play signing and generated release artifacts
+android/app-signing/
+android/app-release-bundle.aab
+android/app-release-signed.apk
+android/.gradle/
+android/app/build/
+android/build/
+android/.gradle/

@@ -1,0 +1,50 @@
+{
+  "packageId": "com.jenius.openfire",
+  "host": "openfire.jeniusapps.com",
+  "name": "OpenFIRE",
+  "launcherName": "OpenFIRE",
+  "display": "standalone",
+  "themeColor": "#1d1f22",
+  "themeColorDark": "#101010",
+  "navigationColor": "#101010",
+  "navigationColorDark": "#101010",
+  "navigationDividerColor": "#00000000",
+  "navigationDividerColorDark": "#00000000",
+  "backgroundColor": "#101010",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://openfire.jeniusapps.com/openfire-logo-dark-v2-512.png",
+  "maskableIconUrl": "https://openfire.jeniusapps.com/openfire-logo-dark-v2-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./app-signing/open-fire-upload.keystore",
+    "alias": "open-fire-upload"
+  },
+  "appVersion": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://openfire.jeniusapps.com/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://openfire.jeniusapps.com/",
+  "minSdkVersion": 21,
+  "orientation": "default",
+  "fingerprints": [
+    {
+      "value": "57:AA:0C:02:74:AB:74:DA:B3:A7:7D:8F:EC:2D:A3:4A:A8:79:C1:A6:97:6F:33:64:40:23:96:D8:BD:5E:3A:8B"
+    }
+  ],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": []
+}

@@ -2,6 +2,21 @@ import { expect, test } from '@playwright/test';
 import { registerMockApi } from '../fixtures/mock-api';
 
 test.describe('Jenius Auth Section', () => {
+  test('keeps the welcome page visible until the user starts login', async ({ page }) => {
+    let loginRequested = false;
+    await page.route('https://auth.jeniusapps.com/**/auth**', async (route) => {
+      loginRequested = true;
+      await route.fulfill({ status: 200, contentType: 'text/html', body: '<main>Jenius login</main>' });
+    });
+
+    await page.goto('/');
+
+    await expect(page.getByRole('heading', { name: 'Welcome to OpenFIRE' })).toBeVisible();
+    expect(loginRequested).toBe(false);
+    await page.getByRole('button', { name: 'Login' }).last().click();
+    await expect.poll(() => loginRequested).toBe(true);
+  });
+
   test('sends the Jenius bearer token to the API without persisting a password', async ({ page }) => {
     await registerMockApi(page);
     const apiAuthorizationHeaders: string[] = [];

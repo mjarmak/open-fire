@@ -601,6 +601,28 @@ describe('AppComponent', () => {
     expect(marketDashboardService.notificationStatus).toHaveBeenCalledOnceWith('demoUser', '');
   }));
 
+  it('keeps the welcome page visible until the user chooses an authentication action', fakeAsync(() => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+
+    fixture.detectChanges();
+    flushMicrotasks();
+    fixture.detectChanges();
+
+    expect(app.isLoggedIn).toBeFalse();
+    expect(app.isLoading).toBeFalse();
+    expect(jeniusAuthService.startLogin).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Welcome to OpenFIRE');
+
+    const actions = fixture.nativeElement.querySelector('.welcome-actions') as HTMLElement;
+    const buttons = Array.from(actions.querySelectorAll('button'));
+    buttons.find((button) => button.textContent?.trim() === 'Login')?.click();
+    buttons.find((button) => button.textContent?.trim() === 'Register')?.click();
+
+    expect(jeniusAuthService.startLogin).toHaveBeenCalledOnceWith('/');
+    expect(jeniusAuthService.startRegistration).toHaveBeenCalledOnceWith('/');
+  }));
+
   it('never persists a password after a successful login', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
