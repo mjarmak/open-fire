@@ -30,27 +30,28 @@
 ## Store Listing
 
 - Listing source: `store-listing/PLAY_STORE_LISTING.md`
-- Icon: `frontend/public/openfire-logo-dark-v2-512.png`
+- Landing-page artwork source: `store-listing/assets/open-fire-landing.png` (exact copy of `https://jeniusapps.com/assets/projects/open-fire.png`)
+- Icon: `store-listing/assets/open-fire-landing.png`
 - Feature graphic: `store-listing/assets/feature-graphic.png`
 - Phone screenshots: `store-listing/assets/phone-welcome.png`, `store-listing/assets/phone-dashboard.png`
 - Tablet screenshots: Pending Play Console requirement check
 - Release notes: `store-listing/PLAY_STORE_LISTING.md`
 - Console text status: English (United States) descriptions saved as a draft
-- Console asset status: Pending Chrome extension access to local files
+- Console asset status: Pending Chrome extension access to local files; artwork and screenshots are ready
 
 ## Declarations
 
-- App access: Login required; reusable reviewer credentials required by Google Play
+- App access: Login required; reusable Google Play reviewer account configured with full access and no trusted-partner testing access
 - Ads: No ads
-- Target audience: Adults; final age-group selection pending Console
-- Content rating: Pending questionnaire
+- Target audience: 18 and over
+- Content rating: IARC questionnaire applied; Everyone / PEGI 3 / all-ages equivalents, with online content declared
 - News: Not a news app
 - Government: Not a government app
 - Health: No health features
 - Financial features: Portfolio tracking and financial education/planning; no transactions, lending, banking, crypto exchange, or financial advice
-- Data safety: All five questionnaire steps answered in a draft; submission is blocked until sign-in details and target audience are complete
+- Data safety: All five questionnaire steps completed and saved to Publishing overview
 - Data safety scope: Email address, user IDs, other financial info, feedback messages, app interactions, in-app search history, and device/other IDs
-- Account deletion: https://openfire.jeniusapps.com/account-deletion/ (HTTP 200 verified; production currently serves the Angular shell at this route, so the dedicated deletion content still needs deployment verification)
+- Account deletion: https://openfire.jeniusapps.com/account-deletion/ (HTTP 200 and dedicated deletion content verified in production)
 - Permissions/sensitive APIs: No sensitive Android permissions; only the app-scoped dynamic receiver permission is present in the merged manifest
 - Foreground services: None
 - Review video: Not expected; pending Console requirements
@@ -59,7 +60,7 @@
 
 - Track: Production requested; Console eligibility pending
 - Play app record: Created
-- Initial setup tasks: 6 of 11 complete
+- Initial setup tasks: 10 of 11 complete
 - Uploaded: No
 - Previewed/confirmed: No
 - Submitted: No
@@ -67,4 +68,4 @@
 - Approved: No
 - Rollout: None
 - Public listing URL: Pending
-- Remaining blockers: Reviewer sign-in account, IARC terms confirmation/content rating, Chrome local-file upload permission, dedicated account-deletion page deployment, target audience, Data Safety submission, AAB upload, country selection, and release review
+- Remaining blockers: Chrome local-file upload permission, Store Listing asset upload, AAB upload, country selection, and release review

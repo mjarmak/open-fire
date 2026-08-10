@@ -32,3 +32,10 @@ Full description:
 ## Release Notes
 
 > First production release of OpenFIRE for Android, with portfolio monitoring, market-risk indicators, alerts, DCA reminders, retirement planning, and Jenius account authentication.
+
+## Visual Assets
+
+- Primary artwork: `assets/open-fire-landing.png`
+- Source: `https://jeniusapps.com/assets/projects/open-fire.png`
+- Feature graphic: `assets/feature-graphic.png`
+- Phone screenshots: `assets/phone-welcome.png`, `assets/phone-dashboard.png`
