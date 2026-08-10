@@ -35,10 +35,12 @@
 - Phone screenshots: `store-listing/assets/phone-welcome.png`, `store-listing/assets/phone-dashboard.png`
 - Tablet screenshots: Pending Play Console requirement check
 - Release notes: `store-listing/PLAY_STORE_LISTING.md`
+- Console text status: English (United States) descriptions saved as a draft
+- Console asset status: Pending Chrome extension access to local files
 
 ## Declarations
 
-- App access: Login required; reviewer instructions pending Play Console setup
+- App access: Login required; reusable reviewer credentials required by Google Play
 - Ads: No ads
 - Target audience: Adults; final age-group selection pending Console
 - Content rating: Pending questionnaire
@@ -46,8 +48,9 @@
 - Government: Not a government app
 - Health: No health features
 - Financial features: Portfolio tracking and financial education/planning; no transactions, lending, banking, crypto exchange, or financial advice
-- Data safety: In progress; account identity, portfolio/configuration data, optional analytics, Telegram settings, and feedback are in scope
-- Account deletion: https://openfire.jeniusapps.com/account-deletion/ (deployment pending)
+- Data safety: All five questionnaire steps answered in a draft; submission is blocked until sign-in details and target audience are complete
+- Data safety scope: Email address, user IDs, other financial info, feedback messages, app interactions, in-app search history, and device/other IDs
+- Account deletion: https://openfire.jeniusapps.com/account-deletion/ (HTTP 200 verified; production currently serves the Angular shell at this route, so the dedicated deletion content still needs deployment verification)
 - Permissions/sensitive APIs: No sensitive Android permissions; only the app-scoped dynamic receiver permission is present in the merged manifest
 - Foreground services: None
 - Review video: Not expected; pending Console requirements
@@ -56,6 +59,7 @@
 
 - Track: Production requested; Console eligibility pending
 - Play app record: Created
+- Initial setup tasks: 6 of 11 complete
 - Uploaded: No
 - Previewed/confirmed: No
 - Submitted: No
@@ -63,4 +67,4 @@
 - Approved: No
 - Rollout: None
 - Public listing URL: Pending
-- Remaining blockers: Reviewer sign-in account, IARC terms confirmation/content rating, remaining Data Safety and audience forms, AAB upload, country selection, and release review
+- Remaining blockers: Reviewer sign-in account, IARC terms confirmation/content rating, Chrome local-file upload permission, dedicated account-deletion page deployment, target audience, Data Safety submission, AAB upload, country selection, and release review
