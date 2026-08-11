@@ -1,5 +1,5 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Injectable, isDevMode } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { firstValueFrom, finalize, Observable, shareReplay, throwError } from 'rxjs';
 
 export interface JeniusAuthUser {
@@ -25,7 +25,9 @@ export const JENIUS_AUTH_ENDPOINT =
 export const JENIUS_CLIENT_ID = 'open-fire';
 
 const PKCE_VERIFIER_KEY = 'open.fire.pkce.verifier';
-const DEV_ACCESS_TOKEN_KEY = 'open.fire.dev.access-token';
+const ACCESS_TOKEN_KEY = 'open.fire.access-token';
+const REFRESH_TOKEN_KEY = 'open.fire.refresh-token';
+const LEGACY_DEV_ACCESS_TOKEN_KEY = 'open.fire.dev.access-token';
 const OAUTH_STATE_KEY = 'open.fire.oauth.state';
 const RETURN_URL_KEY = 'open.fire.oauth.return-url';
 
@@ -39,9 +41,10 @@ export class JeniusAuthService {
   constructor(private readonly http: HttpClient) {
     window.addEventListener('pageshow', this.resetRedirectState);
     this.clearLegacyCredentials();
-    if (isDevMode()) {
-      this.accessToken = sessionStorage.getItem(DEV_ACCESS_TOKEN_KEY);
-    }
+    this.accessToken = sessionStorage.getItem(ACCESS_TOKEN_KEY)
+      || sessionStorage.getItem(LEGACY_DEV_ACCESS_TOKEN_KEY);
+    this.refreshToken = sessionStorage.getItem(REFRESH_TOKEN_KEY);
+    sessionStorage.removeItem(LEGACY_DEV_ACCESS_TOKEN_KEY);
   }
 
   async initialize(): Promise<JeniusAuthUser | null> {
@@ -181,15 +184,19 @@ export class JeniusAuthService {
   private storeTokens(tokens: TokenResponse): void {
     this.accessToken = tokens.access_token;
     this.refreshToken = tokens.refresh_token || this.refreshToken;
+    sessionStorage.setItem(ACCESS_TOKEN_KEY, this.accessToken);
+    if (this.refreshToken) {
+      sessionStorage.setItem(REFRESH_TOKEN_KEY, this.refreshToken);
+    }
     this.redirecting = false;
   }
 
   private clearTokens(): void {
     this.accessToken = null;
     this.refreshToken = null;
-    if (isDevMode()) {
-      sessionStorage.removeItem(DEV_ACCESS_TOKEN_KEY);
-    }
+    sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+    sessionStorage.removeItem(LEGACY_DEV_ACCESS_TOKEN_KEY);
   }
 
   private clearAuthorizationRequest(): void {
