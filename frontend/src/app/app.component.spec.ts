@@ -286,7 +286,7 @@ describe('AppComponent', () => {
     expect(welcomeLogo?.getAttribute('srcset')).toContain('openfire-logo-256.png 2x');
   });
 
-  it('hides the header authentication actions while authentication is loading', () => {
+  it('keeps authentication actions out of the header', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
     fixture.detectChanges();

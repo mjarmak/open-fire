@@ -30,7 +30,7 @@
     <strong class="top-bar-title">OpenFIRE</strong>
   </a>
 
-  <div class="connection-panel" [class.login-only]="!state.isLoggedIn">
+  <div class="connection-panel">
     @if (state.isLoggedIn) {
       <button
         type="button"
@@ -59,22 +59,6 @@
           <span class="alert-badge">{{ state.alertCount > 99 ? '99+' : state.alertCount }}</span>
         }
       </button>
-    } @else {
-      @if (!state.isLoading) {
-        <button
-          type="button"
-          (click)="openLogin.emit()"
-        >
-          Login
-        </button>
-        <button
-          type="button"
-          class="secondary"
-          (click)="openCreateUser.emit()"
-        >
-          Create user
-        </button>
-      }
     }
   </div>
 </header>

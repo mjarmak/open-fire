@@ -28,8 +28,6 @@ export class HeaderComponent {
   @Output() refresh = new EventEmitter<void>();
   @Output() searchStock = new EventEmitter<void>();
   @Output() logout = new EventEmitter<void>();
-  @Output() openLogin = new EventEmitter<void>();
-  @Output() openCreateUser = new EventEmitter<void>();
   @Output() openFeedback = new EventEmitter<void>();
   @Output() openApiTokens = new EventEmitter<void>();
 
