@@ -37,5 +37,5 @@ Full description:
 
 - Primary artwork: `assets/open-fire-landing.png`
 - Source: `https://jeniusapps.com/assets/projects/open-fire.png`
-- Feature graphic: `assets/feature-graphic.png`
+- Feature graphic: `assets/feature-graphic-ai.png`
 - Phone screenshots: `assets/phone-welcome.png`, `assets/phone-dashboard.png`
