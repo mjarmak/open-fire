@@ -10,7 +10,7 @@
 - App/game: App
 - Category: Finance
 - Price: Free
-- Countries/regions: All available countries/regions authorized; selection pending release setup
+- Countries/regions: All 176 available countries/regions plus rest of world selected
 - Target SDK: 36
 - Minimum SDK: 21
 - Privacy policy: https://jeniusapps.com/privacy-policy
@@ -34,10 +34,11 @@
 - Icon: `store-listing/assets/open-fire-landing.png`
 - Feature graphic: `store-listing/assets/feature-graphic-ai.png`
 - Phone screenshots: `store-listing/assets/phone/01-dashboard.jpg` through `08-telegram-alerts.jpg`
-- Tablet screenshots: Pending Play Console requirement check
+- Tablet screenshots: Not required by Play Console validation
 - Release notes: `store-listing/PLAY_STORE_LISTING.md`
-- Console text status: English (United States) descriptions saved as a draft
-- Console asset status: Pending Chrome extension access to local files; artwork and screenshots are ready
+- Console text status: English (United States) listing saved and submitted for review
+- Console asset status: Icon, generated feature graphic, and eight phone screenshots uploaded
+- AI asset declaration: `feature-graphic-ai.png` labelled as created or edited using AI
 
 ## Declarations
 
@@ -54,18 +55,18 @@
 - Account deletion: https://openfire.jeniusapps.com/account-deletion/ (HTTP 200 and dedicated deletion content verified in production)
 - Permissions/sensitive APIs: No sensitive Android permissions; only the app-scoped dynamic receiver permission is present in the merged manifest
 - Foreground services: None
-- Review video: Not expected; pending Console requirements
+- Review video: Not required by Play Console
 
 ## Release Status
 
-- Track: Production requested; Console eligibility pending
+- Track: Production, full rollout requested
 - Play app record: Created
-- Initial setup tasks: 10 of 11 complete
-- Uploaded: No
-- Previewed/confirmed: No
-- Submitted: No
-- Review state: Not submitted
+- Initial setup tasks: Complete
+- Uploaded: Yes, AAB version code 1 (`1.0.0`), 1.09 MB new-install size
+- Previewed/confirmed: Yes
+- Submitted: Yes, 11 changes sent for review on 2026-08-11
+- Review state: In review
 - Approved: No
-- Rollout: None
+- Rollout: Pending Google review
 - Public listing URL: Pending
-- Remaining blockers: Chrome local-file upload permission, Store Listing asset upload, AAB upload, country selection, and release review
+- Remaining blocker: Google Play review and approval
