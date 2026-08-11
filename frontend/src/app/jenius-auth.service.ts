@@ -37,6 +37,7 @@ export class JeniusAuthService {
   private refreshRequest: Observable<TokenResponse> | null = null;
 
   constructor(private readonly http: HttpClient) {
+    window.addEventListener('pageshow', this.resetRedirectState);
     this.clearLegacyCredentials();
     if (isDevMode()) {
       this.accessToken = sessionStorage.getItem(DEV_ACCESS_TOKEN_KEY);
@@ -212,6 +213,10 @@ export class JeniusAuthService {
   private formHeaders(): HttpHeaders {
     return new HttpHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' });
   }
+
+  private readonly resetRedirectState = (): void => {
+    this.redirecting = false;
+  };
 
   private base64Url(bytes: Uint8Array): string {
     const binary = Array.from(bytes, (value) => String.fromCharCode(value)).join('');
