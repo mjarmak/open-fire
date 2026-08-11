@@ -38,4 +38,12 @@ Full description:
 - Primary artwork: `assets/open-fire-landing.png`
 - Source: `https://jeniusapps.com/assets/projects/open-fire.png`
 - Feature graphic: `assets/feature-graphic-ai.png`
-- Phone screenshots: `assets/phone-welcome.png`, `assets/phone-dashboard.png`
+- Phone screenshots, in listing order:
+  1. `assets/phone/01-dashboard.jpg`
+  2. `assets/phone/02-retirement-projection.jpg`
+  3. `assets/phone/03-portfolio-risks.jpg`
+  4. `assets/phone/04-position-details.jpg`
+  5. `assets/phone/05-stock-search.jpg`
+  6. `assets/phone/06-active-alerts.jpg`
+  7. `assets/phone/07-retirement-settings.jpg`
+  8. `assets/phone/08-telegram-alerts.jpg`

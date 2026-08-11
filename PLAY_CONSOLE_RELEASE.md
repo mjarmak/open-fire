@@ -33,7 +33,7 @@
 - Landing-page artwork source: `store-listing/assets/open-fire-landing.png` (exact copy of `https://jeniusapps.com/assets/projects/open-fire.png`)
 - Icon: `store-listing/assets/open-fire-landing.png`
 - Feature graphic: `store-listing/assets/feature-graphic-ai.png`
-- Phone screenshots: `store-listing/assets/phone-welcome.png`, `store-listing/assets/phone-dashboard.png`
+- Phone screenshots: `store-listing/assets/phone/01-dashboard.jpg` through `08-telegram-alerts.jpg`
 - Tablet screenshots: Pending Play Console requirement check
 - Release notes: `store-listing/PLAY_STORE_LISTING.md`
 - Console text status: English (United States) descriptions saved as a draft
