@@ -257,7 +257,7 @@ export class AppComponent implements OnDestroy, OnInit {
     this.isLoading = true;
     void this.jeniusAuth.initialize().then((user) => {
       if (!user) {
-        this.isLoading = false;
+        void this.jeniusAuth.startLogin('/');
         return;
       }
       this.username = user.username;

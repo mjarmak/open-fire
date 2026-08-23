@@ -267,12 +267,12 @@ describe('AppComponent', () => {
     expect(jeniusAppsLink?.getAttribute('target')).toBe('_blank');
   });
 
-  it('uses generated PNG logo assets for the header and welcome screen', () => {
+  it('uses generated PNG logo assets for the header and auth redirect loading screen', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
     fixture.detectChanges();
     app.isLoggedIn = false;
-    app.isLoading = false;
+    app.isLoading = true;
     app.username = '';
     app.password = '';
     fixture.detectChanges();
@@ -601,7 +601,7 @@ describe('AppComponent', () => {
     expect(marketDashboardService.notificationStatus).toHaveBeenCalledOnceWith('demoUser', '');
   }));
 
-  it('keeps the welcome page visible until the user chooses an authentication action', fakeAsync(() => {
+  it('redirects unauthenticated users to Jenius Auth on startup', fakeAsync(() => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
 
@@ -610,17 +610,9 @@ describe('AppComponent', () => {
     fixture.detectChanges();
 
     expect(app.isLoggedIn).toBeFalse();
-    expect(app.isLoading).toBeFalse();
-    expect(jeniusAuthService.startLogin).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.textContent).toContain('Welcome to OpenFIRE');
-
-    const actions = fixture.nativeElement.querySelector('.welcome-actions') as HTMLElement;
-    const buttons = Array.from(actions.querySelectorAll('button'));
-    buttons.find((button) => button.textContent?.trim() === 'Login')?.click();
-    buttons.find((button) => button.textContent?.trim() === 'Register')?.click();
-
+    expect(app.isLoading).toBeTrue();
     expect(jeniusAuthService.startLogin).toHaveBeenCalledOnceWith('/');
-    expect(jeniusAuthService.startRegistration).toHaveBeenCalledOnceWith('/');
+    expect(fixture.nativeElement.querySelector('.welcome-actions')).toBeNull();
   }));
 
   it('never persists a password after a successful login', () => {

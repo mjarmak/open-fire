@@ -44,26 +44,6 @@
         <p>Fetching your portfolio, market indicators, and alerts.</p>
       </div>
     </section>
-  } @else {
-    <section class="welcome-shell" aria-label="Welcome">
-      <div class="welcome-animated-bg" aria-hidden="true"></div>
-      <div class="welcome-content">
-        <img
-          class="welcome-logo"
-          src="openfire-logo-128.png"
-          srcset="openfire-logo-128.png 1x, openfire-logo-256.png 2x"
-          alt=""
-          width="112"
-          height="112"
-        />
-        <h2>Welcome to OpenFIRE</h2>
-        <p>Please log in to view your market dashboard, portfolio, alerts, and retirement planner.</p>
-        <div class="welcome-actions" aria-label="Authentication options">
-          <button type="button" (click)="openLoginDialog()">Login</button>
-          <button type="button" class="secondary" (click)="openCreateUserDialog()">Register</button>
-        </div>
-      </div>
-    </section>
   }
 </main>
 
