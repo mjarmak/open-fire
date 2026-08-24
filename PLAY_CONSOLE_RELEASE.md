@@ -25,7 +25,9 @@
 - Build command: `powershell -ExecutionPolicy Bypass -File scripts/build-android-bundle.ps1`
 - AAB path: `android/app-release-bundle.aab`
 - SHA-256: 6163650ed8dce33e24291e74348171373cdcb807c6f7c3312f5470300f8b9488
-- Signing certificate fingerprint: 57:AA:0C:02:74:AB:74:DA:B3:A7:7D:8F:EC:2D:A3:4A:A8:79:C1:A6:97:6F:33:64:40:23:96:D8:BD:5E:3A:8B
+- Upload certificate fingerprint: 57:AA:0C:02:74:AB:74:DA:B3:A7:7D:8F:EC:2D:A3:4A:A8:79:C1:A6:97:6F:33:64:40:23:96:D8:BD:5E:3A:8B
+- Google Play app-signing certificate fingerprint: 2E:70:5E:8E:DE:F4:D7:F4:5B:14:D1:4E:0D:E9:3A:F8:C5:0D:CD:AC:93:64:B1:10:3E:D1:1A:3A:BF:42:73:53
+- Digital Asset Links must contain both fingerprints so local release builds and Play-installed builds both verify the TWA and auth callback app link.
 
 ## Store Listing
 
