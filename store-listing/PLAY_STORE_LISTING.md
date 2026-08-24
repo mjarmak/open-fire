@@ -31,7 +31,7 @@ Full description:
 
 ## Release Notes
 
-> First production release of OpenFIRE for Android, with portfolio monitoring, market-risk indicators, alerts, DCA reminders, retirement planning, and Jenius account authentication.
+> Fixed the Android authentication return flow so OpenFIRE resumes inside the app after signing in with Jenius.
 
 ## Visual Assets
 
