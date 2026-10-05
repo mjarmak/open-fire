@@ -19,6 +19,15 @@
             <span>Enable Telegram DCA reminder</span>
           </label>
           <small class="field-hint">Disabled by default. Turn this on only if you want scheduled DCA messages in Telegram.</small>
+          <label class="remember-login">
+            <input name="emailDcaEnabled" type="checkbox" [(ngModel)]="state.draftEmailDcaEnabled" />
+            <span>Email my DCA reminder</span>
+          </label>
+          <label class="remember-login">
+            <input name="emailReturnEnabled" type="checkbox" [(ngModel)]="state.draftEmailReturnEnabled" />
+            <span>Email me after a week away</span>
+          </label>
+          <small class="field-hint">Sent to your verified Jenius account email.</small>
 
           <div class="weekday-field" role="group" aria-label="DCA reminder days">
             <span>Reminder days</span>
@@ -39,7 +48,7 @@
           </div>
 
           <label>
-            <span>DCA Note (shown first in Telegram reminder)</span>
+            <span>DCA Note (shown first in reminders)</span>
             <textarea
               name="dcaReminderNote"
               rows="8"

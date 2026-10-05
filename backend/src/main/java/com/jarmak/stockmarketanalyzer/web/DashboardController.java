@@ -303,19 +303,19 @@ public class DashboardController {
     return new DcaSettingsResponse(
         settings.telegramDcaEnabled(),
         settings.reminderNote() == null ? "" : settings.reminderNote(),
-        settings.reminderDays()
+        settings.reminderDays(), settings.emailDcaEnabled(), settings.emailReturnEnabled()
     );
   }
 
   @PutMapping("/users/me/dca")
   DcaSettingsResponse updateDcaSettings(@Valid @RequestBody DcaSettingsRequest request) {
     UserDcaSettings settings = userAccountService.updateCurrentDcaSettings(
-        new UserDcaSettings(request.telegramDcaEnabled(), request.reminderNote(), request.reminderDays())
+        new UserDcaSettings(request.telegramDcaEnabled(), request.reminderNote(), request.reminderDays(), request.emailDcaEnabled(), request.emailReturnEnabled())
     );
     return new DcaSettingsResponse(
         settings.telegramDcaEnabled(),
         settings.reminderNote() == null ? "" : settings.reminderNote(),
-        settings.reminderDays()
+        settings.reminderDays(), settings.emailDcaEnabled(), settings.emailReturnEnabled()
     );
   }
 
@@ -364,14 +364,18 @@ public class DashboardController {
   public record DcaSettingsRequest(
       boolean telegramDcaEnabled,
       @Size(max = 800) String reminderNote,
-      List<String> reminderDays
+      List<String> reminderDays,
+      boolean emailDcaEnabled,
+      boolean emailReturnEnabled
   ) {
   }
 
   public record DcaSettingsResponse(
       boolean telegramDcaEnabled,
       String reminderNote,
-      List<String> reminderDays
+      List<String> reminderDays,
+      boolean emailDcaEnabled,
+      boolean emailReturnEnabled
   ) {
   }
 

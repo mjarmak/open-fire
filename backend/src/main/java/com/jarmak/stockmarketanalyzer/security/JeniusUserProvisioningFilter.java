@@ -32,29 +32,37 @@ public class JeniusUserProvisioningFilter extends OncePerRequestFilter {
   ) throws ServletException, IOException {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     if (authentication instanceof JwtAuthenticationToken jwt && authentication.isAuthenticated()) {
-      provision(jwt.getName(), jwt.getToken().getSubject());
+      provision(jwt.getName(), jwt.getToken().getSubject(), jwt.getToken().getClaimAsString("email"),
+          Boolean.TRUE.equals(jwt.getToken().getClaimAsBoolean("email_verified")),
+          request.getRequestURI().endsWith("/users/me/dca"));
     }
     filterChain.doFilter(request, response);
   }
 
-  private void provision(String username, String subject) throws ServletException {
+  private void provision(String username, String subject, String email, boolean verified, boolean visit) throws ServletException {
     if (!StringUtils.hasText(username) || !StringUtils.hasText(subject)) {
       throw new ServletException("Jenius access token is missing its user identity.");
     }
     try (
         Connection connection = databaseService.connection();
         PreparedStatement statement = connection.prepareStatement("""
-            insert into users (username, password_hash, enabled, oidc_subject, updated_at)
-            values (?, '', true, ?, now())
+            insert into users (username, password_hash, enabled, oidc_subject, email_address, email_verified, last_app_visit, updated_at)
+            values (?, '', true, ?, ?, ?, case when ? then now() else null end, now())
             on conflict (username) do update
             set oidc_subject = excluded.oidc_subject,
                 enabled = true,
+                email_address = excluded.email_address,
+                email_verified = excluded.email_verified,
+                last_app_visit = coalesce(excluded.last_app_visit, users.last_app_visit),
                 updated_at = now()
             where users.oidc_subject is null or users.oidc_subject = excluded.oidc_subject
             """)
     ) {
       statement.setString(1, username);
       statement.setString(2, subject);
+      statement.setString(3, email);
+      statement.setBoolean(4, verified);
+      statement.setBoolean(5, visit);
       if (statement.executeUpdate() == 0) {
         throw new ServletException("This Open Fire username is linked to another Jenius account.");
       }

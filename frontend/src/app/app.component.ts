@@ -701,6 +701,10 @@ export class AppComponent implements OnDestroy, OnInit {
     this.hasLoadedRetirementSettings = false;
     this.retirementSettingsOpen = false;
     this.telegramDcaEnabled = false;
+    this.marketDashboardService.emailDcaEnabled = false;
+    this.marketDashboardService.emailReturnEnabled = false;
+    this.marketDashboardService.draftEmailDcaEnabled = false;
+    this.marketDashboardService.draftEmailReturnEnabled = false;
     this.dcaReminderNote = '';
     this.dcaReminderDays = [...this.marketDashboardService.defaultDcaReminderDays];
     this.draftTelegramDcaEnabled = false;
@@ -1268,6 +1272,8 @@ export class AppComponent implements OnDestroy, OnInit {
       telegramDcaEnabled: this.draftTelegramDcaEnabled,
       reminderNote: this.draftDcaReminderNote.trim(),
       reminderDays: this.draftDcaReminderDays,
+      emailDcaEnabled: this.marketDashboardService.draftEmailDcaEnabled,
+      emailReturnEnabled: this.marketDashboardService.draftEmailReturnEnabled,
     };
     this.marketDashboardService.saveDcaSettings(this.username, this.password, settings)
       .pipe(finalize(() => (this.isSavingDca = false)))
@@ -1391,12 +1397,16 @@ export class AppComponent implements OnDestroy, OnInit {
   }
 
   private applyDcaSettings(settings: UserDcaSettings): void {
+    this.marketDashboardService.emailDcaEnabled = settings.emailDcaEnabled ?? false;
+    this.marketDashboardService.emailReturnEnabled = settings.emailReturnEnabled ?? false;
     this.telegramDcaEnabled = settings.telegramDcaEnabled ?? false;
     this.dcaReminderNote = settings.reminderNote ?? '';
     this.dcaReminderDays = settings.reminderDays ?? [...this.marketDashboardService.defaultDcaReminderDays];
   }
 
   private populateDcaDraft(): void {
+    this.marketDashboardService.draftEmailDcaEnabled = this.marketDashboardService.emailDcaEnabled;
+    this.marketDashboardService.draftEmailReturnEnabled = this.marketDashboardService.emailReturnEnabled;
     this.draftTelegramDcaEnabled = this.telegramDcaEnabled;
     this.draftDcaReminderNote = this.dcaReminderNote;
     this.draftDcaReminderDays = [...this.dcaReminderDays];

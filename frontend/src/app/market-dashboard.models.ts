@@ -100,6 +100,8 @@ export interface UserRetirementSettings {
 }
 
 export interface UserDcaSettings {
+  emailDcaEnabled?: boolean;
+  emailReturnEnabled?: boolean;
   telegramDcaEnabled: boolean;
   reminderNote: string;
   reminderDays: string[];

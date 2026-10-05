@@ -159,6 +159,10 @@ export class MarketDashboardService {
   isSavingDca = false;
   hasLoadedDcaSettings = false;
   telegramDcaEnabled = false;
+  emailDcaEnabled = false;
+  emailReturnEnabled = false;
+  draftEmailDcaEnabled = false;
+  draftEmailReturnEnabled = false;
   dcaReminderNote = '';
   dcaReminderDays = [...this.defaultDcaReminderDays];
   draftTelegramDcaEnabled = false;

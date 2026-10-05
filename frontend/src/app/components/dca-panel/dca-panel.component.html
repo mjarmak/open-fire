@@ -10,8 +10,8 @@
           DCA Reminder
         </h2>
         @if (state.hasLoadedDcaSettings && !state.isLoadingDca) {
-          <span class="dca-status" [class.enabled]="state.telegramDcaEnabled">
-            {{ state.telegramDcaEnabled ? 'Enabled' : 'Disabled' }}
+          <span class="dca-status" [class.enabled]="state.telegramDcaEnabled || state.emailDcaEnabled">
+            {{ state.telegramDcaEnabled || state.emailDcaEnabled ? 'Enabled' : 'Disabled' }}
           </span>
         }
       </div>

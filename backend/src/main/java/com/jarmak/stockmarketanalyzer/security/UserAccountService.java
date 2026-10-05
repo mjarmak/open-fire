@@ -240,7 +240,7 @@ public class UserAccountService {
     try (
         Connection connection = databaseService.connection();
         PreparedStatement statement = connection.prepareStatement("""
-            select telegram_dca_enabled, dca_reminder_note, telegram_dca_days
+            select telegram_dca_enabled, dca_reminder_note, telegram_dca_days, email_dca_enabled, email_return_enabled
             from users
             where lower(username) = lower(?)
             """)
@@ -251,7 +251,8 @@ public class UserAccountService {
           return new UserDcaSettings(
               results.getBoolean("telegram_dca_enabled"),
               results.getString("dca_reminder_note"),
-              daysFromCsv(results.getString("telegram_dca_days"), DEFAULT_TELEGRAM_DCA_DAYS)
+              daysFromCsv(results.getString("telegram_dca_days"), DEFAULT_TELEGRAM_DCA_DAYS),
+              results.getBoolean("email_dca_enabled"), results.getBoolean("email_return_enabled")
           );
         }
         return new UserDcaSettings(false, "", DEFAULT_TELEGRAM_DCA_DAYS);
@@ -268,18 +269,24 @@ public class UserAccountService {
         Connection connection = databaseService.connection();
         PreparedStatement statement = connection.prepareStatement("""
             update users
-            set telegram_dca_enabled = ?, dca_reminder_note = ?, telegram_dca_days = ?, updated_at = now()
+            set telegram_dca_enabled = ?, dca_reminder_note = ?, telegram_dca_days = ?,
+                email_dca_enabled = ?, email_return_enabled = ?,
+                last_app_visit = case when email_return_enabled = false and ? then now() else last_app_visit end,
+                updated_at = now()
             where lower(username) = lower(?)
             """)
     ) {
       statement.setBoolean(1, settings.telegramDcaEnabled());
       statement.setString(2, normalizedNote);
       statement.setString(3, normalizedDays);
-      statement.setString(4, currentUsername());
+      statement.setBoolean(4, settings.emailDcaEnabled());
+      statement.setBoolean(5, settings.emailReturnEnabled());
+      statement.setBoolean(6, settings.emailReturnEnabled());
+      statement.setString(7, currentUsername());
       if (statement.executeUpdate() == 0) {
         throw new UserRegistrationUnavailableException("Authenticated user was not found.");
       }
-      return new UserDcaSettings(settings.telegramDcaEnabled(), normalizedNote, daysFromCsv(normalizedDays, DEFAULT_TELEGRAM_DCA_DAYS));
+      return new UserDcaSettings(settings.telegramDcaEnabled(), normalizedNote, daysFromCsv(normalizedDays, DEFAULT_TELEGRAM_DCA_DAYS), settings.emailDcaEnabled(), settings.emailReturnEnabled());
     } catch (SQLException exception) {
       throw new UserRegistrationUnavailableException("Could not save DCA reminder settings.", exception);
     }
@@ -339,7 +346,11 @@ public class UserAccountService {
   public record UserTelegramSchedule(String chatId, List<String> days) {
   }
 
-  public record UserDcaSettings(boolean telegramDcaEnabled, String reminderNote, List<String> reminderDays) {
+  public record UserDcaSettings(boolean telegramDcaEnabled, String reminderNote, List<String> reminderDays,
+      boolean emailDcaEnabled, boolean emailReturnEnabled) {
+    public UserDcaSettings(boolean telegramDcaEnabled, String reminderNote, List<String> reminderDays) {
+      this(telegramDcaEnabled, reminderNote, reminderDays, false, false);
+    }
     public UserDcaSettings(boolean telegramDcaEnabled, String reminderNote) {
       this(telegramDcaEnabled, reminderNote, DEFAULT_TELEGRAM_DCA_DAYS);
     }

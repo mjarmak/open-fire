@@ -621,6 +621,21 @@ class DashboardControllerIntegrationTest {
   }
 
   @Test
+  void savesIndependentEmailPreferencesWithSharedDcaSchedule() throws Exception {
+    when(userAccountService.updateCurrentDcaSettings(any(UserDcaSettings.class)))
+        .thenReturn(new UserDcaSettings(false, "Monthly plan", List.of("MON"), true, true));
+    mockMvc.perform(put("/api/users/me/dca")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(json(Map.of("telegramDcaEnabled", false, "reminderNote", "Monthly plan",
+            "reminderDays", List.of("MON"), "emailDcaEnabled", true, "emailReturnEnabled", true))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.emailDcaEnabled").value(true))
+        .andExpect(jsonPath("$.emailReturnEnabled").value(true))
+        .andExpect(jsonPath("$.telegramDcaEnabled").value(false));
+    verify(userAccountService).updateCurrentDcaSettings(new UserDcaSettings(false, "Monthly plan", List.of("MON"), true, true));
+  }
+
+  @Test
   void testsMarketApiTokenWithProviderHeader() throws Exception {
     when(marketApiTokenTestService.test("finnhub", "draft-token"))
         .thenReturn(new MarketApiTokenTestResult("finnhub", true, "Finnhub token works."));

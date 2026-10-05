@@ -49,6 +49,30 @@ class JeniusUserProvisioningFilterTest {
   }
 
   @Test
+  void recordsVerifiedAddressAndVisitOnlyForAppSettingsRequests() throws Exception {
+    DatabaseService database = mock(DatabaseService.class);
+    Connection connection = mock(Connection.class);
+    PreparedStatement statement = mock(PreparedStatement.class);
+    when(database.connection()).thenReturn(connection);
+    when(connection.prepareStatement(anyString())).thenReturn(statement);
+    when(statement.executeUpdate()).thenReturn(1);
+    Instant now = Instant.now();
+    Jwt jwt = new Jwt("token", now, now.plusSeconds(300), Map.of("alg", "none"),
+        Map.of("sub", "subject", "email", "alice@example.com", "email_verified", true));
+    SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt, List.of(), "alice"));
+    var filter = new JeniusUserProvisioningFilter(database);
+    filter.doFilterInternal(new MockHttpServletRequest("GET", "/api/users/me/dca"),
+        new MockHttpServletResponse(), mock(FilterChain.class));
+    verify(statement).setString(3, "alice@example.com");
+    verify(statement).setBoolean(4, true);
+    verify(statement).setBoolean(5, true);
+    org.mockito.Mockito.clearInvocations(statement);
+    filter.doFilterInternal(new MockHttpServletRequest("GET", "/api/stocks"),
+        new MockHttpServletResponse(), mock(FilterChain.class));
+    verify(statement).setBoolean(5, false);
+  }
+
+  @Test
   void rejectsUsernameAlreadyLinkedToAnotherJeniusAccount() throws Exception {
     DatabaseService databaseService = mock(DatabaseService.class);
     Connection connection = mock(Connection.class);
