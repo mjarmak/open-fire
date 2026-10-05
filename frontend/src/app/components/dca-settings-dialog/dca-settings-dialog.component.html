@@ -15,14 +15,15 @@
       <form class="edit-form" (ngSubmit)="save.emit()">
         <fieldset class="dialog-fieldset" [disabled]="state.isLoadingDca || state.isSavingDca">
           <label class="remember-login">
-            <input name="telegramDcaEnabled" type="checkbox" [(ngModel)]="state.draftTelegramDcaEnabled" />
-            <span>Enable Telegram DCA reminder</span>
-          </label>
-          <small class="field-hint">Disabled by default. Turn this on only if you want scheduled DCA messages in Telegram.</small>
-          <label class="remember-login">
             <input name="emailDcaEnabled" type="checkbox" [(ngModel)]="state.draftEmailDcaEnabled" />
             <span>Email my DCA reminder</span>
           </label>
+          <small class="field-hint">When enabled, DCA reminders are emailed to your verified Jenius account email on the selected days. Telegram is an optional extra.</small>
+          <label class="remember-login">
+            <input name="telegramDcaEnabled" type="checkbox" [(ngModel)]="state.draftTelegramDcaEnabled" />
+            <span>Also send DCA reminders on Telegram (optional)</span>
+          </label>
+          <small class="field-hint">Configure a Telegram chat ID to receive additional reminders on the same schedule.</small>
           <label class="remember-login">
             <input name="emailReturnEnabled" type="checkbox" [(ngModel)]="state.draftEmailReturnEnabled" />
             <span>Email me after a week away</span>

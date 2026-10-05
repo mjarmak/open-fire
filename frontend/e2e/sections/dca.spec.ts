@@ -14,7 +14,8 @@ test.describe('DCA Section', () => {
 
     const dialog = page.locator('.dca-dialog');
     await expect(dialog).toBeVisible();
-    await dialog.getByRole('checkbox', { name: 'Enable Telegram DCA reminder' }).check();
+    await expect(dialog.getByText('When enabled, DCA reminders are emailed to your verified Jenius account email on the selected days. Telegram is an optional extra.')).toBeVisible();
+    await dialog.getByRole('checkbox', { name: 'Also send DCA reminders on Telegram (optional)' }).check();
     await dialog.getByRole('button', { name: 'Save' }).click();
 
     await expect(dialog).toBeHidden();
@@ -44,7 +45,7 @@ test.describe('DCA Section', () => {
     const panel = page.getByLabel('DCA reminder settings');
     await panel.getByRole('button', { name: 'Configure' }).click();
     const dialog = page.locator('.dca-dialog');
-    await dialog.getByRole('checkbox', { name: 'Enable Telegram DCA reminder' }).uncheck();
+    await dialog.getByRole('checkbox', { name: 'Also send DCA reminders on Telegram (optional)' }).uncheck();
     await dialog.getByRole('checkbox', { name: 'Email my DCA reminder' }).check();
     await dialog.getByRole('checkbox', { name: 'Email me after a week away' }).check();
     const saved = page.waitForRequest(request => request.method() === 'PUT' && request.url().endsWith('/users/me/dca'));
@@ -58,6 +59,6 @@ test.describe('DCA Section', () => {
     await panel.getByRole('button', { name: 'Configure' }).click();
     await expect(dialog.getByRole('checkbox', { name: 'Email my DCA reminder' })).toBeChecked();
     await expect(dialog.getByRole('checkbox', { name: 'Email me after a week away' })).toBeChecked();
-    await expect(dialog.getByRole('checkbox', { name: 'Enable Telegram DCA reminder' })).not.toBeChecked();
+    await expect(dialog.getByRole('checkbox', { name: 'Also send DCA reminders on Telegram (optional)' })).not.toBeChecked();
   });
 });
