@@ -1,0 +1,14 @@
+import { spawnSync } from 'node:child_process';
+import { cpSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+const cli = resolve('node_modules/@angular/cli/bin/ng.js');
+const result = spawnSync(process.execPath, [cli, 'build', '--configuration=production,demo'], { stdio: 'inherit' });
+if (result.status !== 0) process.exit(result.status ?? 1);
+const angular = JSON.parse(readFileSync('angular.json', 'utf8'));
+const project = Object.values(angular.projects)[0];
+const output = project.architect.build.options.outputPath;
+const productionRoot = existsSync(resolve(output, 'browser')) ? resolve(output, 'browser') : resolve(output);
+const demoRoot = existsSync('dist/demo/browser') ? resolve('dist/demo/browser') : resolve('dist/demo');
+mkdirSync(resolve(productionRoot, 'demo'), { recursive: true });
+cpSync(demoRoot, resolve(productionRoot, 'demo'), { recursive: true });
+console.log('Demo packaged at /demo/index.html; production bootstrap is unchanged.');

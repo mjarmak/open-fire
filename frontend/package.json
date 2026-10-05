@@ -6,12 +6,13 @@
     "start": "ng serve --proxy-config proxy.conf.json",
     "start:network": "ng serve --host 0.0.0.0 --proxy-config proxy.conf.json",
     "backend": "mvn -f backend/pom.xml spring-boot:run",
-    "build": "ng build",
+    "build": "node scripts/build-web.mjs",
     "deploy:local": "powershell -ExecutionPolicy Bypass -File ../scripts/docker-build-push-compose.ps1",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "build:demo": "node scripts/build-demo.mjs"
   },
   "private": true,
   "dependencies": {

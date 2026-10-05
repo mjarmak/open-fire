@@ -57,6 +57,14 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "demo": {
+              "outputPath": "dist/demo",
+              "index": "src/demo/index.html",
+              "baseHref": "/demo/",
+              "serviceWorker": false,
+              "tsConfig": "tsconfig.demo.json",
+              "browser": "src/demo/main.ts"
             }
           },
           "defaultConfiguration": "production"

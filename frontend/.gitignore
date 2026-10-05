@@ -3,7 +3,9 @@
 /tmp
 /out-tsc
 /bazel-out
-/scripts
+/scripts/*
+!/scripts/build-web.mjs
+!/scripts/build-demo.mjs
 /frontend/test-results
 
 # Node
