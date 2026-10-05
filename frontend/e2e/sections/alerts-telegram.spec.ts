@@ -38,6 +38,41 @@ test.describe('Alerts & Telegram Section', () => {
     await expect(page.getByText('Telegram test sent.')).toBeVisible();
   });
 
+  for (const theme of ['light', 'dark']) {
+    for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+      test(`aligns alert settings with shared dialog styling in ${theme} mode at ${viewport.width}px`, async ({ page }, testInfo) => {
+        await page.setViewportSize(viewport);
+        await page.evaluate(value => localStorage.setItem('sma_theme', value), theme);
+        await page.reload();
+        await page.getByRole('button', { name: /active alerts/i }).click();
+        await page.getByRole('button', { name: 'Alert Notification Settings', exact: true }).click();
+        const dialog = page.getByRole('dialog', { name: 'Alert Notification Settings' });
+        await expect(dialog).toBeVisible();
+        await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
+        const style = await dialog.evaluate(element => {
+          const css = getComputedStyle(element);
+          return { width: css.width, padding: css.padding, borderRadius: css.borderRadius,
+            background: css.backgroundColor, shadow: css.boxShadow };
+        });
+        expect(parseFloat(style.width)).toBe(viewport.width > 560 ? 560 : viewport.width - 24);
+        const heading = await dialog.getByRole('heading').boundingBox();
+        const close = await dialog.getByRole('button', { name: 'Close dialog' }).boundingBox();
+        expect(heading!.x + heading!.width).toBeLessThanOrEqual(close!.x);
+        await page.screenshot({ path: testInfo.outputPath('alert-settings.png') });
+        await dialog.getByRole('button', { name: 'Cancel' }).click();
+        await expect(dialog).toBeHidden();
+        await page.getByRole('button', { name: /active alerts/i }).click();
+        await page.getByRole('button', { name: 'Configure Telegram Alerts' }).click();
+        const telegramStyle = await page.getByRole('dialog', { name: 'Telegram Configuration' }).evaluate(element => {
+          const css = getComputedStyle(element);
+          return { width: css.width, padding: css.padding, borderRadius: css.borderRadius,
+            background: css.backgroundColor, shadow: css.boxShadow };
+        });
+        expect(style).toEqual(telegramStyle);
+      });
+    }
+  }
+
   test('saves briefing days separately without changing the Telegram chat ID', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole('button', { name: /active alerts|Alerts/ }).click();
