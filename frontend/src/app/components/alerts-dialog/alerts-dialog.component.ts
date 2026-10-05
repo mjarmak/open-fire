@@ -16,6 +16,7 @@ export class AlertsDialogComponent {
 
   @Output() closeDialog = new EventEmitter<void>();
   @Output() configureTelegram = new EventEmitter<void>();
+  @Output() configureNotifications = new EventEmitter<void>();
 
   get alertingStocks(): StockAlert[] {
     return this.state.stocks

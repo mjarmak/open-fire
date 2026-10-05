@@ -2705,6 +2705,12 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
   width: min(560px, 100%);
 }
 
+.alerts-dialog .dialog-heading,
+.alerts-dialog .dialog-heading-actions {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
 .api-token-dialog {
   width: min(720px, 100%);
 }

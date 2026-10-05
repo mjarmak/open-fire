@@ -139,6 +139,9 @@ export class MarketDashboardService {
   private readonly globalIndicatorChartRetryDelayMs = 10_000;
   alertsDialogOpen = false;
   telegramDialogOpen = false;
+  alertNotificationDialogOpen = false;
+  isLoadingAlertNotifications = false;
+  isSavingAlertNotifications = false;
   telegramChatId = '';
   telegramAlertDays = [...this.defaultTelegramAlertDays];
   draftTelegramAlertDays = [...this.defaultTelegramAlertDays];
@@ -564,10 +567,21 @@ export class MarketDashboardService {
     });
   }
 
+  alertNotificationSettings(username: string, password: string): Observable<{ alertDays: string[] }> {
+    return this.http.get<{ alertDays: string[] }>(`${this.apiBaseUrl}/users/me/alert-notifications`, {
+      headers: this.basicAuth(username, password),
+    });
+  }
+
+  saveAlertNotificationSettings(username: string, password: string, alertDays: string[]): Observable<{ alertDays: string[] }> {
+    return this.http.put<{ alertDays: string[] }>(`${this.apiBaseUrl}/users/me/alert-notifications`,
+      { alertDays }, { headers: this.basicAuth(username, password) });
+  }
+
   saveTelegramSettings(username: string, password: string, chatId: string, alertDays: string[]): Observable<TelegramSettingsResponse> {
     return this.http.put<TelegramSettingsResponse>(
       `${this.apiBaseUrl}/users/me/telegram`,
-      { chatId, alertDays },
+      { chatId },
       { headers: this.basicAuth(username, password) },
     );
   }

@@ -20,7 +20,7 @@ test.describe('Alerts & Telegram Section', () => {
     await page.getByRole('button', { name: /active alerts|Alerts/ }).click();
     await page.getByRole('button', { name: 'Configure Telegram Alerts' }).click();
 
-    const telegramDialog = page.getByRole('dialog', { name: 'Telegram' });
+    const telegramDialog = page.getByRole('dialog', { name: 'Telegram Configuration' });
     await expect(telegramDialog).toBeVisible();
     await telegramDialog.getByLabel('Chat ID').fill('123456789');
     await telegramDialog.getByRole('button', { name: 'Save' }).click();
@@ -32,9 +32,33 @@ test.describe('Alerts & Telegram Section', () => {
     await page.getByRole('button', { name: /active alerts|Alerts/ }).click();
     await page.getByRole('button', { name: 'Configure Telegram Alerts' }).click();
 
-    const telegramDialog = page.getByRole('dialog', { name: 'Telegram' });
+    const telegramDialog = page.getByRole('dialog', { name: 'Telegram Configuration' });
     await telegramDialog.getByLabel('Chat ID').fill('123456789');
     await telegramDialog.getByRole('button', { name: 'Test' }).click();
     await expect(page.getByText('Telegram test sent.')).toBeVisible();
+  });
+
+  test('saves briefing days separately without changing the Telegram chat ID', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole('button', { name: /active alerts|Alerts/ }).click();
+    await page.getByRole('button', { name: 'Alert Notification Settings', exact: true }).click();
+    const settings = page.getByRole('dialog', { name: 'Alert Notification Settings' });
+    await expect(settings).toBeVisible();
+    await expect(settings.getByLabel('Chat ID')).toHaveCount(0);
+    await settings.getByText('Mon', { exact: true }).click();
+    const saved = page.waitForRequest(r => r.method() === 'PUT' && r.url().endsWith('/users/me/alert-notifications'));
+    await settings.getByRole('button', { name: 'Save', exact: true }).click();
+    expect((await saved).postDataJSON()).toEqual({ alertDays: ['TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] });
+    await page.reload();
+    await page.getByRole('button', { name: /active alerts|Alerts/ }).click();
+    await page.getByRole('button', { name: 'Alert Notification Settings', exact: true }).click();
+    await expect(settings.getByRole('checkbox', { name: 'Mon', exact: true })).not.toBeChecked();
+    await settings.getByRole('button', { name: 'Cancel' }).click();
+    await expect(settings).toBeHidden();
+    await page.getByRole('button', { name: /active alerts/i }).click();
+    await page.getByRole('button', { name: 'Configure Telegram Alerts' }).click();
+    const telegram = page.getByRole('dialog', { name: 'Telegram Configuration' });
+    await expect(telegram.getByLabel('Chat ID')).toHaveValue('1547812774');
+    await expect(telegram.getByText('Alert briefing days')).toHaveCount(0);
   });
 });

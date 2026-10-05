@@ -23,6 +23,7 @@ type MockApiState = {
   retirement: UserRetirementSettings;
   dca: UserDcaSettings;
   telegramChatId: string;
+  alertDays: string[];
   symbolCatalog: SymbolSearchResult[];
 };
 
@@ -179,6 +180,7 @@ function defaultState(): MockApiState {
     retirement: structuredClone(defaultRetirement),
     dca: structuredClone(defaultDca),
     telegramChatId: '1547812774',
+    alertDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
     symbolCatalog: structuredClone(defaultSymbols),
   };
 }
@@ -457,14 +459,23 @@ export async function registerMockApi(page: Page, initial?: Partial<MockApiState
       await route.fulfill({ status: 200, json: state.dca });
       return;
     }
+    if (method === 'GET' && path === '/users/me/alert-notifications') {
+      await route.fulfill({ status: 200, json: { alertDays: state.alertDays } });
+      return;
+    }
+    if (method === 'PUT' && path === '/users/me/alert-notifications') {
+      state.alertDays = request.postDataJSON().alertDays;
+      await route.fulfill({ status: 200, json: { alertDays: state.alertDays } });
+      return;
+    }
     if (method === 'GET' && path === '/users/me/telegram') {
-      await route.fulfill({ status: 200, json: { chatId: state.telegramChatId } });
+      await route.fulfill({ status: 200, json: { chatId: state.telegramChatId, alertDays: state.alertDays } });
       return;
     }
     if (method === 'PUT' && path === '/users/me/telegram') {
       const payload = JSON.parse(request.postData() || '{}') as { chatId?: string };
       state.telegramChatId = String(payload.chatId || '');
-      await route.fulfill({ status: 200, json: { chatId: state.telegramChatId } });
+      await route.fulfill({ status: 200, json: { chatId: state.telegramChatId, alertDays: state.alertDays } });
       return;
     }
     if (method === 'POST' && path === '/notifications/telegram') {

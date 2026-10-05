@@ -636,6 +636,24 @@ class DashboardControllerIntegrationTest {
   }
 
   @Test
+  void savesAlertScheduleWithoutChatId() throws Exception {
+    when(userAccountService.updateCurrentAlertDays(List.of("MON"))).thenReturn(List.of("MON"));
+    mockMvc.perform(put("/api/users/me/alert-notifications")
+        .contentType(MediaType.APPLICATION_JSON).content("{\"alertDays\":[\"MON\"]}"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.alertDays[0]").value("MON"));
+    verify(userAccountService).updateCurrentAlertDays(List.of("MON"));
+    verify(userAccountService, never()).updateCurrentTelegramSettings(anyString(), any());
+  }
+
+  @Test
+  void rejectsInvalidAlertDay() throws Exception {
+    mockMvc.perform(put("/api/users/me/alert-notifications")
+        .contentType(MediaType.APPLICATION_JSON).content("{\"alertDays\":[\"INVALID\"]}"))
+        .andExpect(status().isBadRequest());
+    verify(userAccountService, never()).updateCurrentAlertDays(any());
+  }
+
+  @Test
   void testsMarketApiTokenWithProviderHeader() throws Exception {
     when(marketApiTokenTestService.test("finnhub", "draft-token"))
         .thenReturn(new MarketApiTokenTestResult("finnhub", true, "Finnhub token works."));

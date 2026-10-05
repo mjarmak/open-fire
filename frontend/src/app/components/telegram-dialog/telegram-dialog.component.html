@@ -25,25 +25,6 @@
             </ol>
           </small>
 
-          <div class="weekday-field" role="group" aria-label="Telegram alert briefing days">
-            <span>Alert briefing days</span>
-            <small class="field-hint">Alert briefings are sent once daily at {{ state.telegramAlertScheduleLabel }} on the selected days.</small>
-            <div class="weekday-picker">
-              @for (day of state.notificationDayOptions; track day.value) {
-                <label class="weekday-option" [class.selected]="state.isDraftTelegramAlertDaySelected(day.value)">
-                  <input
-                    type="checkbox"
-                    [name]="'telegramAlertDay' + day.value"
-                    [ngModel]="state.isDraftTelegramAlertDaySelected(day.value)"
-                    (ngModelChange)="state.setDraftTelegramAlertDay(day.value, $event)"
-                  />
-                  <span>{{ day.label }}</span>
-                </label>
-              }
-            </div>
-            <small class="field-hint">DCA reminders are sent at {{ state.telegramDcaScheduleLabel }} on their selected reminder days when enabled.</small>
-          </div>
-
           <div class="dialog-actions">
             <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
             <button

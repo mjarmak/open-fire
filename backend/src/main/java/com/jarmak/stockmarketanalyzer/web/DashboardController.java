@@ -307,6 +307,20 @@ public class DashboardController {
     );
   }
 
+  @GetMapping("/users/me/alert-notifications")
+  AlertNotificationSettings alertNotificationSettings() {
+    return new AlertNotificationSettings(userAccountService.currentTelegramSettings().alertDays());
+  }
+
+  @PutMapping("/users/me/alert-notifications")
+  AlertNotificationSettings updateAlertNotificationSettings(@Valid @RequestBody AlertNotificationSettings request) {
+    return new AlertNotificationSettings(userAccountService.updateCurrentAlertDays(request.alertDays()));
+  }
+
+  public record AlertNotificationSettings(
+      @jakarta.validation.constraints.NotNull @Size(max = 7)
+      List<@Pattern(regexp = "MON|TUE|WED|THU|FRI|SAT|SUN") String> alertDays) {}
+
   @PutMapping("/users/me/dca")
   DcaSettingsResponse updateDcaSettings(@Valid @RequestBody DcaSettingsRequest request) {
     UserDcaSettings settings = userAccountService.updateCurrentDcaSettings(

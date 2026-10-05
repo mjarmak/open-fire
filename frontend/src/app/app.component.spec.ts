@@ -1212,13 +1212,14 @@ describe('AppComponent', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
     app.marketDashboardService.telegramDialogOpen = true;
+    app.marketDashboardService.alertNotificationDialogOpen = true;
     app.marketDashboardService.dcaDialogOpen = true;
 
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Alert briefings are sent once daily at 21:00 UTC on the selected days.');
-    expect(text).toContain('DCA reminders are sent at 14:00 UTC on their selected reminder days when enabled.');
+    expect(text).toContain('Alert briefings are sent on Telegram once daily at 21:00 UTC on the selected days.');
+    expect(fixture.nativeElement.querySelector('.telegram-dialog').textContent).not.toContain('Alert briefing days');
     expect(text).toContain('DCA reminders are sent at 14:00 UTC on the selected days.');
   });
 

@@ -9,6 +9,7 @@ import { MarketDashboardService } from './market-dashboard.service';
 import { AddPositionDialogComponent } from './components/add-position-dialog/add-position-dialog.component';
 import { ApiTokenSettingsDialogComponent } from './components/api-token-settings-dialog/api-token-settings-dialog.component';
 import { AlertsDialogComponent } from './components/alerts-dialog/alerts-dialog.component';
+import { AlertNotificationSettingsDialogComponent } from './components/alert-notification-settings-dialog/alert-notification-settings-dialog.component';
 import { DcaPanelComponent } from './components/dca-panel/dca-panel.component';
 import { DcaSettingsDialogComponent } from './components/dca-settings-dialog/dca-settings-dialog.component';
 import { DeleteConfirmDialogComponent } from './components/delete-confirm-dialog/delete-confirm-dialog.component';
@@ -37,6 +38,7 @@ import { CookieConsentComponent } from './components/cookie-consent/cookie-conse
     AddPositionDialogComponent,
     ApiTokenSettingsDialogComponent,
     AlertsDialogComponent,
+    AlertNotificationSettingsDialogComponent,
     DcaPanelComponent,
     DcaSettingsDialogComponent,
     DeleteConfirmDialogComponent,
@@ -714,6 +716,9 @@ export class AppComponent implements OnDestroy, OnInit {
     this.draftTelegramAlertDays = [...this.marketDashboardService.defaultTelegramAlertDays];
     this.isLoadingTelegram = false;
     this.isSavingTelegram = false;
+    this.marketDashboardService.alertNotificationDialogOpen = false;
+    this.marketDashboardService.isLoadingAlertNotifications = false;
+    this.marketDashboardService.isSavingAlertNotifications = false;
     this.dcaDialogOpen = false;
     this.dcaSuggestionDialogOpen = false;
     this.alertsDialogOpen = false;
@@ -1020,6 +1025,42 @@ export class AppComponent implements OnDestroy, OnInit {
 
   closeAlertsDialog(): void {
     this.alertsDialogOpen = false;
+  }
+
+  openAlertNotificationSettings(): void {
+    if (!this.isLoggedIn) { return; }
+    const state = this.marketDashboardService;
+    state.alertNotificationDialogOpen = true;
+    state.isLoadingAlertNotifications = true;
+    state.alertsDialogOpen = false;
+    state.alertNotificationSettings(this.username, this.password)
+      .pipe(finalize(() => (state.isLoadingAlertNotifications = false)))
+      .subscribe({
+        next: settings => {
+          this.telegramAlertDays = settings.alertDays;
+          this.draftTelegramAlertDays = [...settings.alertDays];
+        },
+        error: error => {
+          state.alertNotificationDialogOpen = false;
+          this.showErrorSnackbar('Could not load alert notification settings.', error);
+        },
+      });
+  }
+
+  saveAlertNotificationSettings(): void {
+    const state = this.marketDashboardService;
+    state.isSavingAlertNotifications = true;
+    state.saveAlertNotificationSettings(this.username, this.password, this.draftTelegramAlertDays)
+      .pipe(finalize(() => (state.isSavingAlertNotifications = false)))
+      .subscribe({
+        next: settings => {
+          this.telegramAlertDays = settings.alertDays;
+          this.draftTelegramAlertDays = [...settings.alertDays];
+          state.alertNotificationDialogOpen = false;
+          this.showSnackbar('Alert notification settings saved.');
+        },
+        error: error => this.showErrorSnackbar('Could not save alert notification settings.', error),
+      });
   }
 
   openTelegramFromAlertsDialog(): void {

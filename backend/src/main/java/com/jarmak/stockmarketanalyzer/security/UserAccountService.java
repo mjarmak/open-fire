@@ -98,7 +98,7 @@ public class UserAccountService {
     if (!StringUtils.hasText(normalizedChatId)) {
       throw new IllegalArgumentException("Telegram chat ID is required.");
     }
-    String normalizedAlertDays = normalizeDays(alertDays, DEFAULT_TELEGRAM_ALERT_DAYS);
+    String normalizedAlertDays = normalizeDays(alertDays == null ? currentTelegramSettings().alertDays() : alertDays, DEFAULT_TELEGRAM_ALERT_DAYS);
 
     try (
         Connection connection = databaseService.connection();
@@ -117,6 +117,22 @@ public class UserAccountService {
       return new UserTelegramSettings(normalizedChatId, daysFromCsv(normalizedAlertDays, DEFAULT_TELEGRAM_ALERT_DAYS));
     } catch (SQLException exception) {
       throw new UserRegistrationUnavailableException("Could not save Telegram settings.", exception);
+    }
+  }
+
+  public List<String> updateCurrentAlertDays(List<String> days) {
+    String normalizedDays = normalizeDays(days, DEFAULT_TELEGRAM_ALERT_DAYS);
+    try (Connection connection = databaseService.connection();
+        PreparedStatement statement = connection.prepareStatement(
+            "update users set telegram_alert_days = ?, updated_at = now() where lower(username) = lower(?)")) {
+      statement.setString(1, normalizedDays);
+      statement.setString(2, currentUsername());
+      if (statement.executeUpdate() == 0) {
+        throw new UserRegistrationUnavailableException("Authenticated user was not found.");
+      }
+      return daysFromCsv(normalizedDays, DEFAULT_TELEGRAM_ALERT_DAYS);
+    } catch (SQLException exception) {
+      throw new UserRegistrationUnavailableException("Could not save alert notification settings.", exception);
     }
   }
 

@@ -154,6 +154,12 @@
 <app-alerts-dialog
   (closeDialog)="closeAlertsDialog()"
   (configureTelegram)="openTelegramFromAlertsDialog()"
+  (configureNotifications)="openAlertNotificationSettings()"
+/>
+
+<app-alert-notification-settings-dialog
+  (closeDialog)="marketDashboardService.alertNotificationDialogOpen = false"
+  (save)="saveAlertNotificationSettings()"
 />
 
 <app-retirement-settings-dialog

@@ -1,0 +1,36 @@
+@if (state.alertNotificationDialogOpen) {
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop>
+    <section class="edit-dialog" role="dialog" aria-modal="true" aria-labelledby="alert-notification-title" @dialogPanel>
+      <div class="dialog-heading">
+        <h2 id="alert-notification-title">Alert Notification Settings</h2>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
+      </div>
+      <form class="edit-form" (ngSubmit)="save.emit()">
+        <fieldset class="dialog-fieldset" [disabled]="state.isLoadingAlertNotifications || state.isSavingAlertNotifications">
+          <div class="weekday-field" role="group" aria-label="Alert briefing days">
+            <span>Alert briefing days</span>
+            <small class="field-hint">Alert briefings are sent on Telegram once daily at {{ state.telegramAlertScheduleLabel }} on the selected days. Select no days to pause briefings.</small>
+            <div class="weekday-picker">
+              @for (day of state.notificationDayOptions; track day.value) {
+                <label class="weekday-option" [class.selected]="state.isDraftTelegramAlertDaySelected(day.value)">
+                  <input type="checkbox" [name]="'alertDay' + day.value"
+                    [ngModel]="state.isDraftTelegramAlertDaySelected(day.value)"
+                    (ngModelChange)="state.setDraftTelegramAlertDay(day.value, $event)" />
+                  <span>{{ day.label }}</span>
+                </label>
+              }
+            </div>
+            <small class="field-hint">Telegram delivery requires a configured chat ID. DCA reminder days are managed separately in DCA Configure.</small>
+          </div>
+          <div class="dialog-actions">
+            <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+            <button type="submit" [class.button-loading]="state.isLoadingAlertNotifications || state.isSavingAlertNotifications"
+              [attr.aria-busy]="state.isLoadingAlertNotifications || state.isSavingAlertNotifications">
+              {{ state.isLoadingAlertNotifications ? 'Loading' : state.isSavingAlertNotifications ? 'Saving' : 'Save' }}
+            </button>
+          </div>
+        </fieldset>
+      </form>
+    </section>
+  </div>
+}
