@@ -27,7 +27,8 @@ Tests mock delivery and database access, never sending real emails. Enable produ
 
 ## Live Setup Status (October 16, 2026)
 
-- Novu Development contains inactive OpenFIRE DCA and plan-check-in drafts with the expected payload subject/HTML bindings. They are not confirmed published to Production.
+- The two OpenFIRE workflows were selectively published to Production and verified in its workflow list. Both remain inactive pending sender configuration. Production IDs: DCA `wf_gzkU3uyYy0MBcuE3` (`open-fire-dca`), plan check-in `wf_gzkU4GxFFaNHnBnr` (`open-fire-return`). Other applications' pending changes were not published.
+- This Novu edition shows one secret key per environment and requires a plan upgrade for additional custom environments. The existing shared Production key was not copied or reused for OpenFIRE; an app-isolated credential setup is still needed.
 - Integration Store currently shows only Temper's Production SMTP provider. It was left unchanged. Create the separate non-primary `open-fire-smtp` integration before enabling OpenFIRE delivery.
 - Hostinger shows three aliases on `contact@jeniusapps.com`; the requested OpenFIRE alias is absent. Creating it is pending specific owner approval after automatic review rejected creating an alias under the earlier instruction to use an existing one.
 - Protected OpenFIRE Novu credentials and SMTP configuration still need confirmation. The prior VPS browser-console session expired, and the console launcher did not open a replacement through automation.

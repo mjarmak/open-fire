@@ -69,7 +69,7 @@ The previous `1.0.2` / code `4` update was published on October 16, 2026, as con
 - Uploaded: Yes, version code 5 (`1.0.3`), approximately 1.03 MB new-install size. Signature, package, SDKs and artifact hash verified.
 - Previewed/confirmed: Yes, API 24+, target SDK 36, 100% rollout and all existing targeted countries; no device-support changes or blocking errors. Release name: `OpenFIRE 1.0.3`.
 - Submitted: No; saved under "Changes not yet submitted for review" on 2026-10-16. No final submission was performed.
-- Review state: Pre-submission quick checks started; Google approval has not been requested for code 5.
+- Review state: Pre-submission quick checks passed; Console confirms the saved changes can be sent for review. Google approval has not been requested for code 5.
 - Approved: Code 4 published; code 5 not submitted.
 - Rollout: Code 5 saved for 100% of the existing 178 countries, pending submission and review.
 - Public listing URL: https://play.google.com/store/apps/details?id=com.jenius.openfire
