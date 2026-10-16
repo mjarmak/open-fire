@@ -10,7 +10,7 @@
 - App/game: App
 - Category: Finance
 - Price: Free
-- Countries/regions: All 176 available countries/regions plus rest of world selected
+- Countries/regions: All 178 currently targeted countries/regions (unchanged scope)
 - Target SDK: 36
 - Minimum SDK: 21
 - Privacy policy: https://jeniusapps.com/privacy-policy
@@ -19,12 +19,12 @@
 
 ## Release Artifact
 
-- Version name: 1.0.1
-- Version code: 2
+- Version name: 1.0.2
+- Version code: 3
 - Production variant: release
 - Build command: `powershell -ExecutionPolicy Bypass -File scripts/build-android-bundle.ps1`
 - AAB path: `android/app-release-bundle.aab`
-- SHA-256: cad80d363d1a3fe696dbf08330f7eb9c3af8ecfd0b4cc7a67f24a4fcb2c389a4
+- SHA-256: 425a06816edde26620cebe9fa69607bcd93f5b76895be6d925008190857e36d7
 - Upload certificate fingerprint: 57:AA:0C:02:74:AB:74:DA:B3:A7:7D:8F:EC:2D:A3:4A:A8:79:C1:A6:97:6F:33:64:40:23:96:D8:BD:5E:3A:8B
 - Google Play app-signing certificate fingerprint: 2E:70:5E:8E:DE:F4:D7:F4:5B:14:D1:4E:0D:E9:3A:F8:C5:0D:CD:AC:93:64:B1:10:3E:D1:1A:3A:BF:42:73:53
 - Digital Asset Links must contain both fingerprints so local release builds and Play-installed builds both verify the TWA and auth callback app link.
@@ -64,12 +64,22 @@
 - Track: Production, full rollout requested
 - Play app record: Created
 - Initial setup tasks: Complete
-- Uploaded: Yes, AAB version code 2 (`1.0.1`), 1.09 MB new-install size
-- Previewed/confirmed: Yes
-- Submitted: Yes, the production update was sent for review on 2026-08-24
-- Review state: Changes in review; Google Play quick checks are running
+- Upload attempted: Version code 3 (`1.0.2`) on 2026-10-16; Play rejected the bundle during validation
+- Previewed/confirmed: No, blocked before release preview
+- Submitted: No, `1.0.2` is not in review
+- Review state: Production draft; minimum SDK compatibility decision pending
 - Approved: No
-- Rollout: 100% requested across all 177 targeted countries/regions; pending Google review
+- Rollout: Intended 100% across the existing 178 targeted countries/regions; not submitted
 - Public listing URL: https://play.google.com/store/apps/details?id=com.jenius.openfire
-- Current public release: `1.0.0`, published on 2026-08-18
-- Remaining blocker: Google Play quick checks, review, and approval of `1.0.1`
+- Current public release: `1.0.1` (code 2), released on 2026-08-24; confirmed in Play Console on 2026-10-16
+- Remaining blocker: Play automatic protection requires minimum SDK 24, but this bundle retains minimum SDK 21. Raising the minimum drops Android 5/6 update support and requires owner approval before rebuilding. Automatic protection has not been disabled.
+
+## Launcher Icon Validation
+
+- The adaptive logo is a percentage-inset foreground over a matching solid background, keeping the complete flame/shield inside Android's guaranteed safe area.
+- `scripts/validate-android-icons.ps1` checks all five bitmap densities and runs automatically before the release build. The original layout failed this regression check; the corrected layout passes.
+- Signed bundle verification, bundletool validation, and `lintRelease` passed. `testReleaseUnitTest` has no source tests.
+- The exact bundle was converted to a signed universal APK and installed on a dedicated Android API 34 emulator.
+- Run `scripts/test-android-icon-rendering.ps1 -Device <adb-serial>` after installing that APK, with `JAVA_HOME` and `ANDROID_HOME` set. The harness requires SDK build-tools 35.0.0 and platform android-35.
+- Its separate test-only APK uses Android's installed adaptive icon drawable, checking circle, rounded-square, squircle, and teardrop masks at 48/72/96 dp. All 12 checks passed for `1.0.2` code 3.
+- Local contact sheet: `android/build/icon-validation/icon-masks.png` (ignored build output). Neither the helper APK nor its disposable test-only key is part of the production bundle.

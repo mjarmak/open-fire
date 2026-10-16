@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.jenius.openfire.iconvalidation">
+    <queries><package android:name="com.jenius.openfire" /></queries>
+    <application android:label="OpenFIRE Icon QA" android:testOnly="true" android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <activity android:name=".IconValidationActivity" android:exported="true" />
+    </application>
+</manifest>

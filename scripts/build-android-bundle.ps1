@@ -9,6 +9,8 @@ $unsignedBundle = Join-Path $androidDir 'app\build\outputs\bundle\release\app-re
 $bundle = Join-Path $androidDir 'app-release-bundle.aab'
 $keyAlias = 'open-fire-upload'
 
+& (Join-Path $PSScriptRoot 'validate-android-icons.ps1')
+
 if (-not (Test-Path -LiteralPath $keyPath)) {
   throw "Missing OpenFIRE upload key at $keyPath. Restore the established key; do not generate a replacement."
 }

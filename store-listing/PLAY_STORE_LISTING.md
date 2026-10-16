@@ -31,7 +31,7 @@ Full description:
 
 ## Release Notes
 
-> Fixed the Android authentication return flow so OpenFIRE resumes inside the app after signing in with Jenius.
+> Fixed the home-screen icon size so the complete OpenFIRE logo stays visible across launcher icon shapes and sizes.
 
 ## Visual Assets
 
