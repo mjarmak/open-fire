@@ -28,7 +28,7 @@
           <fieldset class="dialog-fieldset" [disabled]="state.busy">
             <label class="remember-login"><input type="checkbox" name="pushDca" [(ngModel)]="state.preferences.dca" /><span>DCA reminders</span></label>
             <label class="remember-login"><input type="checkbox" name="pushBriefing" [(ngModel)]="state.preferences.briefing" /><span>Risk and alert briefings</span></label>
-            <label class="remember-login"><input type="checkbox" name="pushReturn" [(ngModel)]="state.preferences.returnReminder" /><span>Remind me after a week away</span></label>
+            <label class="remember-login"><input type="checkbox" name="pushReturn" [(ngModel)]="state.preferences.returnReminder" /><span>Portfolio reminders after 7 days of inactivity</span></label>
             <small class="field-hint">Uses your DCA and alert notification days. Email and Telegram preferences stay unchanged. Notification previews may include portfolio details.</small>
             @if (!state.configured) { <p>Push delivery is not configured yet.</p> }
             @else if (!state.supported) { <p>Push notifications are unavailable in this browser. On iPhone or iPad, open the installed home-screen app.</p> }

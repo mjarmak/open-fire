@@ -17,19 +17,19 @@
           <button type="button" class="secondary" (click)="state.dcaDialogOpen = false; notifications.show()">App Notifications</button>
           <label class="remember-login">
             <input name="emailDcaEnabled" type="checkbox" [(ngModel)]="state.draftEmailDcaEnabled" />
-            <span>Email my DCA reminder</span>
+            <span>DCA reminder emails</span>
           </label>
-          <small class="field-hint">When enabled, DCA reminders are emailed to your verified Jenius account email on the selected days. Telegram is an optional extra.</small>
+          <small class="field-hint">Sent on your selected reminder days. Telegram is optional.</small>
           <label class="remember-login">
             <input name="telegramDcaEnabled" type="checkbox" [(ngModel)]="state.draftTelegramDcaEnabled" />
-            <span>Also send DCA reminders on Telegram (optional)</span>
+            <span>Telegram DCA reminders (optional)</span>
           </label>
-          <small class="field-hint">Configure a Telegram chat ID to receive additional reminders on the same schedule.</small>
+          <small class="field-hint">Add your chat ID in Telegram settings to use the same reminder schedule.</small>
           <label class="remember-login">
             <input name="emailReturnEnabled" type="checkbox" [(ngModel)]="state.draftEmailReturnEnabled" />
-            <span>Email me after a week away</span>
+            <span>Reminder emails</span>
           </label>
-          <small class="field-hint">Sent to your verified Jenius account email.</small>
+          <small class="field-hint">Remind me to review my portfolio after 7 days without opening OpenFIRE.</small>
 
           <div class="weekday-field" role="group" aria-label="DCA reminder days">
             <span>Reminder days</span>

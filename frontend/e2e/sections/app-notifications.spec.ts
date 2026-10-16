@@ -18,6 +18,7 @@ test.describe('App notifications', () => {
     release(); await expect(dialog.getByText('No notifications yet.')).toBeVisible();
     await dialog.getByRole('tab', { name: 'Settings' }).click();
     await expect(dialog.getByRole('checkbox', { name: 'DCA reminders', exact: true })).not.toBeChecked();
+    await expect(dialog.getByRole('checkbox', { name: 'Portfolio reminders after 7 days of inactivity', exact: true })).not.toBeChecked();
     await dialog.getByRole('checkbox', { name: 'DCA reminders', exact: true }).check();
     const request = page.waitForRequest(r => r.method() === 'PUT' && r.url().endsWith('/notifications/app/settings'));
     await dialog.getByRole('button', { name: 'Save preferences' }).click();
