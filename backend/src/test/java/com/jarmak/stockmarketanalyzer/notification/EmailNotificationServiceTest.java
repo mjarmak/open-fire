@@ -21,6 +21,9 @@ class EmailNotificationServiceTest {
         .andExpect(jsonPath("$.name").value("open-fire-dca"))
         .andExpect(jsonPath("$.transactionId").value("dca-event"))
         .andExpect(jsonPath("$.to.email").value("alice@example.com"))
+        .andExpect(jsonPath("$.to.subscriberId").value("open-fire:alice"))
+        .andExpect(jsonPath("$.overrides.email.integrationIdentifier").value("open-fire-smtp"))
+        .andExpect(jsonPath("$.overrides.email.text").value("Planned DCA: $100/month\n\nhttps://app.example"))
         .andExpect(jsonPath("$.payload.subject").value("Your OpenFIRE DCA reminder"))
         .andRespond(withSuccess("{\"data\":{\"acknowledged\":true,\"status\":\"processed\"}}", MediaType.APPLICATION_JSON));
     service.send("dca-event", "alice", "alice@example.com", "dca", "<b>Planned DCA:</b> $100/month");
@@ -69,6 +72,7 @@ class EmailNotificationServiceTest {
     var service = new EmailNotificationService(builder.build(), "test-key", "https://app.example");
     server.expect(requestTo("https://novu.example/api/v1/events/trigger"))
         .andExpect(jsonPath("$.name").value("open-fire-return"))
+        .andExpect(jsonPath("$.overrides.email.integrationIdentifier").value("open-fire-smtp"))
         .andRespond(withSuccess("{\"acknowledged\":true,\"status\":\"processed\"}", MediaType.APPLICATION_JSON));
     service.send("return-event", "alice", "alice@example.com", "return", "Check your plan");
     server.verify();

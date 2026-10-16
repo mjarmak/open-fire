@@ -48,12 +48,14 @@ public class EmailNotificationService {
 
   public void send(String key, String username, String address, String kind, String content) {
     String subject = kind.equals("dca") ? "Your OpenFIRE DCA reminder" : "Time to check your OpenFIRE plan";
+    String text = NotificationContent.plainText(content) + "\n\n" + appUrl;
     JsonNode response = client.post().uri("/v1/events/trigger")
         .header("Authorization", "ApiKey " + apiKey).header("Idempotency-Key", key)
         .body(Map.of("name", "open-fire-" + kind, "transactionId", key,
             "to", Map.of("subscriberId", "open-fire:" + username, "email", address),
+            "overrides", Map.of("email", Map.of("integrationIdentifier", "open-fire-smtp", "text", text)),
             "payload", Map.of("subject", subject, "html", html(subject, content),
-                "text", NotificationContent.plainText(content) + "\n\n" + appUrl,
+                "text", text,
                 "actionUrl", appUrl)))
         .retrieve().body(JsonNode.class);
     JsonNode result = response == null ? null : response.has("data") ? response.path("data") : response;
