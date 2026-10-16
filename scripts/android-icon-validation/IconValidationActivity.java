@@ -62,6 +62,9 @@ public final class IconValidationActivity extends Activity {
                             if (!region.contains(x, y) || radius > size * 33.0 / 72.0) {
                                 throw new AssertionError(shapes[column] + " clips artwork at size " + sizes[row]);
                             }
+                            if (radius > size * 26.0 / 72.0) {
+                                throw new AssertionError("Logo needs more padding at size " + sizes[row]);
+                            }
                         }
                     }
                     if (artwork < size * size / 10) throw new AssertionError("Logo rendered too small or blank");

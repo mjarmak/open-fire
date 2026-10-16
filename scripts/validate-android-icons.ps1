@@ -50,6 +50,9 @@ foreach ($file in $images) {
     if ($artPixels -eq 0 -or $maxRadius -gt 33) {
       throw "Launcher artwork exceeds Android's safe area in $($file.Directory.Name): radius $maxRadius / 33."
     }
+    if ($maxRadius -gt 26) {
+      throw "Launcher artwork needs more breathing room in $($file.Directory.Name): radius $maxRadius / 26."
+    }
     $corner = $bitmap.GetPixel(0, 0)
     if ($corner.ToArgb() -ne $backgroundColor.ToArgb()) {
       throw "Foreground canvas and adaptive background colors differ in $($file.Directory.Name)."

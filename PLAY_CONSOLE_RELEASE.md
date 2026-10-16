@@ -24,7 +24,7 @@
 - Production variant: release
 - Build command: `powershell -ExecutionPolicy Bypass -File scripts/build-android-bundle.ps1`
 - AAB path: `android/app-release-bundle.aab`
-- SHA-256: 425a06816edde26620cebe9fa69607bcd93f5b76895be6d925008190857e36d7
+- SHA-256: 763d02d7cf2b4fcfff529d44c08e1a5c2021a77ba480232eb2a20b1bfdfe1595
 - Upload certificate fingerprint: 57:AA:0C:02:74:AB:74:DA:B3:A7:7D:8F:EC:2D:A3:4A:A8:79:C1:A6:97:6F:33:64:40:23:96:D8:BD:5E:3A:8B
 - Google Play app-signing certificate fingerprint: 2E:70:5E:8E:DE:F4:D7:F4:5B:14:D1:4E:0D:E9:3A:F8:C5:0D:CD:AC:93:64:B1:10:3E:D1:1A:3A:BF:42:73:53
 - Digital Asset Links must contain both fingerprints so local release builds and Play-installed builds both verify the TWA and auth callback app link.
@@ -64,7 +64,7 @@
 - Track: Production, full rollout requested
 - Play app record: Created
 - Initial setup tasks: Complete
-- Upload attempted: Version code 3 (`1.0.2`) on 2026-10-16; Play rejected the bundle during validation
+- Upload attempted: An earlier version code 3 (`1.0.2`) build on 2026-10-16 was rejected during validation. The latest smaller-logo rebuild above has not been uploaded.
 - Previewed/confirmed: No, blocked before release preview
 - Submitted: No, `1.0.2` is not in review
 - Review state: Production draft; minimum SDK compatibility decision pending
@@ -76,10 +76,10 @@
 
 ## Launcher Icon Validation
 
-- The adaptive logo is a percentage-inset foreground over a matching solid background, keeping the complete flame/shield inside Android's guaranteed safe area.
+- The adaptive logo is a 25%-inset foreground over a matching solid background, keeping the complete flame/shield inside Android's guaranteed safe area. This makes the artwork approximately 21% smaller than the previous 18.5%-inset layout.
 - `scripts/validate-android-icons.ps1` checks all five bitmap densities and runs automatically before the release build. The original layout failed this regression check; the corrected layout passes.
 - Signed bundle verification, bundletool validation, and `lintRelease` passed. `testReleaseUnitTest` has no source tests.
 - The exact bundle was converted to a signed universal APK and installed on a dedicated Android API 34 emulator.
 - Run `scripts/test-android-icon-rendering.ps1 -Device <adb-serial>` after installing that APK, with `JAVA_HOME` and `ANDROID_HOME` set. The harness requires SDK build-tools 35.0.0 and platform android-35.
-- Its separate test-only APK uses Android's installed adaptive icon drawable, checking circle, rounded-square, squircle, and teardrop masks at 48/72/96 dp. All 12 checks passed for `1.0.2` code 3.
+- Its separate test-only APK uses Android's installed adaptive icon drawable, checking circle, rounded-square, squircle, and teardrop masks at 48/72/96 dp. All 12 checks passed for the smaller-logo `1.0.2` code 3 rebuild. Both validation scripts enforce the additional artwork padding as well as clipping safety.
 - Local contact sheet: `android/build/icon-validation/icon-masks.png` (ignored build output). Neither the helper APK nor its disposable test-only key is part of the production bundle.
