@@ -53,7 +53,7 @@ public class AppNotificationService {
       query.setString(1, username);
       try (var row = query.executeQuery()) {
         Preferences preferences = row.next() ? new Preferences(row.getBoolean(1), row.getBoolean(2), row.getBoolean(3))
-            : new Preferences(false, false, false);
+            : new Preferences(true, true, true);
         return new Configuration(transport.enabled(), transport.publicKey(), preferences);
       }
     }

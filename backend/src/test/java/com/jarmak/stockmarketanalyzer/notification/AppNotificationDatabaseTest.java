@@ -45,7 +45,10 @@ class AppNotificationDatabaseTest {
       statement.execute("insert into users(username) values ('alice'), ('bob')");
     }
     Flyway.configure().dataSource(url, "openfire_test", "openfire_test").schemas(schema).defaultSchema(schema)
-        .baselineOnMigrate(true).baselineVersion("13").load().migrate();
+        .baselineOnMigrate(true).baselineVersion("13").target("14").load().migrate();
+    sql("insert into app_notification_preferences(username, dca, briefing, return_reminder) values ('bob', false, false, false)");
+    Flyway.configure().dataSource(url, "openfire_test", "openfire_test").schemas(schema).defaultSchema(schema)
+        .load().migrate();
     database = mock(DatabaseService.class); when(database.connection()).thenAnswer(invocation -> connect());
     dashboard = mock(DashboardService.class); transport = mock(WebPushTransport.class);
     when(transport.enabled()).thenReturn(true);
@@ -69,6 +72,16 @@ class AppNotificationDatabaseTest {
 
   void enable(String endpoint) throws SQLException {
     service.preferences("alice", new AppNotificationService.Preferences(true, true, true)); service.subscribe("alice", endpoint, key, auth);
+  }
+
+  @Test void defaultMigrationPreservesOptOutsAndDoesNotRegisterDevices() throws Exception {
+    var enabled = new AppNotificationService.Preferences(true, true, true);
+    assertThat(service.configuration("alice").preferences()).isEqualTo(enabled);
+    sql("insert into app_notification_preferences(username) values ('alice')");
+    assertThat(service.configuration("alice").preferences()).isEqualTo(enabled);
+    assertThat(service.configuration("bob").preferences())
+        .isEqualTo(new AppNotificationService.Preferences(false, false, false));
+    assertThat(count("web_push_subscriptions")).isZero();
   }
 
   @Test void migrationQueueAndRestartDeduplicatePerDevice() throws Exception {

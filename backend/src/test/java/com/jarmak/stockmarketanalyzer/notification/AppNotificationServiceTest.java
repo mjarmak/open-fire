@@ -47,6 +47,24 @@ class AppNotificationServiceTest {
     verify(connection).prepareStatement(contains("for update of d, s, u, p skip locked"));
   }
 
+  @Test void categoriesDefaultToEnabledWithoutRegisteringADevice() throws Exception {
+    when(row.next()).thenReturn(false);
+    assertThat(service.configuration("alice").preferences())
+        .isEqualTo(new AppNotificationService.Preferences(true, true, true));
+    verify(query).setString(1, "alice");
+    verify(query, never()).executeUpdate();
+    verify(transport, never()).send(anyString(), anyString(), anyString(), anyString());
+  }
+
+  @Test void savedCategoryOptOutsArePreserved() throws Exception {
+    when(row.getBoolean(1)).thenReturn(false);
+    when(row.getBoolean(2)).thenReturn(true);
+    when(row.getBoolean(3)).thenReturn(false);
+    assertThat(service.configuration("alice").preferences())
+        .isEqualTo(new AppNotificationService.Preferences(false, true, false));
+    verify(query, never()).executeUpdate();
+  }
+
   @ParameterizedTest @ValueSource(ints = {408, 429, 500, 503})
   void transientFailureSchedulesBoundedRetry(int status) throws Exception {
     when(transport.send(anyString(), anyString(), anyString(), anyString())).thenReturn(status);

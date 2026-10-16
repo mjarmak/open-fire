@@ -6,6 +6,22 @@ test.describe('App notifications', () => {
     await registerMockApi(page); await seedRememberedLogin(page); await gotoLoggedInDashboard(page);
   });
 
+  test('defaults all categories on without registering browser permission or a device', async ({ page }) => {
+    let subscriptionRequests = 0;
+    page.on('request', request => {
+      if (new URL(request.url()).pathname === '/api/notifications/app/subscriptions') subscriptionRequests++;
+    });
+    await page.getByRole('button', { name: 'Open menu', exact: true }).click();
+    await page.getByRole('button', { name: 'App Notifications', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'App Notifications' });
+    for (const name of ['DCA reminders', 'Risk and alert briefings', 'Portfolio reminders after 7 days of inactivity']) {
+      await expect(dialog.getByRole('checkbox', { name, exact: true })).toBeChecked();
+    }
+    await dialog.getByRole('button', { name: 'Save preferences' }).click();
+    await expect(page.locator('.snackbar')).toHaveText('Notification preferences saved.');
+    expect(subscriptionRequests).toBe(0);
+  });
+
   test('loads settings directly without an inbox and saves with snackbar feedback', async ({ page }) => {
     let release!: () => void;
     const pending = new Promise<void>(resolve => release = resolve);

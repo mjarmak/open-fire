@@ -9,7 +9,7 @@
 | A week away | Same message as the inactivity email | Hourly check after seven days since the last visit | Once per last-visit timestamp |
 | Test | Harmless device confirmation | User action | Own device only; one test per account per 15-minute bucket |
 
-All app categories default off. Use **Menu > App Notifications**, select categories, then explicitly enable the current device. DCA and alert settings link to this settings-only dialog. App preferences do not change email or Telegram preferences. Owner-only feedback forwarding and authentication-provider security emails are outside these reminder categories.
+All app categories default on for users without saved preferences. Existing category opt-outs are preserved. Browser/device permission remains separate: **Menu > App Notifications > Enable on this device** explicitly requests it through the browser; opening settings or saving categories never requests permission or registers a new device. DCA and alert settings link to this settings-only dialog. App preferences do not change email or Telegram preferences. Owner-only feedback forwarding and authentication-provider security emails are outside these reminder categories.
 
 The backend retains account-scoped notification records for delivery and retention, but there is no inbox in the app. Device previews use at most 500 Unicode code points; tapping them opens the dashboard through normal Jenius authentication. User notes are rendered as plain text. Previews may contain financial details, disclosed before opt-in. Settings updates and errors appear in the shared snackbar, not inline banners. The user-facing test notification button has been removed.
 
@@ -25,7 +25,7 @@ iOS/iPadOS requires an installed Home Screen app on version 16.4 or later. A nor
 
 1. Run `node scripts/generate-push-keys.mjs` once in a trusted terminal. Its private output is a secret.
 2. Put `OPENFIRE_PUSH_PUBLIC_KEY`, `OPENFIRE_PUSH_PRIVATE_KEY`, and `OPENFIRE_PUSH_SUBJECT=mailto:support@jeniusapps.com` in protected backend environment configuration. Never commit keys or place the private key in client builds. Keep the pair stable across deployments; rotation requires resubscription.
-3. Deploy backend and production frontend over HTTPS. Flyway applies `V14__add_app_notifications.sql`. Development builds intentionally disable Angular's service worker.
+3. Deploy backend and production frontend over HTTPS. Flyway applies `V14__add_app_notifications.sql` and `V15__enable_app_notification_categories_by_default.sql`; the latter changes defaults only, never saved preferences. Development builds intentionally disable Angular's service worker.
 4. Enable a category/device and verify a scheduled reminder's actual OS display and dashboard click destination. Delivery runs once per minute; provider acceptance alone is not device delivery. The UI no longer offers a test notification button; the authenticated, rate-limited backend test endpoint remains available for controlled operator verification.
 5. Build and publish Android 1.0.3 separately using the repository's signed release workflow. Review the new permission, subscription identifiers and financial previews against privacy/Data safety declarations before submission. This implementation does not change the existing Play review.
 
@@ -55,14 +55,14 @@ Default backend/Angular tests mock external market/messaging clients. A local cr
 
 Deployment preflight regression tests run with `node --test scripts/deploy-linux.test.mjs`. They check that Jenius deployments no longer require the obsolete local password hash while still rejecting required database, market-provider and Keycloak credential placeholders.
 
-Seven opt-in PostgreSQL tests cover the actual Flyway migration, restart/deduplication, concurrent claiming, ownership, schedules, opt-out and expired subscriptions. They create/delete only uniquely named schemas and reject non-loopback database URLs. With a disposable PostgreSQL 16 database using test-only credentials `openfire_test` / `openfire_test`:
+Eight opt-in PostgreSQL tests cover the actual Flyway migrations (including default changes without overwriting opt-outs), restart/deduplication, concurrent claiming, ownership, schedules, opt-out and expired subscriptions. They create/delete only uniquely named schemas and reject non-loopback database URLs. With a disposable PostgreSQL 16 database using test-only credentials `openfire_test` / `openfire_test`:
 
 ```powershell
 $env:OPENFIRE_PUSH_TEST_DB_URL='jdbc:postgresql://127.0.0.1:15434/openfire_push_test'
 mvn -f backend/pom.xml -Dtest=AppNotificationDatabaseTest test
 ```
 
-Docker Desktop's Linux engine was unavailable during implementation, so these seven database tests were not run against PostgreSQL. The full Playwright suite has two pre-existing portfolio failures, reproduced unchanged on baseline commit `73f9c46` (watch-only daily-change locator and light-theme metric-label colour); notification tests pass.
+Docker Desktop's Linux engine was unavailable during implementation, so these database tests have not been run against PostgreSQL. The full Playwright suite has two pre-existing portfolio failures, reproduced unchanged on baseline commit `73f9c46` (watch-only daily-change locator and light-theme metric-label colour); notification tests pass.
 
 ## References
 

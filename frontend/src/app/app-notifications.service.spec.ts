@@ -36,6 +36,38 @@ describe('AppNotificationsService', () => {
     flushMicrotasks(); expect(push.requestSubscription).not.toHaveBeenCalled(); expect(service.enabledOnDevice).toBeFalse();
   }));
 
+  it('defaults categories on but asks for browser permission only from enable', fakeAsync(() => {
+    expect(service.preferences).toEqual(preferences);
+    expect(service.enabledOnDevice).toBeFalse();
+    void service.show();
+    http.expectOne('/api/notifications/app/settings').flush({ configured: true, publicKey: 'vapid', preferences });
+    flushMicrotasks();
+    void service.save();
+    http.expectOne('/api/notifications/app/settings').flush(null); flushMicrotasks();
+    expect(push.requestSubscription).not.toHaveBeenCalled();
+    http.expectNone('/api/notifications/app/subscriptions');
+  }));
+
+  it('preserves saved category opt-outs', fakeAsync(() => {
+    void service.show();
+    const saved = { dca: false, briefing: true, returnReminder: false };
+    http.expectOne('/api/notifications/app/settings').flush({ configured: true, publicKey: 'vapid', preferences: saved });
+    flushMicrotasks(); expect(service.preferences).toEqual(saved);
+    expect(push.requestSubscription).not.toHaveBeenCalled();
+  }));
+
+  it('does not register a device if the user rejects the browser permission request', fakeAsync(() => {
+    service.configured = true;
+    push.requestSubscription.and.rejectWith(new DOMException('Permission denied', 'NotAllowedError'));
+    void service.enable(); flushMicrotasks();
+    expect(push.requestSubscription).toHaveBeenCalledTimes(1);
+    expect(service.enabledOnDevice).toBeFalse();
+    expect(service.preferences).toEqual(preferences);
+    http.expectNone('/api/notifications/app/subscriptions');
+    http.expectNone('/api/notifications/app/settings');
+    expect(feedback[0].tone).toBe('error');
+  }));
+
   it('enables only after user action and stores an account-owned subscription', fakeAsync(() => {
     void service.initialize('alice-id');
     http.expectOne('/api/notifications/app/settings').flush({ configured: true, publicKey: 'vapid', preferences }); flushMicrotasks();

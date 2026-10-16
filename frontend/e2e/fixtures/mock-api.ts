@@ -357,7 +357,7 @@ function mockJeniusAccessToken(username = DEFAULT_USERNAME): string {
 }
 
 export async function registerMockApi(page: Page, initial?: Partial<MockApiState>): Promise<MockApiController> {
-  let pushPreferences = { dca: false, briefing: false, returnReminder: false };
+  let pushPreferences = { dca: true, briefing: true, returnReminder: true };
   const state: MockApiState = {
     ...defaultState(),
     ...initial,

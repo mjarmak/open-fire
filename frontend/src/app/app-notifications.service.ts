@@ -21,7 +21,7 @@ export class AppNotificationsService {
   loading = false;
   loadFailed = false;
   readonly feedback = new Subject<{ message: string; tone: 'neutral' | 'error' }>();
-  preferences: NotificationPreferences = { dca: false, briefing: false, returnReminder: false };
+  preferences: NotificationPreferences = { dca: true, briefing: true, returnReminder: true };
 
   get supported(): boolean {
     return Boolean(this.push?.isEnabled && window.isSecureContext && 'Notification' in window && 'PushManager' in window);
