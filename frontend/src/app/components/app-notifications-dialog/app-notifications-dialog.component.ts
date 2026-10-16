@@ -11,11 +11,4 @@ import { dialogBackdropAnimation, dialogPanelAnimation } from '../dialog.animati
 })
 export class AppNotificationsDialogComponent {
   readonly state = inject(AppNotificationsService);
-  tab: 'inbox' | 'settings' = 'inbox';
-  async more(): Promise<void> {
-    this.state.loading = true;
-    try { await this.state.loadInbox(true); }
-    catch { this.state.error = 'Could not load more notifications.'; }
-    finally { this.state.loading = false; }
-  }
 }

@@ -9,9 +9,9 @@
 | A week away | Same message as the inactivity email | Hourly check after seven days since the last visit | Once per last-visit timestamp |
 | Test | Harmless device confirmation | User action | Own device only; one test per account per 15-minute bucket |
 
-All app categories default off. Use **Menu > App Notifications > Settings**, select categories, then explicitly enable the current device. DCA and alert settings link to this dialog. App preferences do not change email or Telegram preferences. Owner-only feedback forwarding and authentication-provider security emails are outside these reminder categories.
+All app categories default off. Use **Menu > App Notifications**, select categories, then explicitly enable the current device. DCA and alert settings link to this settings-only dialog. App preferences do not change email or Telegram preferences. Owner-only feedback forwarding and authentication-provider security emails are outside these reminder categories.
 
-The account-scoped inbox stores complete messages. Device previews use at most 500 Unicode code points; tapping them opens the inbox through normal Jenius authentication and ownership checks. User notes are rendered as plain text. Previews may contain financial details, disclosed before opt-in.
+The backend retains account-scoped notification records for delivery and retention, but there is no inbox in the app. Device previews use at most 500 Unicode code points; tapping them opens the dashboard through normal Jenius authentication. User notes are rendered as plain text. Previews may contain financial details, disclosed before opt-in. Settings updates and errors appear in the shared snackbar, not inline banners. The user-facing test notification button has been removed.
 
 ## Platforms
 
@@ -26,16 +26,16 @@ iOS/iPadOS requires an installed Home Screen app on version 16.4 or later. A nor
 1. Run `node scripts/generate-push-keys.mjs` once in a trusted terminal. Its private output is a secret.
 2. Put `OPENFIRE_PUSH_PUBLIC_KEY`, `OPENFIRE_PUSH_PRIVATE_KEY`, and `OPENFIRE_PUSH_SUBJECT=mailto:support@jeniusapps.com` in protected backend environment configuration. Never commit keys or place the private key in client builds. Keep the pair stable across deployments; rotation requires resubscription.
 3. Deploy backend and production frontend over HTTPS. Flyway applies `V14__add_app_notifications.sql`. Development builds intentionally disable Angular's service worker.
-4. Enable a category/device and use **Test notification**. Delivery runs once per minute. Verify actual OS display and the click destination; provider acceptance alone is not device delivery.
+4. Enable a category/device and verify a scheduled reminder's actual OS display and dashboard click destination. Delivery runs once per minute; provider acceptance alone is not device delivery. The UI no longer offers a test notification button; the authenticated, rate-limited backend test endpoint remains available for controlled operator verification.
 5. Build and publish Android 1.0.3 separately using the repository's signed release workflow. Review the new permission, subscription identifiers and financial previews against privacy/Data safety declarations before submission. This implementation does not change the existing Play review.
 
-Missing VAPID configuration disables push delivery, logs a startup warning, and appears in settings. The account inbox remains usable.
+Missing VAPID configuration disables push delivery, logs a startup warning, and appears in settings. Preferences remain usable without push support.
 
 ### Production Deployment
 
 On October 16, 2026, VAPID keys were generated directly on the VPS and saved in OpenFIRE's root-only production environment file, with a root-only backup. The existing deployment watcher recreated the frontend and backend at commit `4599d55`; its final output reported **Deployment complete**. No new persistent containers were added, and other applications were left unchanged.
 
-The PWA does not need a Play Store update. Reopen or refresh it, select notification categories in **App Notifications > Settings**, enable the device, then use **Test notification**. Actual device display has not yet been verified. Android notification delegation still requires publishing the uploaded 1.0.3 / code 5 release; no new Play submission was made during this deployment.
+The PWA does not need a Play Store update. Reopen or refresh it, select notification categories in **App Notifications**, and enable the device. Actual device display has not yet been verified. Android notification delegation still requires publishing the uploaded 1.0.3 / code 5 release; no new Play submission was made during this deployment.
 
 The October 16 live follow-up confirmed owner Google sign-in and the production notification settings. Device registration requires at least one category; all categories were off, so no subscription or test was sent while approval for a temporary DCA opt-in was pending. The separate `test` account needs email verification. Existing Play reviewer credentials failed Jenius sign-in and must be corrected before release submission.
 
@@ -51,7 +51,7 @@ The October 16 live follow-up confirmed owner Google sign-in and the production 
 
 ## Validation
 
-Default backend/Angular tests mock external market/messaging clients. A local crypto test constructs a real encrypted/VAPID-signed request without sending it. Playwright uses five workers and covers loading/empty states, safe full-message rendering, responsive themes and DCA navigation.
+Default backend/Angular tests mock external market/messaging clients. A local crypto test constructs a real encrypted/VAPID-signed request without sending it. Playwright uses five workers and covers direct settings loading without inbox requests, snackbar success/errors, failed-load retry, responsive themes and DCA navigation. Component tests verify that neither enabled nor disabled devices show an inbox or test button.
 
 Deployment preflight regression tests run with `node --test scripts/deploy-linux.test.mjs`. They check that Jenius deployments no longer require the obsolete local password hash while still rejecting required database, market-provider and Keycloak credential placeholders.
 

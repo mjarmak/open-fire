@@ -1,13 +1,5 @@
 :host { display: contents; }
 .app-notifications-dialog { width: min(680px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow-y: auto; }
-.notification-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-.notification-tabs button { flex: 1; }
-.notification-tabs button[aria-selected='false'] { background: transparent; color: inherit; }
-.notification-error { color: var(--danger, #e05252); }
-.notification-inbox article { padding: 16px 0; border-bottom: 1px solid #80808050; }
-.notification-inbox h3 { font-size: 16px; margin: 0 0 4px; }
-.notification-inbox time { font-size: 12px; opacity: .7; }
-.notification-inbox p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
 .notification-device-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .notification-skeleton { display: grid; gap: 12px; padding: 16px 0; }
 .notification-skeleton span { height: 56px; background: #80808030; border-radius: 6px; animation: pulse 1s infinite alternate; }

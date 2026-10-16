@@ -1,10 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { SwPush } from '@angular/service-worker';
-import { firstValueFrom, take, timeout } from 'rxjs';
+import { Subject, firstValueFrom, take, timeout } from 'rxjs';
 
 export interface NotificationPreferences { dca: boolean; briefing: boolean; returnReminder: boolean; }
-export interface AppNotification { id: number; kind: string; title: string; body: string; createdAt: string; }
 interface Configuration { configured: boolean; publicKey: string; preferences: NotificationPreferences; }
 
 @Injectable({ providedIn: 'root' })
@@ -20,15 +19,9 @@ export class AppNotificationsService {
   enabledOnDevice = false;
   busy = false;
   loading = false;
-  error = '';
-  status = '';
-  messages: AppNotification[] = [];
-  more = false;
+  loadFailed = false;
+  readonly feedback = new Subject<{ message: string; tone: 'neutral' | 'error' }>();
   preferences: NotificationPreferences = { dca: false, briefing: false, returnReminder: false };
-
-  constructor() {
-    this.push?.notificationClicks.subscribe(() => { void this.show(); });
-  }
 
   get supported(): boolean {
     return Boolean(this.push?.isEnabled && window.isSecureContext && 'Notification' in window && 'PushManager' in window);
@@ -36,7 +29,7 @@ export class AppNotificationsService {
   get blocked(): boolean { return 'Notification' in window && Notification.permission === 'denied'; }
 
   async initialize(owner: string): Promise<void> {
-    if (owner !== this.owner) { this.messages = []; this.open = false; this.enabledOnDevice = false; }
+    if (owner !== this.owner) { this.open = false; this.enabledOnDevice = false; }
     this.owner = owner;
     try {
       await this.loadConfiguration();
@@ -51,14 +44,16 @@ export class AppNotificationsService {
           this.enabledOnDevice = true;
         }
       }
-      if (new URLSearchParams(location.search).has('notifications')) { await this.show(); }
-    } catch { /* Dashboard availability does not depend on push setup. Errors remain visible in settings. */ }
+    } catch { /* Dashboard availability does not depend on push setup. Opening settings retries configuration. */ }
   }
 
   async show(): Promise<void> {
-    this.open = true; this.error = ''; this.loading = true;
-    try { await Promise.all([this.loadConfiguration(), this.loadInbox()]); }
-    catch { this.error = 'Could not load notifications. Try again.'; }
+    this.open = true; this.loadFailed = false; this.loading = true;
+    try { await this.loadConfiguration(); }
+    catch {
+      this.loadFailed = true;
+      this.feedback.next({ message: 'Could not load notification settings. Try again.', tone: 'error' });
+    }
     finally { this.loading = false; }
   }
 
@@ -67,17 +62,10 @@ export class AppNotificationsService {
     this.configured = config.configured; this.publicKey = config.publicKey; this.preferences = { ...config.preferences };
   }
 
-  async loadInbox(append = false): Promise<void> {
-    const before = append && this.messages.length ? `?before=${this.messages[this.messages.length - 1].id}` : '';
-    const messages = await firstValueFrom(this.http.get<AppNotification[]>(`${this.base}${before}`));
-    this.messages = append ? [...this.messages, ...messages] : messages;
-    this.more = messages.length === 25;
-  }
-
   async save(): Promise<void> {
     await this.perform(async () => {
       await firstValueFrom(this.http.put(`${this.base}/settings`, this.preferences));
-      this.status = 'Notification preferences saved.';
+      this.feedback.next({ message: 'Notification preferences saved.', tone: 'neutral' });
     });
   }
 
@@ -92,12 +80,16 @@ export class AppNotificationsService {
         await firstValueFrom(this.http.post(`${this.base}/subscriptions`, subscription.toJSON()));
       } catch (error) { await subscription.unsubscribe(); throw error; }
       localStorage.setItem(this.ownerKey, this.owner);
-      this.enabledOnDevice = true; this.status = 'Notifications enabled on this device.';
+      this.enabledOnDevice = true;
+      this.feedback.next({ message: 'Notifications enabled on this device.', tone: 'neutral' });
     });
   }
 
   async disable(): Promise<void> {
-    await this.perform(async () => { await this.detach(); this.status = 'Notifications disabled on this device.'; });
+    await this.perform(async () => {
+      await this.detach();
+      this.feedback.next({ message: 'Notifications disabled on this device.', tone: 'neutral' });
+    });
   }
 
   async detach(): Promise<void> {
@@ -111,16 +103,7 @@ export class AppNotificationsService {
         catch { /* Revoked endpoints are pruned by the push worker. */ }
       }
     }
-    localStorage.removeItem(this.ownerKey); this.enabledOnDevice = false; this.open = false; this.messages = [];
-  }
-
-  async test(): Promise<void> {
-    await this.perform(async () => {
-      const subscription = await this.subscription();
-      if (!subscription || !this.enabledOnDevice) { throw new Error('Enable notifications on this device first.'); }
-      await firstValueFrom(this.http.post(`${this.base}/test`, { endpoint: subscription.endpoint }));
-      this.status = 'Test notification queued.'; await this.loadInbox();
-    });
+    localStorage.removeItem(this.ownerKey); this.enabledOnDevice = false; this.open = false;
   }
 
   private subscription(): Promise<PushSubscription | null> {
@@ -129,11 +112,12 @@ export class AppNotificationsService {
 
   private async perform(action: () => Promise<void>): Promise<void> {
     if (this.busy) return;
-    this.busy = true; this.error = ''; this.status = '';
+    this.busy = true;
     try { await action(); }
     catch (error) {
-      this.error = this.blocked ? 'Notifications are blocked in browser or app settings.'
-        : error instanceof Error && !('status' in error) ? error.message : 'Could not update notifications. Please try again.';
+      const message = error instanceof Error && !('status' in error)
+        ? error.message : 'Could not update notifications. Please try again.';
+      this.feedback.next({ message, tone: 'error' });
     } finally { this.busy = false; }
   }
 }

@@ -10,6 +10,7 @@ describe('AppNotificationsService', () => {
   let http: HttpTestingController;
   let push: jasmine.SpyObj<SwPush>;
   let subscription: PushSubscription;
+  let feedback: { message: string; tone: 'neutral' | 'error' }[];
   const preferences = { dca: true, briefing: true, returnReminder: true };
   beforeEach(() => {
     localStorage.removeItem('open-fire.push.owner');
@@ -22,6 +23,8 @@ describe('AppNotificationsService', () => {
     push.requestSubscription.and.resolveTo(subscription);
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting(), { provide: SwPush, useValue: push }] });
     service = TestBed.inject(AppNotificationsService); http = TestBed.inject(HttpTestingController);
+    feedback = [];
+    service.feedback.subscribe(message => feedback.push(message));
     spyOnProperty(service, 'supported', 'get').and.returnValue(true);
     spyOnProperty(service, 'blocked', 'get').and.returnValue(false);
   });
@@ -42,6 +45,7 @@ describe('AppNotificationsService', () => {
     const request = http.expectOne({ method: 'POST', url: '/api/notifications/app/subscriptions' });
     expect(request.request.body).toEqual(subscription.toJSON()); request.flush(null); flushMicrotasks();
     expect(localStorage.getItem('open-fire.push.owner')).toBe('alice-id'); expect(service.enabledOnDevice).toBeTrue();
+    expect(feedback).toEqual([{ message: 'Notifications enabled on this device.', tone: 'neutral' }]);
   }));
 
   it('revokes a subscription if API registration fails', fakeAsync(() => {
@@ -49,7 +53,8 @@ describe('AppNotificationsService', () => {
     void service.enable(); flushMicrotasks();
     http.expectOne('/api/notifications/app/settings').flush(null); flushMicrotasks();
     http.expectOne('/api/notifications/app/subscriptions').flush({}, { status: 503, statusText: 'Unavailable' }); flushMicrotasks();
-    expect(subscription.unsubscribe).toHaveBeenCalled(); expect(service.enabledOnDevice).toBeFalse(); expect(service.error).toContain('try again');
+    expect(subscription.unsubscribe).toHaveBeenCalled(); expect(service.enabledOnDevice).toBeFalse();
+    expect(feedback[0].message).toContain('try again'); expect(feedback[0].tone).toBe('error');
   }));
 
   it('does not inherit notifications from another account', fakeAsync(() => {
@@ -65,7 +70,8 @@ describe('AppNotificationsService', () => {
     service.configured = true; service.preferences = preferences;
     (Object.getOwnPropertyDescriptor(service, 'blocked')!.get as jasmine.Spy).and.returnValue(true);
     void service.enable(); flushMicrotasks();
-    expect(service.error).toContain('blocked'); expect(push.requestSubscription).not.toHaveBeenCalled();
+    expect(feedback[0].message).toContain('blocked'); expect(feedback[0].tone).toBe('error');
+    expect(push.requestSubscription).not.toHaveBeenCalled();
   }));
 
   it('revokes locally on logout even when backend cleanup fails', fakeAsync(() => {
@@ -79,11 +85,53 @@ describe('AppNotificationsService', () => {
     expect(service.enabledOnDevice).toBeFalse(); expect(localStorage.getItem('open-fire.push.owner')).toBeNull();
   }));
 
-  it('loads an inbox without push support and preserves complete message text', fakeAsync(() => {
+  it('opens settings directly without requesting the removed inbox', fakeAsync(() => {
     (Object.getOwnPropertyDescriptor(service, 'supported')!.get as jasmine.Spy).and.returnValue(false);
     void service.show();
     http.expectOne('/api/notifications/app/settings').flush({ configured: false, publicKey: '', preferences });
-    http.expectOne('/api/notifications/app').flush([{ id: 1, title: 'DCA', body: '<b>Literal user note</b>', createdAt: '2026-10-16T14:00:00Z' }]);
-    flushMicrotasks(); expect(service.messages[0].body).toBe('<b>Literal user note</b>'); expect(service.loading).toBeFalse();
+    http.expectNone('/api/notifications/app');
+    flushMicrotasks(); expect(service.open).toBeTrue(); expect(service.preferences).toEqual(preferences);
+    expect(service.loading).toBeFalse(); expect(feedback).toEqual([]);
+  }));
+
+  it('reports a settings load failure and allows retry', fakeAsync(() => {
+    void service.show();
+    http.expectOne('/api/notifications/app/settings').flush({}, { status: 503, statusText: 'Unavailable' });
+    flushMicrotasks();
+    expect(service.loadFailed).toBeTrue(); expect(service.loading).toBeFalse();
+    expect(feedback).toEqual([{ message: 'Could not load notification settings. Try again.', tone: 'error' }]);
+    void service.show();
+    http.expectOne('/api/notifications/app/settings').flush({ configured: true, publicKey: 'vapid', preferences });
+    flushMicrotasks(); expect(service.loadFailed).toBeFalse(); expect(service.loading).toBeFalse();
+  }));
+
+  it('reports save success and failure through snackbar feedback', fakeAsync(() => {
+    service.preferences = preferences;
+    void service.save();
+    const request = http.expectOne({ method: 'PUT', url: '/api/notifications/app/settings' });
+    expect(request.request.body).toEqual(preferences); request.flush(null); flushMicrotasks();
+    expect(feedback[0]).toEqual({ message: 'Notification preferences saved.', tone: 'neutral' });
+    void service.save();
+    http.expectOne('/api/notifications/app/settings').flush({}, { status: 500, statusText: 'Error' }); flushMicrotasks();
+    expect(feedback[1]).toEqual({ message: 'Could not update notifications. Please try again.', tone: 'error' });
+    expect(service.busy).toBeFalse();
+  }));
+
+  it('reports disable success through snackbar feedback', fakeAsync(() => {
+    void service.disable(); flushMicrotasks();
+    expect(feedback).toEqual([{ message: 'Notifications disabled on this device.', tone: 'neutral' }]);
+  }));
+
+  it('does not mask a save failure when browser notifications are blocked', fakeAsync(() => {
+    (Object.getOwnPropertyDescriptor(service, 'blocked')!.get as jasmine.Spy).and.returnValue(true);
+    void service.save();
+    http.expectOne('/api/notifications/app/settings').flush({}, { status: 500, statusText: 'Error' });
+    flushMicrotasks();
+    expect(feedback).toEqual([{ message: 'Could not update notifications. Please try again.', tone: 'error' }]);
+  }));
+
+  it('does not open settings when a push notification is clicked', fakeAsync(() => {
+    (push.notificationClicks as Subject<unknown>).next({}); flushMicrotasks();
+    expect(service.open).toBeFalse(); http.expectNone('/api/notifications/app/settings');
   }));
 });

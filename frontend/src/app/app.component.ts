@@ -1,6 +1,7 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterOutlet } from '@angular/router';
 import { EMPTY, expand, finalize, of, switchMap, timer } from 'rxjs';
@@ -93,7 +94,11 @@ export class AppComponent implements OnDestroy, OnInit {
     public readonly marketDashboardService: MarketDashboardService,
     private readonly jeniusAuth: JeniusAuthService,
     public readonly appNotifications: AppNotificationsService,
-  ) {}
+  ) {
+    this.appNotifications.feedback.pipe(takeUntilDestroyed()).subscribe(({ message, tone }) => {
+      this.showSnackbar(message, tone);
+    });
+  }
 
   @ViewChild('stockLookupQueryInput')
   private set stockLookupQueryInput(input: ElementRef<HTMLInputElement> | undefined) {

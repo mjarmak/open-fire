@@ -230,7 +230,7 @@ describe('AppComponent', () => {
         { provide: MarketDashboardService, useValue: marketDashboardService },
         provideNoopAnimations(),
         { provide: JeniusAuthService, useValue: jeniusAuthService },
-        { provide: AppNotificationsService, useValue: { initialize: async () => {}, detach: async () => {}, open: false } },
+        { provide: AppNotificationsService, useValue: { initialize: async () => {}, detach: async () => {}, open: false, feedback: new Subject() } },
       ],
     }).compileComponents();
   });
@@ -240,6 +240,22 @@ describe('AppComponent', () => {
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
   });
+
+  it('shows notification settings feedback in the shared snackbar and cleans up its subscription', fakeAsync(() => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    const feedback = TestBed.inject(AppNotificationsService).feedback;
+    feedback.next({ message: 'Notification preferences saved.', tone: 'neutral' });
+    expect(app.snackbarMessage).toBe('Notification preferences saved.');
+    expect(app.snackbarTone).toBe('neutral');
+    feedback.next({ message: 'Could not update notifications. Please try again.', tone: 'error' });
+    expect(app.snackbarMessage).toContain('Could not update notifications');
+    expect(app.snackbarTone).toBe('error');
+    tick(4200); expect(app.snackbarMessage).toBe('');
+    fixture.destroy();
+    feedback.next({ message: 'After destruction', tone: 'neutral' });
+    expect(app.snackbarMessage).toBe('');
+  }));
 
   it(`should have the 'OpenFIRE' title`, () => {
     const fixture = TestBed.createComponent(AppComponent);
