@@ -143,7 +143,8 @@ EOF
   exit 2
 fi
 
-if grep -Eq '^(POSTGRES_PASSWORD=change-me|FRED_API_KEY=your-fred-key|FINNHUB_API_KEY=your-finnhub-key|APP_PASSWORD_HASH=generated-salted-sha256-hash|KEYCLOAK_ADMIN_PASSWORD=your_existing_keycloak_admin_password)$' "$ENV_FILE"; then
+# Local password seeding is not an authentication requirement; the API requires Jenius JWTs.
+if grep -Eq '^(POSTGRES_PASSWORD=change-me|FRED_API_KEY=your-fred-key|FINNHUB_API_KEY=your-finnhub-key|KEYCLOAK_ADMIN_PASSWORD=your_existing_keycloak_admin_password)$' "$ENV_FILE"; then
   cat >&2 <<EOF
 $ENV_FILE still contains template placeholders.
 Fill in the required deploy values, then rerun this script.
