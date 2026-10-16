@@ -2,6 +2,8 @@ package com.jarmak.stockmarketanalyzer.notification;
 
 import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -9,8 +11,10 @@ import org.springframework.web.util.HtmlUtils;
 
 @Service
 public class EmailNotificationService {
+  private static final Logger LOGGER = LoggerFactory.getLogger(EmailNotificationService.class);
   private final RestClient client;
   private final String apiKey;
+  private final boolean apiUrlConfigured;
   private final String appUrl;
 
   @org.springframework.beans.factory.annotation.Autowired
@@ -21,17 +25,26 @@ public class EmailNotificationService {
         java.net.http.HttpClient.newBuilder().connectTimeout(java.time.Duration.ofSeconds(10)).build());
     factory.setReadTimeout(java.time.Duration.ofSeconds(10));
     this.client = RestClient.builder().baseUrl(apiUrl).requestFactory(factory).build();
-    this.apiKey = apiUrl.isBlank() ? "" : apiKey;
+    this.apiUrlConfigured = !apiUrl.isBlank();
+    this.apiKey = apiKey == null ? "" : apiKey;
     this.appUrl = appUrl.replaceAll("/$", "");
+    if (!enabled()) {
+      String missing = !apiUrlConfigured && this.apiKey.isBlank()
+          ? "OPENFIRE_NOVU_API_URL and OPENFIRE_NOVU_API_KEY"
+          : !apiUrlConfigured ? "OPENFIRE_NOVU_API_URL" : "OPENFIRE_NOVU_API_KEY";
+      LOGGER.warn("Email reminders are disabled because {} {} configured.", missing,
+          missing.contains(" and ") ? "are not" : "is not");
+    }
   }
 
   EmailNotificationService(RestClient client, String apiKey, String appUrl) {
     this.client = client;
-    this.apiKey = apiKey;
+    this.apiKey = apiKey == null ? "" : apiKey;
+    this.apiUrlConfigured = true;
     this.appUrl = appUrl;
   }
 
-  public boolean enabled() { return !apiKey.isBlank(); }
+  public boolean enabled() { return apiUrlConfigured && !apiKey.isBlank(); }
 
   public void send(String key, String username, String address, String kind, String content) {
     String subject = kind.equals("dca") ? "Your OpenFIRE DCA reminder" : "Time to check your OpenFIRE plan";
