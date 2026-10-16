@@ -1,0 +1,51 @@
+@if (state.open) {
+  <div class="modal-backdrop" role="presentation" @dialogBackdrop>
+    <section class="edit-dialog app-notifications-dialog" role="dialog" aria-modal="true" aria-labelledby="app-notifications-title" @dialogPanel>
+      <div class="dialog-heading">
+        <h2 id="app-notifications-title">App Notifications</h2>
+        <button type="button" class="icon-action" aria-label="Close notifications" title="Close notifications" (click)="state.open = false">x</button>
+      </div>
+      <div class="notification-tabs" role="tablist" aria-label="Notifications">
+        <button type="button" role="tab" [attr.aria-selected]="tab === 'inbox'" (click)="tab = 'inbox'">Inbox</button>
+        <button type="button" role="tab" [attr.aria-selected]="tab === 'settings'" (click)="tab = 'settings'">Settings</button>
+      </div>
+      @if (state.error) { <p role="alert" class="notification-error">{{ state.error }}</p> }
+      @if (state.status) { <p role="status">{{ state.status }}</p> }
+      @if (state.loading) {
+        <div role="status" aria-label="Loading notifications" class="notification-skeleton"><span></span><span></span><span></span></div>
+      } @else if (tab === 'inbox') {
+        <div class="notification-inbox" role="tabpanel" aria-label="Notification inbox">
+          @for (message of state.messages; track message.id) {
+            <article>
+              <h3>{{ message.title }}</h3><time>{{ message.createdAt | date:'medium' }}</time>
+              <p>{{ message.body }}</p>
+            </article>
+          } @empty { <p>No notifications yet.</p> }
+          @if (state.more) { <button type="button" class="secondary" (click)="more()">Load more</button> }
+        </div>
+      } @else {
+        <form class="edit-form" (ngSubmit)="state.save()">
+          <fieldset class="dialog-fieldset" [disabled]="state.busy">
+            <label class="remember-login"><input type="checkbox" name="pushDca" [(ngModel)]="state.preferences.dca" /><span>DCA reminders</span></label>
+            <label class="remember-login"><input type="checkbox" name="pushBriefing" [(ngModel)]="state.preferences.briefing" /><span>Risk and alert briefings</span></label>
+            <label class="remember-login"><input type="checkbox" name="pushReturn" [(ngModel)]="state.preferences.returnReminder" /><span>Remind me after a week away</span></label>
+            <small class="field-hint">Uses your DCA and alert notification days. Email and Telegram preferences stay unchanged. Notification previews may include portfolio details.</small>
+            @if (!state.configured) { <p>Push delivery is not configured yet.</p> }
+            @else if (!state.supported) { <p>Push notifications are unavailable in this browser. On iPhone or iPad, open the installed home-screen app.</p> }
+            @else if (state.blocked) { <p>Notifications are blocked in browser or app settings.</p> }
+            @else { <p>{{ state.enabledOnDevice ? 'Enabled on this device' : 'Disabled on this device' }}</p> }
+            <div class="notification-device-actions">
+              @if (state.enabledOnDevice) {
+                <button type="button" class="secondary" (click)="state.disable()">Disable on this device</button>
+                <button type="button" class="secondary" (click)="state.test()">Test notification</button>
+              } @else {
+                <button type="button" class="secondary" [disabled]="!state.supported || !state.configured || state.blocked" (click)="state.enable()">Enable on this device</button>
+              }
+            </div>
+            <div class="dialog-actions"><button type="submit" [class.button-loading]="state.busy" [attr.aria-busy]="state.busy">{{ state.busy ? 'Saving' : 'Save preferences' }}</button></div>
+          </fieldset>
+        </form>
+      }
+    </section>
+  </div>
+}

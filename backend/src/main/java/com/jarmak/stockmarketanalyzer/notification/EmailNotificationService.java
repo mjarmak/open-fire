@@ -53,7 +53,7 @@ public class EmailNotificationService {
         .body(Map.of("name", "open-fire-" + kind, "transactionId", key,
             "to", Map.of("subscriberId", "open-fire:" + username, "email", address),
             "payload", Map.of("subject", subject, "html", html(subject, content),
-                "text", HtmlUtils.htmlUnescape(content.replace("<b>", "").replace("</b>", "")) + "\n\n" + appUrl,
+                "text", NotificationContent.plainText(content) + "\n\n" + appUrl,
                 "actionUrl", appUrl)))
         .retrieve().body(JsonNode.class);
     JsonNode result = response == null ? null : response.has("data") ? response.path("data") : response;

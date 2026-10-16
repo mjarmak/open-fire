@@ -8,10 +8,11 @@
         <button type="button" class="icon-action" aria-label="Close dialog" title="Close dialog" (click)="closeDialog.emit()">x</button>
       </div>
       <form class="edit-form" (ngSubmit)="save.emit()">
+        <button type="button" class="secondary" (click)="state.alertNotificationDialogOpen = false; notifications.show()">App Notifications</button>
         <fieldset class="dialog-fieldset" [disabled]="state.isLoadingAlertNotifications || state.isSavingAlertNotifications">
           <div class="weekday-field" role="group" aria-label="Alert briefing days">
             <span>Alert briefing days</span>
-            <small class="field-hint">Alert briefings are sent on Telegram once daily at {{ state.telegramAlertScheduleLabel }} on the selected days. Select no days to pause briefings.</small>
+            <small class="field-hint">App notifications and optional Telegram briefings use these days at {{ state.telegramAlertScheduleLabel }}. Select no days to pause briefings.</small>
             <div class="weekday-picker">
               @for (day of state.notificationDayOptions; track day.value) {
                 <label class="weekday-option" [class.selected]="state.isDraftTelegramAlertDaySelected(day.value)">

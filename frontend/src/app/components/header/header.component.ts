@@ -30,6 +30,11 @@ export class HeaderComponent {
   @Output() logout = new EventEmitter<void>();
   @Output() openFeedback = new EventEmitter<void>();
   @Output() openApiTokens = new EventEmitter<void>();
+  @Output() openNotifications = new EventEmitter<void>();
+
+  protected selectNotifications(): void {
+    this.openNotifications.emit(); this.closeMenu();
+  }
 
   @HostListener('window:resize')
   protected repositionOpenMenu(): void {

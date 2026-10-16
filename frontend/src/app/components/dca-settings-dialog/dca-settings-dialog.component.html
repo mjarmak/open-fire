@@ -14,6 +14,7 @@
 
       <form class="edit-form" (ngSubmit)="save.emit()">
         <fieldset class="dialog-fieldset" [disabled]="state.isLoadingDca || state.isSavingDca">
+          <button type="button" class="secondary" (click)="state.dcaDialogOpen = false; notifications.show()">App Notifications</button>
           <label class="remember-login">
             <input name="emailDcaEnabled" type="checkbox" [(ngModel)]="state.draftEmailDcaEnabled" />
             <span>Email my DCA reminder</span>

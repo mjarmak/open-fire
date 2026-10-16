@@ -357,6 +357,7 @@ function mockJeniusAccessToken(username = DEFAULT_USERNAME): string {
 }
 
 export async function registerMockApi(page: Page, initial?: Partial<MockApiState>): Promise<MockApiController> {
+  let pushPreferences = { dca: false, briefing: false, returnReminder: false };
   const state: MockApiState = {
     ...defaultState(),
     ...initial,
@@ -467,6 +468,14 @@ export async function registerMockApi(page: Page, initial?: Partial<MockApiState
       state.alertDays = request.postDataJSON().alertDays;
       await route.fulfill({ status: 200, json: { alertDays: state.alertDays } });
       return;
+    }
+    if (path === '/notifications/app/settings') {
+      if (method === 'PUT') { pushPreferences = request.postDataJSON(); }
+      await route.fulfill({ status: 200, json: { configured: false, publicKey: '', preferences: pushPreferences } });
+      return;
+    }
+    if (method === 'GET' && path === '/notifications/app') {
+      await route.fulfill({ status: 200, json: [] }); return;
     }
     if (method === 'GET' && path === '/users/me/telegram') {
       await route.fulfill({ status: 200, json: { chatId: state.telegramChatId, alertDays: state.alertDays } });

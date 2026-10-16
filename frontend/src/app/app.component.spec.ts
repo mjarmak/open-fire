@@ -7,6 +7,7 @@ import { AppComponent } from './app.component';
 import { StockAlert, SymbolSearchResult } from './market-dashboard.models';
 import { MarketDashboardService } from './market-dashboard.service';
 import { JeniusAuthService } from './jenius-auth.service';
+import { AppNotificationsService } from './app-notifications.service';
 
 describe('AppComponent', () => {
   let marketDashboardService: jasmine.SpyObj<MarketDashboardService>;
@@ -229,6 +230,7 @@ describe('AppComponent', () => {
         { provide: MarketDashboardService, useValue: marketDashboardService },
         provideNoopAnimations(),
         { provide: JeniusAuthService, useValue: jeniusAuthService },
+        { provide: AppNotificationsService, useValue: { initialize: async () => {}, detach: async () => {}, open: false } },
       ],
     }).compileComponents();
   });
@@ -324,7 +326,7 @@ describe('AppComponent', () => {
     expect(sourceLink?.getAttribute('aria-label')).toContain('opens in a new tab');
   });
 
-  it('does not log back in from stale dashboard responses after logout', () => {
+  it('does not log back in from stale dashboard responses after logout', async () => {
     const delayedIndicators$ = new Subject<[]>();
     marketDashboardService.fetchIndicators.and.returnValue(delayedIndicators$.asObservable());
     const fixture = TestBed.createComponent(AppComponent);
@@ -333,7 +335,7 @@ describe('AppComponent', () => {
     app.password = 'password123';
 
     app.refreshDashboard(true);
-    app.logout();
+    await app.logout();
 
     delayedIndicators$.next([]);
     delayedIndicators$.complete();
@@ -550,7 +552,7 @@ describe('AppComponent', () => {
     expect(app.isLoadingRetirement).toBeFalse();
   });
 
-  it('logout clears stored login data but keeps the remember-username preference', () => {
+  it('logout clears stored login data but keeps the remember-username preference', async () => {
     localStorage.setItem('sma_username', 'demoUser');
     localStorage.setItem('sma_password', 'demoPass123');
     localStorage.setItem('sma_remember_login', 'true');
@@ -561,7 +563,7 @@ describe('AppComponent', () => {
     app.password = 'demoPass123';
     app.rememberLogin = true;
 
-    app.logout();
+    await app.logout();
 
     expect(localStorage.getItem('sma_username')).toBeNull();
     expect(localStorage.getItem('sma_password')).toBeNull();
@@ -1218,7 +1220,7 @@ describe('AppComponent', () => {
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent as string;
-    expect(text).toContain('Alert briefings are sent on Telegram once daily at 21:00 UTC on the selected days.');
+    expect(text).toContain('App notifications and optional Telegram briefings use these days at 21:00 UTC.');
     expect(fixture.nativeElement.querySelector('.telegram-dialog').textContent).not.toContain('Alert briefing days');
     expect(text).toContain('DCA reminders are sent at 14:00 UTC on the selected days.');
   });

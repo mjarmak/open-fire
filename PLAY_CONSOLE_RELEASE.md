@@ -1,5 +1,7 @@
 # OpenFIRE Google Play Release
 
+This record describes submitted `1.0.2` / code `4`. Android source now prepares unreleased `1.0.3` / code `5` with notification delegation and `POST_NOTIFICATIONS`; see [App Notifications](APP_NOTIFICATIONS.md) for setup and the required next-release checks. No notification-enabled bundle has been uploaded yet.
+
 ## App Identity
 
 - Developer account: Jenius Tech (`7637583026798485268`)

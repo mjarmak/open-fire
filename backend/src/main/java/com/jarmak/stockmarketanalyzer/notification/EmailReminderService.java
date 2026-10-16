@@ -71,7 +71,7 @@ public class EmailReminderService {
             if (insert.executeUpdate() == 0) { return; }
           }
           String content = kind.equals("dca") ? dashboard.generateDcaReminderForUser(username)
-              : "It has been a week since your last visit. Review your positions, update your profile and retirement settings, and check your DCA plan.";
+              : NotificationContent.RETURN_REMINDER;
           email.send(key, username, row.getString("email_address"), kind, content);
           connection.commit();
         }

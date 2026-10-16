@@ -28,7 +28,8 @@ function shouldSkipRetry(method: string, url: string): boolean {
   const normalizedMethod = method.toUpperCase();
   const normalizedUrl = url.toLowerCase();
   return normalizedMethod === 'POST'
-    && (normalizedUrl.endsWith('/api/users') || normalizedUrl.includes('/api/notifications/telegram'));
+    && (normalizedUrl.endsWith('/api/users') || normalizedUrl.includes('/api/notifications/telegram')
+      || normalizedUrl.endsWith('/api/notifications/app/test'));
 }
 
 function shouldRetry(error: unknown): boolean {

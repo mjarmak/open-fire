@@ -9,6 +9,7 @@ import com.jarmak.stockmarketanalyzer.market.MarketModels.NotificationStatus;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.PortfolioHolding;
 import com.jarmak.stockmarketanalyzer.market.MarketModels.StockAlert;
 import com.jarmak.stockmarketanalyzer.notification.TelegramNotificationService;
+import com.jarmak.stockmarketanalyzer.notification.NotificationMessageService;
 import com.jarmak.stockmarketanalyzer.portfolio.PortfolioService;
 import com.jarmak.stockmarketanalyzer.security.UserAccountService;
 import com.jarmak.stockmarketanalyzer.security.UserAccountService.UserRetirementSettings;
@@ -52,6 +53,7 @@ public class DashboardService {
   private final TelegramNotificationService telegramNotificationService;
   private final PortfolioService portfolioService;
   private final UserAccountService userAccountService;
+  private final NotificationMessageService notificationMessages;
 
   public DashboardService(
       AppProperties properties,
@@ -61,12 +63,20 @@ public class DashboardService {
       PortfolioService portfolioService,
       UserAccountService userAccountService
   ) {
+    this(properties, marketIndicatorService, stockAlertService, telegramNotificationService, portfolioService, userAccountService, null);
+  }
+
+  @org.springframework.beans.factory.annotation.Autowired
+  public DashboardService(AppProperties properties, MarketIndicatorService marketIndicatorService,
+      StockAlertService stockAlertService, TelegramNotificationService telegramNotificationService,
+      PortfolioService portfolioService, UserAccountService userAccountService, NotificationMessageService notificationMessages) {
     this.properties = properties;
     this.marketIndicatorService = marketIndicatorService;
     this.stockAlertService = stockAlertService;
     this.telegramNotificationService = telegramNotificationService;
     this.portfolioService = portfolioService;
     this.userAccountService = userAccountService;
+    this.notificationMessages = notificationMessages;
   }
 
   public DashboardResponse dashboard() {
@@ -224,7 +234,16 @@ public class DashboardService {
   }
 
   public String generateBriefingForUser(String username) {
-    return buildBriefingForUser(username).message();
+    return sharedBriefingForUser(username).message();
+  }
+
+  private ScheduledTelegramMessage sharedBriefingForUser(String username) {
+    if (notificationMessages == null) { return buildBriefingForUser(username); }
+    var snapshot = notificationMessages.daily(username, "briefing", () -> {
+      var message = buildBriefingForUser(username);
+      return new NotificationMessageService.Snapshot(message.message(), message.cooldownSymbols());
+    });
+    return new ScheduledTelegramMessage(snapshot.message(), snapshot.cooldownSymbols());
   }
 
   private ScheduledTelegramMessage buildBriefingForUser(String username) {
@@ -316,7 +335,7 @@ public class DashboardService {
 
   @Scheduled(cron = "0 0 23 * * *", zone = BELGIUM_TIME_ZONE)
   public void sendDailyBriefing() {
-    sendScheduledTelegramMessage("11 PM Belgium time risk and alert briefing", this::buildBriefingForUser);
+    sendScheduledTelegramMessage("11 PM Belgium time risk and alert briefing", this::sharedBriefingForUser);
   }
 
   private void sendScheduledTelegramMessage(String description, Function<String, ScheduledTelegramMessage> messageFactory) {
@@ -365,6 +384,12 @@ public class DashboardService {
   }
 
   public String generateDcaReminderForUser(String username) {
+    if (notificationMessages == null) { return buildDcaReminderForUser(username); }
+    return notificationMessages.daily(username, "dca", () ->
+        new NotificationMessageService.Snapshot(buildDcaReminderForUser(username), List.of())).message();
+  }
+
+  private String buildDcaReminderForUser(String username) {
     UserRetirementSettings settings = userAccountService.getRetirementSettingsForUser(username);
     UserAccountService.UserDcaSettings dcaSettings = userAccountService.getDcaSettingsForUser(username);
     BigDecimal desiredMonthlyIncome = positiveOrDefault(settings.desiredMonthlyIncome(), DEFAULT_DESIRED_MONTHLY_INCOME);

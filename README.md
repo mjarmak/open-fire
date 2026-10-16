@@ -3,6 +3,7 @@
 Angular + Spring Boot trading assistant for a daily macro-market digest, low-cap momentum alerts, and Telegram alert delivery.
 
 Email reminder setup and schedules: [Email Notifications](docs/EMAIL_NOTIFICATIONS.md).
+Browser, PWA, and Android push setup: [App Notifications](APP_NOTIFICATIONS.md).
 
 ## What It Tracks
 

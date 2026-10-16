@@ -27,6 +27,8 @@ import { TelegramDialogComponent } from './components/telegram-dialog/telegram-d
 import { TooltipBodyComponent } from './components/tooltip-body/tooltip-body.component';
 import { dialogBackdropAnimation, dialogPanelAnimation } from './components/dialog.animations';
 import { CookieConsentComponent } from './components/cookie-consent/cookie-consent.component';
+import { AppNotificationsService } from './app-notifications.service';
+import { AppNotificationsDialogComponent } from './components/app-notifications-dialog/app-notifications-dialog.component';
 
 @Component({
   selector: 'app-root',
@@ -54,6 +56,7 @@ import { CookieConsentComponent } from './components/cookie-consent/cookie-conse
     TelegramDialogComponent,
     TooltipBodyComponent,
     CookieConsentComponent,
+    AppNotificationsDialogComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
@@ -89,6 +92,7 @@ export class AppComponent implements OnDestroy, OnInit {
   constructor(
     public readonly marketDashboardService: MarketDashboardService,
     private readonly jeniusAuth: JeniusAuthService,
+    public readonly appNotifications: AppNotificationsService,
   ) {}
 
   @ViewChild('stockLookupQueryInput')
@@ -264,6 +268,7 @@ export class AppComponent implements OnDestroy, OnInit {
       }
       this.username = user.username;
       this.password = '';
+      void this.appNotifications.initialize(user.userId);
       this.refreshDashboard();
     });
   }
@@ -686,7 +691,9 @@ export class AppComponent implements OnDestroy, OnInit {
     this.loginDialogOpen = false;
   }
 
-  logout(): void {
+  async logout(): Promise<void> {
+    try { await this.appNotifications.detach(); }
+    catch { this.showSnackbar('Disable notifications in browser settings before signing out.', 'error'); return; }
     this.dashboardLoadToken++;
     this.isLoading = false;
     this.marketDashboardService.isLoadingIndicators = false;
