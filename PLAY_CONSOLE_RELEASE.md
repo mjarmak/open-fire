@@ -12,7 +12,7 @@
 - Price: Free
 - Countries/regions: All 178 currently targeted countries/regions (unchanged scope)
 - Target SDK: 36
-- Minimum SDK: 21
+- Minimum SDK: 24 (Android 7.0)
 - Privacy policy: https://jeniusapps.com/privacy-policy
 - Developer website: https://jeniusapps.com/projects/open-fire
 - Support email: support@jeniusapps.com
@@ -20,11 +20,11 @@
 ## Release Artifact
 
 - Version name: 1.0.2
-- Version code: 3
+- Version code: 4
 - Production variant: release
 - Build command: `powershell -ExecutionPolicy Bypass -File scripts/build-android-bundle.ps1`
 - AAB path: `android/app-release-bundle.aab`
-- SHA-256: 763d02d7cf2b4fcfff529d44c08e1a5c2021a77ba480232eb2a20b1bfdfe1595
+- SHA-256: a4f93301100e2bb3bb32fe27643b488da90a8c27e451e4344f48d0f38b96f1b6
 - Upload certificate fingerprint: 57:AA:0C:02:74:AB:74:DA:B3:A7:7D:8F:EC:2D:A3:4A:A8:79:C1:A6:97:6F:33:64:40:23:96:D8:BD:5E:3A:8B
 - Google Play app-signing certificate fingerprint: 2E:70:5E:8E:DE:F4:D7:F4:5B:14:D1:4E:0D:E9:3A:F8:C5:0D:CD:AC:93:64:B1:10:3E:D1:1A:3A:BF:42:73:53
 - Digital Asset Links must contain both fingerprints so local release builds and Play-installed builds both verify the TWA and auth callback app link.
@@ -64,15 +64,16 @@
 - Track: Production, full rollout requested
 - Play app record: Created
 - Initial setup tasks: Complete
-- Upload attempted: An earlier version code 3 (`1.0.2`) build on 2026-10-16 was rejected during validation. The latest smaller-logo rebuild above has not been uploaded.
-- Previewed/confirmed: No, blocked before release preview
-- Submitted: No, `1.0.2` is not in review
-- Review state: Production draft; minimum SDK compatibility decision pending
+- Uploaded: Yes, version code 4 (`1.0.2`), 1.03 MB new-install size. The earlier code 3 upload failed minimum-SDK validation and was not submitted.
+- Previewed/confirmed: Yes, package, version, API 24+, target SDK 36, all existing countries, and 100% rollout verified
+- Submitted: Yes, the production update was sent for review on 2026-10-16
+- Review state: Changes in review; Google Play quick checks are running
 - Approved: No
-- Rollout: Intended 100% across the existing 178 targeted countries/regions; not submitted
+- Rollout: 100% requested across the existing 178 targeted countries/regions; pending Google review
 - Public listing URL: https://play.google.com/store/apps/details?id=com.jenius.openfire
 - Current public release: `1.0.1` (code 2), released on 2026-08-24; confirmed in Play Console on 2026-10-16
-- Remaining blocker: Play automatic protection requires minimum SDK 24, but this bundle retains minimum SDK 21. Raising the minimum drops Android 5/6 update support and requires owner approval before rebuilding. Automatic protection has not been disabled.
+- Remaining blocker: Google Play quick checks, review, and approval of `1.0.2`
+- Compatibility: Owner approved raising the minimum to API 24 to satisfy Play automatic protection. Android 5/6 devices no longer receive updates. Play reported 2,031 previously supported device models excluded by this change; this was the only release-preview warning. Automatic protection remains enabled.
 
 ## Launcher Icon Validation
 
@@ -81,5 +82,5 @@
 - Signed bundle verification, bundletool validation, and `lintRelease` passed. `testReleaseUnitTest` has no source tests.
 - The exact bundle was converted to a signed universal APK and installed on a dedicated Android API 34 emulator.
 - Run `scripts/test-android-icon-rendering.ps1 -Device <adb-serial>` after installing that APK, with `JAVA_HOME` and `ANDROID_HOME` set. The harness requires SDK build-tools 35.0.0 and platform android-35.
-- Its separate test-only APK uses Android's installed adaptive icon drawable, checking circle, rounded-square, squircle, and teardrop masks at 48/72/96 dp. All 12 checks passed for the smaller-logo `1.0.2` code 3 rebuild. Both validation scripts enforce the additional artwork padding as well as clipping safety.
+- Its separate test-only APK uses Android's installed adaptive icon drawable, checking circle, rounded-square, squircle, and teardrop masks at 48/72/96 dp. All 12 checks passed for the final smaller-logo `1.0.2` code 4 bundle. Both validation scripts enforce the additional artwork padding as well as clipping safety.
 - Local contact sheet: `android/build/icon-validation/icon-masks.png` (ignored build output). Neither the helper APK nor its disposable test-only key is part of the production bundle.
