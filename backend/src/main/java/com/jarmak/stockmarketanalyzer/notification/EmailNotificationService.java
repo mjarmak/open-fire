@@ -56,8 +56,9 @@ public class EmailNotificationService {
                 "text", HtmlUtils.htmlUnescape(content.replace("<b>", "").replace("</b>", "")) + "\n\n" + appUrl,
                 "actionUrl", appUrl)))
         .retrieve().body(JsonNode.class);
-    if (response == null || response.path("acknowledged").asText().equals("false")
-        || response.path("data").path("acknowledged").asText().equals("false")) {
+    JsonNode result = response == null ? null : response.has("data") ? response.path("data") : response;
+    if (result == null || !result.path("acknowledged").asBoolean(false)
+        || !result.path("status").asText().equals("processed")) {
       throw new IllegalStateException("Email event was not acknowledged");
     }
   }
