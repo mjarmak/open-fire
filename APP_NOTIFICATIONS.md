@@ -29,7 +29,13 @@ iOS/iPadOS requires an installed Home Screen app on version 16.4 or later. A nor
 4. Enable a category/device and use **Test notification**. Delivery runs once per minute. Verify actual OS display and the click destination; provider acceptance alone is not device delivery.
 5. Build and publish Android 1.0.3 separately using the repository's signed release workflow. Review the new permission, subscription identifiers and financial previews against privacy/Data safety declarations before submission. This implementation does not change the existing Play review.
 
-Missing VAPID configuration disables push delivery, logs a startup warning, and appears in settings. The account inbox remains usable. No production keys, deployment, new Play submission, or live push delivery were performed during implementation.
+Missing VAPID configuration disables push delivery, logs a startup warning, and appears in settings. The account inbox remains usable.
+
+### Production Deployment
+
+On October 16, 2026, VAPID keys were generated directly on the VPS and saved in OpenFIRE's root-only production environment file, with a root-only backup. The existing deployment watcher recreated the frontend and backend at commit `4599d55`; its final output reported **Deployment complete**. No new persistent containers were added, and other applications were left unchanged.
+
+The PWA does not need a Play Store update. Reopen or refresh it, select notification categories in **App Notifications > Settings**, enable the device, then use **Test notification**. Actual device display has not yet been verified. Android notification delegation still requires publishing the prepared 1.0.3 / code 5 release; no new Play submission was made during this deployment.
 
 ## Safety And Persistence
 
@@ -44,6 +50,8 @@ Missing VAPID configuration disables push delivery, logs a startup warning, and 
 ## Validation
 
 Default backend/Angular tests mock external market/messaging clients. A local crypto test constructs a real encrypted/VAPID-signed request without sending it. Playwright uses five workers and covers loading/empty states, safe full-message rendering, responsive themes and DCA navigation.
+
+Deployment preflight regression tests run with `node --test scripts/deploy-linux.test.mjs`. They check that Jenius deployments no longer require the obsolete local password hash while still rejecting required database, market-provider and Keycloak credential placeholders.
 
 Seven opt-in PostgreSQL tests cover the actual Flyway migration, restart/deduplication, concurrent claiming, ownership, schedules, opt-out and expired subscriptions. They create/delete only uniquely named schemas and reject non-loopback database URLs. With a disposable PostgreSQL 16 database using test-only credentials `openfire_test` / `openfire_test`:
 
