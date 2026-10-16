@@ -254,7 +254,7 @@ describe('AppComponent', () => {
     expect(compiled.textContent).toContain('OpenFIRE');
   });
 
-  it('shows the Jenius Tech SRL company footer without an address', () => {
+  it('shows the Jenius Tech SRL company footer without an address or VAT number', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
 
@@ -262,7 +262,8 @@ describe('AppComponent', () => {
     const jeniusAppsLink = footer.querySelector<HTMLAnchorElement>('.company-footer__link');
 
     expect(footer.textContent).toContain('Jenius Tech SRL');
-    expect(footer.textContent).toContain('VAT BE 0789.424.602');
+    expect(footer.textContent).not.toContain('VAT');
+    expect(footer.textContent).not.toContain('0789.424.602');
     expect(footer.textContent).toContain('Designed and developed in Belgium.');
     expect(footer.textContent).not.toContain('Brussels');
     expect(jeniusAppsLink?.getAttribute('href')).toBe('https://jeniusapps.com');
