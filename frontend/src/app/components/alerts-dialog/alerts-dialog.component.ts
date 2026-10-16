@@ -15,7 +15,6 @@ export class AlertsDialogComponent {
   protected readonly state = inject(MarketDashboardService);
 
   @Output() closeDialog = new EventEmitter<void>();
-  @Output() configureTelegram = new EventEmitter<void>();
   @Output() configureNotifications = new EventEmitter<void>();
 
   get alertingStocks(): StockAlert[] {

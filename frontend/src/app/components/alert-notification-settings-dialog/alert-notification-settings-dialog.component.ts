@@ -15,5 +15,6 @@ export class AlertNotificationSettingsDialogComponent {
   protected readonly state = inject(MarketDashboardService);
   protected readonly notifications = inject(AppNotificationsService);
   @Output() closeDialog = new EventEmitter<void>();
+  @Output() configureTelegram = new EventEmitter<void>();
   @Output() save = new EventEmitter<void>();
 }

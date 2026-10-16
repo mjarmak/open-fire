@@ -7,13 +7,13 @@
           <h2 id="dca-settings-title">Configure</h2>
         </div>
         <div class="dialog-heading-actions">
-          <button type="button" class="secondary" (click)="configureTelegram.emit()">Configure Telegram Alerts</button>
           <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
         </div>
       </div>
 
       <form class="edit-form" (ngSubmit)="save.emit()">
         <fieldset class="dialog-fieldset" [disabled]="state.isLoadingDca || state.isSavingDca">
+          <button type="button" class="secondary" (click)="configureTelegram.emit()">Configure Telegram Alerts</button>
           <button type="button" class="secondary" (click)="state.dcaDialogOpen = false; notifications.show()">App Notifications</button>
           <label class="remember-login">
             <input name="emailDcaEnabled" type="checkbox" [(ngModel)]="state.draftEmailDcaEnabled" />

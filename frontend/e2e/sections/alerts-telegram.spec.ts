@@ -34,7 +34,7 @@ test.describe('Alerts & Telegram Section', () => {
       const closeBox = (await close.boundingBox())!;
       expect(Math.abs(closeBox.y - bounds.top)).toBeLessThanOrEqual(1);
       expect(Math.abs(closeBox.x + closeBox.width - bounds.right)).toBeLessThanOrEqual(1);
-      for (const name of ['Alert Notification Settings', 'Configure Telegram Alerts']) {
+      for (const name of ['Alert Notification Settings']) {
         const button = dialog.getByRole('button', { name, exact: true });
         await expect(button).toBeVisible();
         const box = (await button.boundingBox())!;
@@ -49,10 +49,12 @@ test.describe('Alerts & Telegram Section', () => {
 
   test('opens telegram settings from alerts and saves chat id', async ({ page }) => {
     await page.getByRole('button', { name: /active alerts|Alerts/ }).click();
+    await page.getByRole('button', { name: 'Alert Notification Settings', exact: true }).click();
     await page.getByRole('button', { name: 'Configure Telegram Alerts' }).click();
 
     const telegramDialog = page.getByRole('dialog', { name: 'Telegram Configuration' });
     await expect(telegramDialog).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Alert Notification Settings', exact: true })).toBeHidden();
     await telegramDialog.getByLabel('Chat ID').fill('123456789');
     await telegramDialog.getByRole('button', { name: 'Save' }).click();
     await expect(telegramDialog).toBeHidden();
@@ -61,6 +63,7 @@ test.describe('Alerts & Telegram Section', () => {
 
   test('runs telegram test action', async ({ page }) => {
     await page.getByRole('button', { name: /active alerts|Alerts/ }).click();
+    await page.getByRole('button', { name: 'Alert Notification Settings', exact: true }).click();
     await page.getByRole('button', { name: 'Configure Telegram Alerts' }).click();
 
     const telegramDialog = page.getByRole('dialog', { name: 'Telegram Configuration' });
@@ -80,6 +83,11 @@ test.describe('Alerts & Telegram Section', () => {
         const dialog = page.getByRole('dialog', { name: 'Alert Notification Settings' });
         await expect(dialog).toBeVisible();
         await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
+        const telegramButton = (await dialog.getByRole('button', { name: 'Configure Telegram Alerts', exact: true }).boundingBox())!;
+        const appButton = (await dialog.getByRole('button', { name: 'App Notifications', exact: true }).boundingBox())!;
+        expect(telegramButton.y + telegramButton.height).toBeLessThanOrEqual(appButton.y);
+        expect(telegramButton.x).toBe(appButton.x);
+        expect(telegramButton.width).toBe(appButton.width);
         const style = await dialog.evaluate(element => {
           const css = getComputedStyle(element);
           return { width: css.width, padding: css.padding, borderRadius: css.borderRadius,
@@ -93,6 +101,7 @@ test.describe('Alerts & Telegram Section', () => {
         await dialog.getByRole('button', { name: 'Cancel' }).click();
         await expect(dialog).toBeHidden();
         await page.getByRole('button', { name: /active alerts/i }).click();
+        await page.getByRole('button', { name: 'Alert Notification Settings', exact: true }).click();
         await page.getByRole('button', { name: 'Configure Telegram Alerts' }).click();
         const telegramStyle = await page.getByRole('dialog', { name: 'Telegram Configuration' }).evaluate(element => {
           const css = getComputedStyle(element);
@@ -122,6 +131,7 @@ test.describe('Alerts & Telegram Section', () => {
     await settings.getByRole('button', { name: 'Cancel' }).click();
     await expect(settings).toBeHidden();
     await page.getByRole('button', { name: /active alerts/i }).click();
+    await page.getByRole('button', { name: 'Alert Notification Settings', exact: true }).click();
     await page.getByRole('button', { name: 'Configure Telegram Alerts' }).click();
     const telegram = page.getByRole('dialog', { name: 'Telegram Configuration' });
     await expect(telegram.getByLabel('Chat ID')).toHaveValue('1547812774');

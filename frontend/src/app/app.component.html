@@ -153,13 +153,13 @@
 
 <app-alerts-dialog
   (closeDialog)="closeAlertsDialog()"
-  (configureTelegram)="openTelegramFromAlertsDialog()"
   (configureNotifications)="openAlertNotificationSettings()"
 />
 <app-notifications-dialog />
 
 <app-alert-notification-settings-dialog
   (closeDialog)="marketDashboardService.alertNotificationDialogOpen = false"
+  (configureTelegram)="marketDashboardService.alertNotificationDialogOpen = false; openTelegramFromAlertsDialog()"
   (save)="saveAlertNotificationSettings()"
 />
 

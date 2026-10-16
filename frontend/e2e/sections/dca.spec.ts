@@ -43,6 +43,25 @@ test.describe('DCA Section', () => {
     expect(after.length).toBeGreaterThanOrEqual(before.length);
   });
 
+  for (const width of [390, 1280]) {
+    test(`places Telegram above App Notifications in DCA settings at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await page.getByLabel('DCA reminder settings').getByRole('button', { name: 'Configure' }).click();
+      const dialog = page.locator('.dca-dialog');
+      const telegram = dialog.getByRole('button', { name: 'Configure Telegram Alerts', exact: true });
+      const telegramBox = (await telegram.boundingBox())!;
+      const appBox = (await dialog.getByRole('button', { name: 'App Notifications', exact: true }).boundingBox())!;
+      expect(telegramBox.y + telegramBox.height).toBeLessThanOrEqual(appBox.y);
+      expect(telegramBox.x).toBe(appBox.x);
+      expect(telegramBox.width).toBe(appBox.width);
+      await expect(dialog.locator('.dialog-heading').getByRole('button', { name: 'Configure Telegram Alerts' })).toHaveCount(0);
+      await telegram.click();
+      const settings = page.getByRole('dialog', { name: 'Telegram Configuration' });
+      await expect(settings).toBeVisible();
+      await expect(settings.getByLabel('Chat ID')).toBeEditable();
+    });
+  }
+
   test('saves email reminders independently of Telegram and restores them', async ({ page }) => {
     const panel = page.getByLabel('DCA reminder settings');
     await panel.getByRole('button', { name: 'Configure' }).click();

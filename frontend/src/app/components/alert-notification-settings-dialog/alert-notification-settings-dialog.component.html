@@ -8,6 +8,7 @@
         <button type="button" class="icon-action" aria-label="Close dialog" title="Close dialog" (click)="closeDialog.emit()">x</button>
       </div>
       <form class="edit-form" (ngSubmit)="save.emit()">
+        <button type="button" class="secondary" (click)="configureTelegram.emit()">Configure Telegram Alerts</button>
         <button type="button" class="secondary" (click)="state.alertNotificationDialogOpen = false; notifications.show()">App Notifications</button>
         <fieldset class="dialog-fieldset" [disabled]="state.isLoadingAlertNotifications || state.isSavingAlertNotifications">
           <div class="weekday-field" role="group" aria-label="Alert briefing days">
