@@ -1,6 +1,6 @@
 # OpenFIRE Google Play Release
 
-This record describes submitted `1.0.2` / code `4`. Android source now prepares unreleased `1.0.3` / code `5` with notification delegation and `POST_NOTIFICATIONS`; see [App Notifications](APP_NOTIFICATIONS.md) for setup and the required next-release checks. No notification-enabled bundle has been uploaded yet.
+The previous `1.0.2` / code `4` update was published on October 16, 2026, as confirmed in Play Console. The notification-enabled `1.0.3` / code `5` bundle is uploaded, validated, and saved in Publishing overview, but has not been submitted. See [App Notifications](APP_NOTIFICATIONS.md) for deployment and live-device verification status.
 
 ## App Identity
 
@@ -21,12 +21,12 @@ This record describes submitted `1.0.2` / code `4`. Android source now prepares 
 
 ## Release Artifact
 
-- Version name: 1.0.2
-- Version code: 4
+- Version name: 1.0.3
+- Version code: 5
 - Production variant: release
 - Build command: `powershell -ExecutionPolicy Bypass -File scripts/build-android-bundle.ps1`
 - AAB path: `android/app-release-bundle.aab`
-- SHA-256: a4f93301100e2bb3bb32fe27643b488da90a8c27e451e4344f48d0f38b96f1b6
+- SHA-256: 8c99f0e57e2f1eb849eed67717ab27c603748801d882a00e8e809846b2606a37
 - Upload certificate fingerprint: 57:AA:0C:02:74:AB:74:DA:B3:A7:7D:8F:EC:2D:A3:4A:A8:79:C1:A6:97:6F:33:64:40:23:96:D8:BD:5E:3A:8B
 - Google Play app-signing certificate fingerprint: 2E:70:5E:8E:DE:F4:D7:F4:5B:14:D1:4E:0D:E9:3A:F8:C5:0D:CD:AC:93:64:B1:10:3E:D1:1A:3A:BF:42:73:53
 - Digital Asset Links must contain both fingerprints so local release builds and Play-installed builds both verify the TWA and auth callback app link.
@@ -46,7 +46,7 @@ This record describes submitted `1.0.2` / code `4`. Android source now prepares 
 
 ## Declarations
 
-- App access: Login required; reusable Google Play reviewer account configured with full access and no trusted-partner testing access
+- App access: Login required; existing reviewer credentials remain configured, with trusted-partner testing off. A live Jenius sign-in attempt with those exact credentials returned "Invalid username or password" on October 16. Correct and verify reviewer access before submission. The separately supplied `test` account requires email verification; owner Google sign-in succeeds.
 - Ads: No ads
 - Target audience: 18 and over
 - Content rating: IARC questionnaire applied; Everyone / PEGI 3 / all-ages equivalents, with online content declared
@@ -57,7 +57,7 @@ This record describes submitted `1.0.2` / code `4`. Android source now prepares 
 - Data safety: All five questionnaire steps completed and saved to Publishing overview
 - Data safety scope: Email address, user IDs, other financial info, feedback messages, app interactions, in-app search history, and device/other IDs
 - Account deletion: https://openfire.jeniusapps.com/account-deletion/ (HTTP 200 and dedicated deletion content verified in production)
-- Permissions/sensitive APIs: No sensitive Android permissions; only the app-scoped dynamic receiver permission is present in the merged manifest
+- Permissions/sensitive APIs: `POST_NOTIFICATIONS` added for Android Browser Helper notification delegation, alongside the app-scoped dynamic receiver permission. Notification opt-in remains user-controlled; no foreground service or Firebase SDK is added.
 - Foreground services: None
 - Review video: Not required by Play Console
 
@@ -66,15 +66,15 @@ This record describes submitted `1.0.2` / code `4`. Android source now prepares 
 - Track: Production, full rollout requested
 - Play app record: Created
 - Initial setup tasks: Complete
-- Uploaded: Yes, version code 4 (`1.0.2`), 1.03 MB new-install size. The earlier code 3 upload failed minimum-SDK validation and was not submitted.
-- Previewed/confirmed: Yes, package, version, API 24+, target SDK 36, all existing countries, and 100% rollout verified
-- Submitted: Yes, the production update was sent for review on 2026-10-16
-- Review state: Changes in review; Google Play quick checks are running
-- Approved: No
-- Rollout: 100% requested across the existing 178 targeted countries/regions; pending Google review
+- Uploaded: Yes, version code 5 (`1.0.3`), approximately 1.03 MB new-install size. Signature, package, SDKs and artifact hash verified.
+- Previewed/confirmed: Yes, API 24+, target SDK 36, 100% rollout and all existing targeted countries; no device-support changes or blocking errors. Release name: `OpenFIRE 1.0.3`.
+- Submitted: No; saved under "Changes not yet submitted for review" on 2026-10-16. No final submission was performed.
+- Review state: Pre-submission quick checks started; Google approval has not been requested for code 5.
+- Approved: Code 4 published; code 5 not submitted.
+- Rollout: Code 5 saved for 100% of the existing 178 countries, pending submission and review.
 - Public listing URL: https://play.google.com/store/apps/details?id=com.jenius.openfire
-- Current public release: `1.0.1` (code 2), released on 2026-08-24; confirmed in Play Console on 2026-10-16
-- Remaining blocker: Google Play quick checks, review, and approval of `1.0.2`
+- Current published release: `1.0.2` (code 4); Console showed "App update published" on 2026-10-16.
+- Remaining blockers: Working reusable reviewer credentials, live notification delivery verification, final production submission approval, then Google review and rollout. Existing Data safety categories include device IDs and financial information; the new optional notification data flow still needs its final declaration review before submission.
 - Compatibility: Owner approved raising the minimum to API 24 to satisfy Play automatic protection. Android 5/6 devices no longer receive updates. Play reported 2,031 previously supported device models excluded by this change; this was the only release-preview warning. Automatic protection remains enabled.
 
 ## Launcher Icon Validation
@@ -82,7 +82,7 @@ This record describes submitted `1.0.2` / code `4`. Android source now prepares 
 - The adaptive logo is a 25%-inset foreground over a matching solid background, keeping the complete flame/shield inside Android's guaranteed safe area. This makes the artwork approximately 21% smaller than the previous 18.5%-inset layout.
 - `scripts/validate-android-icons.ps1` checks all five bitmap densities and runs automatically before the release build. The original layout failed this regression check; the corrected layout passes.
 - Signed bundle verification, bundletool validation, and `lintRelease` passed. `testReleaseUnitTest` has no source tests.
-- The exact bundle was converted to a signed universal APK and installed on a dedicated Android API 34 emulator.
+- The exact code 5 bundle was converted to a universal APK, signed with the established upload key, certificate-verified, and installed on a dedicated Android API 34 emulator. Package inspection confirmed version 1.0.3/code 5, min SDK 24, target SDK 36 and the notification delegation service. Notification permission remains ungranted until explicit opt-in.
 - Run `scripts/test-android-icon-rendering.ps1 -Device <adb-serial>` after installing that APK, with `JAVA_HOME` and `ANDROID_HOME` set. The harness requires SDK build-tools 35.0.0 and platform android-35.
-- Its separate test-only APK uses Android's installed adaptive icon drawable, checking circle, rounded-square, squircle, and teardrop masks at 48/72/96 dp. All 12 checks passed for the final smaller-logo `1.0.2` code 4 bundle. Both validation scripts enforce the additional artwork padding as well as clipping safety.
+- Its separate test-only APK uses Android's installed adaptive icon drawable, checking circle, rounded-square, squircle, and teardrop masks at 48/72/96 dp. All 12 checks passed again for `1.0.3` code 5. Both validation scripts enforce the additional artwork padding as well as clipping safety.
 - Local contact sheet: `android/build/icon-validation/icon-masks.png` (ignored build output). Neither the helper APK nor its disposable test-only key is part of the production bundle.

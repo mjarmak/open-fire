@@ -31,7 +31,11 @@ Full description:
 
 ## Release Notes
 
-> Fixed the home-screen icon size so the complete OpenFIRE logo stays visible across launcher icon shapes and sizes.
+Version 1.0.3 (code 5), saved in the production release draft:
+
+> Add optional app notifications for DCA reminders, alert briefings, and a reminder after a week away.
+> Manage notification preferences and enable notifications on each device.
+> Improve Android notification support.
 
 ## Visual Assets
 

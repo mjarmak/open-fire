@@ -17,7 +17,7 @@ The account-scoped inbox stores complete messages. Device previews use at most 5
 
 Supported desktop/Android browsers can subscribe without installing the PWA. Installed PWAs use the same service worker; installations sharing an origin/subscription do not create duplicate device records. Push is independent of an open dashboard tab, subject to browser/OS permission, connectivity and power policies.
 
-The Android TWA enables trusted-browser notification delegation, declares `POST_NOTIFICATIONS`, and registers Android Browser Helper's permission request activity. Chrome mediates the Android 13+ permission request when the user enables notifications. Source is prepared as **1.0.3 / code 5**, not part of the previously submitted **1.0.2 / code 4** bundle.
+The Android TWA enables trusted-browser notification delegation, declares `POST_NOTIFICATIONS`, and registers Android Browser Helper's permission request activity. Chrome mediates the Android 13+ permission request when the user enables notifications. **1.0.3 / code 5** is built, signed, uploaded and saved in Play Console, but not submitted. The currently published **1.0.2 / code 4** does not include this delegation.
 
 iOS/iPadOS requires an installed Home Screen app on version 16.4 or later. A normal browser tab cannot bypass that platform restriction. Unsupported and denied-permission states are visible in settings.
 
@@ -35,7 +35,9 @@ Missing VAPID configuration disables push delivery, logs a startup warning, and 
 
 On October 16, 2026, VAPID keys were generated directly on the VPS and saved in OpenFIRE's root-only production environment file, with a root-only backup. The existing deployment watcher recreated the frontend and backend at commit `4599d55`; its final output reported **Deployment complete**. No new persistent containers were added, and other applications were left unchanged.
 
-The PWA does not need a Play Store update. Reopen or refresh it, select notification categories in **App Notifications > Settings**, enable the device, then use **Test notification**. Actual device display has not yet been verified. Android notification delegation still requires publishing the prepared 1.0.3 / code 5 release; no new Play submission was made during this deployment.
+The PWA does not need a Play Store update. Reopen or refresh it, select notification categories in **App Notifications > Settings**, enable the device, then use **Test notification**. Actual device display has not yet been verified. Android notification delegation still requires publishing the uploaded 1.0.3 / code 5 release; no new Play submission was made during this deployment.
+
+The October 16 live follow-up confirmed owner Google sign-in and the production notification settings. Device registration requires at least one category; all categories were off, so no subscription or test was sent while approval for a temporary DCA opt-in was pending. The separate `test` account needs email verification. Existing Play reviewer credentials failed Jenius sign-in and must be corrected before release submission.
 
 ## Safety And Persistence
 
