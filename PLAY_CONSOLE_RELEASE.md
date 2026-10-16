@@ -74,7 +74,7 @@ The previous `1.0.2` / code `4` update was published on October 16, 2026, as con
 - Rollout: Code 5 saved for 100% of the existing 178 countries, pending submission and review.
 - Public listing URL: https://play.google.com/store/apps/details?id=com.jenius.openfire
 - Current published release: `1.0.2` (code 4); Console showed "App update published" on 2026-10-16.
-- Remaining blockers: Working reusable reviewer credentials, live notification delivery verification, final production submission approval, then Google review and rollout. Existing Data safety categories include device IDs and financial information; the new optional notification data flow still needs its final declaration review before submission.
+- Remaining blockers: Working reusable reviewer credentials, live notification delivery verification, owner approval for the Data safety correction and final production submission, then Google review and rollout. The existing declaration includes device IDs and financial information but selects username/password without OAuth, despite working Google sign-in. All five saved declaration steps were inspected without changing answers; adding OAuth awaits owner approval.
 - Compatibility: Owner approved raising the minimum to API 24 to satisfy Play automatic protection. Android 5/6 devices no longer receive updates. Play reported 2,031 previously supported device models excluded by this change; this was the only release-preview warning. Automatic protection remains enabled.
 
 ## Launcher Icon Validation
