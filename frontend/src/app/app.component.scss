@@ -2706,9 +2706,15 @@ app-root.light-theme .graph-action[aria-pressed="true"] {
   width: min(560px, 100%);
 }
 
-.alerts-dialog .dialog-heading,
+.alerts-dialog .dialog-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .alerts-dialog .dialog-heading-actions {
+  grid-column: 1 / -1;
   flex-wrap: wrap;
+  min-width: 0;
   max-width: 100%;
 }
 

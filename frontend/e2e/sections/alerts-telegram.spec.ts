@@ -16,6 +16,37 @@ test.describe('Alerts & Telegram Section', () => {
     await expect(alertsDialog.getByText('MSFT')).toBeVisible();
   });
 
+  for (const width of [320, 390, 768, 1280]) {
+    test(`keeps the active alerts close button in the top-right corner at ${width}px`, async ({ page }, testInfo) => {
+      await page.setViewportSize({ width, height: 844 });
+      await page.getByRole('button', { name: /active alerts/i }).click();
+      const dialog = page.getByRole('dialog', { name: 'Active Alerts', exact: true });
+      const close = dialog.getByTitle('Close dialog', { exact: true });
+      await expect(close).toBeVisible();
+      const bounds = await dialog.evaluate(element => {
+        const css = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        return {
+          top: rect.top + parseFloat(css.borderTopWidth) + parseFloat(css.paddingTop),
+          right: rect.right - parseFloat(css.borderRightWidth) - parseFloat(css.paddingRight),
+        };
+      });
+      const closeBox = (await close.boundingBox())!;
+      expect(Math.abs(closeBox.y - bounds.top)).toBeLessThanOrEqual(1);
+      expect(Math.abs(closeBox.x + closeBox.width - bounds.right)).toBeLessThanOrEqual(1);
+      for (const name of ['Alert Notification Settings', 'Configure Telegram Alerts']) {
+        const button = dialog.getByRole('button', { name, exact: true });
+        await expect(button).toBeVisible();
+        const box = (await button.boundingBox())!;
+        expect(box.y).toBeGreaterThanOrEqual(closeBox.y + closeBox.height);
+      }
+      expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath('active-alerts.png') });
+      await close.click();
+      await expect(dialog).toBeHidden();
+    });
+  }
+
   test('opens telegram settings from alerts and saves chat id', async ({ page }) => {
     await page.getByRole('button', { name: /active alerts|Alerts/ }).click();
     await page.getByRole('button', { name: 'Configure Telegram Alerts' }).click();
