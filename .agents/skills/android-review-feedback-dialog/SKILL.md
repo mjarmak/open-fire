@@ -1,6 +1,6 @@
 ---
 name: android-review-feedback-dialog
-description: Add or adapt an Android in-app review and feedback dialog with a Google Play action, email contact, and controlled repeat prompts. Use when an Android app needs this dialog, especially when a side panel or overlay must hand the prompt off to the main app.
+description: Add or adapt an Android in-app review and feedback dialog with app-themed colors, a Google Play action, email contact, and controlled repeat prompts. Use for native Android apps or TWAs, especially when a side panel or overlay must hand the prompt off to the main app.
 ---
 
 # Android review and feedback dialog
@@ -11,7 +11,7 @@ For reusable project rules, adapt [assets/AGENTS.review-feedback.rules.md](asset
 
 ## Interaction contract
 
-- Show the dialog in the main app Activity only. A side panel, floating window, or other overlay may queue the prompt but must not render it.
+- Show the dialog inside the main app UI (the Activity for a native app, or the app page for a TWA). A side panel, floating window, or other overlay may queue the prompt but must not render it.
 - Offer **Review on Google Play**, **Email feedback**, and a dismiss action. The email path should welcome issues and feature requests. Do not add stars unless the product owner asks for them.
 - Keep a settings button that opens the dialog every time, including after the user has tapped Review.
 - Track that the user **tapped Review**, not that they submitted a review. Persist this flag and permanently suppress automatic prompts after the tap. Dismissal and email do not set it.
@@ -19,9 +19,15 @@ For reusable project rules, adapt [assets/AGENTS.review-feedback.rules.md](asset
 - If the app has a side panel, count completed panel openings from every real entry path, including edge gestures. On each 20th completed opening, queue one prompt. Wait for the user's normal panel-close path, then show it in the main app. A failed gesture, handle appearance, or view recreation is not an opening. Keep this milestone separate from the app-return cadence.
 - When both triggers occur together, show one dialog and consume each pending signal once. Never stack dialogs or show a prompt over another app.
 
+## Appearance contract
+
+- Discover the target app's existing theme and semantic color tokens before styling the dialog. Use its dialog/surface, text, primary action, secondary action, and outline colors; match its typography, spacing, and shape. Do not copy a fixed palette from the source app or add dialog-only hex colors.
+- Bind the dialog and buttons to the active theme so light/dark mode, brand theme changes, and system dynamic color (when the app supports it) update the dialog without stale colors. In Compose, use the app's `MaterialTheme`; in Android Views, resolve theme attributes; in a TWA, use the web app's CSS variables or design tokens.
+- Keep text and controls legible in every supported theme, including disabled and pressed states. Prefer existing app components over recreating their styling.
+
 ## Implementation guidance
 
-Keep the counters, next eligible app return, Review-tapped flag, and pending panel milestone in persistent app state. Use the main Activity's visible lifecycle to consume pending prompts. A panel service should report completed opens and normal closes, then request navigation to the main app only when a milestone is pending. Make this handoff safe across process death and repeated lifecycle callbacks.
+Keep the counters, next eligible app return, Review-tapped flag, and pending panel milestone in persistent app state. Use the main app UI's visible lifecycle to consume pending prompts. A panel service should report completed opens and normal closes, then request navigation to the main app only when a milestone is pending. Make this handoff safe across process death and repeated lifecycle callbacks.
 
 Build the Play destination from the target app's application ID. Prefer its `market://details?id=...` listing with an HTTPS Play listing fallback; handle the absence of a browser or Play handler without crashing. Use an email-only `mailto:` intent addressed to the target app's support contact, with a readable fallback if no email app is installed. Keep any support address out of hardcoded generic skill files.
 
@@ -34,5 +40,6 @@ Test the state transitions and the actual UI route:
 3. Dismissal and email leave automatic eligibility intact. Review tap suppresses future automatic prompts, while the settings button still opens the dialog.
 4. Rotate or recreate the Activity, relaunch the process, and exercise the real edge gesture if applicable. Verify no duplicate count or overlay-hosted dialog.
 5. Verify both external actions and their no-handler fallbacks.
+6. Inspect the dialog in every supported app theme, switch themes while it is open, and verify its surface, text, buttons, and focus/pressed states follow the app's colors with adequate contrast.
 
 Do not push or publish as part of applying this skill unless the user requests it.
