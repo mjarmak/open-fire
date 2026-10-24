@@ -1,3 +1,4 @@
+import { createConsentManager } from '@jeniusapps/consent';
 import { installDemoIsolation } from './isolation';
 installDemoIsolation('open-fire');
 import { bootstrapApplication } from '@angular/platform-browser';
@@ -12,7 +13,7 @@ import { DemoStore } from './store';
 const store=new DemoStore();
 bootstrapApplication(AppComponent,{providers:[provideRouter([]),provideAnimations(),
   {provide:JeniusAuthService,useValue:{initialize:async()=>({username:'Demo Portfolio',userId:'jenius-demo'}),startLogin:async()=>{},startRegistration:async()=>{},logout:()=>location.reload()}},
-  {provide:AnalyticsService,useValue:{showPrompt:false,consent:'denied'}},
+  {provide:AnalyticsService,useValue:{manager:createConsentManager({document,appId:'open-fire-demo',appName:'Open Fire Demo',enabled:false})}},
   provideHttpClient(withInterceptors([(request)=>{
     try {return of(new HttpResponse({status:200,body:structuredClone(store.handle(request.method,new URL(request.urlWithParams,location.origin),request.body))}));}
     catch(error){return throwError(()=>new HttpErrorResponse({status:422,error:{message:(error as Error).message},url:request.url}));}
