@@ -3,9 +3,9 @@
     <section class="edit-dialog alerts-dialog" role="dialog" aria-modal="true" aria-labelledby="alerts-dialog-title" @dialogPanel (click)="$event.stopPropagation()">
       <div class="dialog-heading">
         <h2 id="alerts-dialog-title">Active Alerts</h2>
-        <button type="button" class="icon-action" aria-label="Close dialog" title="Close dialog" (click)="closeDialog.emit()">x</button>
+        <button type="button" class="icon-action" aria-label="Close dialog" title="Close dialog" (click)="closeDialog.emit()" data-analytics-click="close_dialog">x</button>
         <div class="dialog-heading-actions">
-          <button type="button" class="secondary" (click)="configureNotifications.emit()">Alert Notification Settings</button>
+          <button type="button" class="secondary" (click)="configureNotifications.emit()" data-analytics-click="configure_notifications">Alert Notification Settings</button>
         </div>
       </div>
 

@@ -5,10 +5,10 @@
         <div>
           <h2 id="alert-notification-title">Alert Notification Settings</h2>
         </div>
-        <button type="button" class="icon-action" aria-label="Close dialog" title="Close dialog" (click)="closeDialog.emit()">x</button>
+        <button type="button" class="icon-action" aria-label="Close dialog" title="Close dialog" (click)="closeDialog.emit()" data-analytics-click="close_dialog">x</button>
       </div>
       <form class="edit-form" (ngSubmit)="save.emit()">
-        <button type="button" class="secondary" (click)="configureTelegram.emit()">Configure Telegram Alerts</button>
+        <button type="button" class="secondary" (click)="configureTelegram.emit()" data-analytics-click="configure_telegram">Configure Telegram Alerts</button>
         <button type="button" class="secondary" (click)="state.alertNotificationDialogOpen = false; notifications.show()">App Notifications</button>
         <fieldset class="dialog-fieldset" [disabled]="state.isLoadingAlertNotifications || state.isSavingAlertNotifications">
           <div class="weekday-field" role="group" aria-label="Alert briefing days">
@@ -27,9 +27,9 @@
             <small class="field-hint">Telegram delivery requires a configured chat ID. DCA reminder days are managed separately in DCA Configure.</small>
           </div>
           <div class="dialog-actions">
-            <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+            <button type="button" class="secondary" (click)="closeDialog.emit()" data-analytics-click="close_dialog">Cancel</button>
             <button type="submit" [class.button-loading]="state.isLoadingAlertNotifications || state.isSavingAlertNotifications"
-              [attr.aria-busy]="state.isLoadingAlertNotifications || state.isSavingAlertNotifications">
+              [attr.aria-busy]="state.isLoadingAlertNotifications || state.isSavingAlertNotifications" data-analytics-click="alert_notification_settings_dialog_submit">
               {{ state.isLoadingAlertNotifications ? 'Loading' : state.isSavingAlertNotifications ? 'Saving' : 'Save' }}
             </button>
           </div>

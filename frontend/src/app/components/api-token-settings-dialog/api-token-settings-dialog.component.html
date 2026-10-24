@@ -5,7 +5,7 @@
         <div>
           <h2 id="api-token-title">API Tokens</h2>
         </div>
-        <button type="button" class="icon-action" title="Close dialog" aria-label="Close API token settings" (click)="closeDialog.emit()"></button>
+        <button type="button" class="icon-action" title="Close dialog" aria-label="Close API token settings" (click)="closeDialog.emit()" data-analytics-click="close_dialog"></button>
       </div>
 
       <form class="edit-form" (ngSubmit)="save.emit()">
@@ -65,7 +65,7 @@
                       [class.button-loading]="state.isTestingMarketApiToken(provider.id)"
                       [attr.aria-busy]="state.isTestingMarketApiToken(provider.id) ? 'true' : null"
                       (click)="testToken.emit(provider.id)"
-                    >
+                     data-analytics-click="test_token">
                       {{ state.isTestingMarketApiToken(provider.id) ? 'Testing' : 'Test' }}
                     </button>
                   </div>
@@ -96,15 +96,15 @@
               class="secondary api-token-download-button"
               [disabled]="!state.hasAnyDraftMarketApiToken() || state.isSavingApiTokens"
               (click)="downloadTokens.emit()"
-            >
+             data-analytics-click="download_tokens">
               Download all
             </button>
-            <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+            <button type="button" class="secondary" (click)="closeDialog.emit()" data-analytics-click="close_dialog">Cancel</button>
             <button
               type="submit"
               [class.button-loading]="state.isSavingApiTokens"
               [attr.aria-busy]="state.isSavingApiTokens ? 'true' : null"
-            >
+             data-analytics-click="api_token_settings_dialog_submit">
               {{ state.isSavingApiTokens ? 'Saving' : 'Save' }}
             </button>
           </div>

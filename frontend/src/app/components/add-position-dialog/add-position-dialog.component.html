@@ -5,7 +5,7 @@
         <div>
           <h2 id="add-position-title">Add Position</h2>
         </div>
-        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()" data-analytics-click="close_dialog">x</button>
       </div>
 
       <form class="edit-form" (ngSubmit)="save.emit()">
@@ -24,7 +24,7 @@
           @if (state.showSymbolDropdown) {
             <div class="symbol-dropdown" [class.refreshing]="state.symbolMessage === 'Searching...'" role="listbox" aria-label="Symbol search results">
               @for (result of state.symbolSuggestions; track result.symbol) {
-                <button type="button" class="symbol-option" role="option" (click)="chooseSymbol.emit(result)">
+                <button type="button" class="symbol-option" role="option" (click)="chooseSymbol.emit(result)" data-analytics-click="choose_symbol">
                   <strong>{{ result.symbol }}</strong>
                   <span>{{ result.name }}</span>
                   <small>{{ result.region }} - {{ result.currency }}</small>
@@ -75,13 +75,13 @@
         </div>
 
         <div class="dialog-actions">
-          <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+          <button type="button" class="secondary" (click)="closeDialog.emit()" data-analytics-click="close_dialog">Cancel</button>
           <button
             type="submit"
             [disabled]="!state.canSaveHolding"
             [class.button-loading]="state.isSavingHolding"
             [attr.aria-busy]="state.isSavingHolding ? 'true' : null"
-          >
+           data-analytics-click="add_position_dialog_submit">
             {{ state.isSavingHolding ? 'Saving' : 'Add' }}
           </button>
         </div>

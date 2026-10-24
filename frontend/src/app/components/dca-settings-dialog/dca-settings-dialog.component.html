@@ -7,13 +7,13 @@
           <h2 id="dca-settings-title">Configure</h2>
         </div>
         <div class="dialog-heading-actions">
-          <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
+          <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()" data-analytics-click="close_dialog">x</button>
         </div>
       </div>
 
       <form class="edit-form" (ngSubmit)="save.emit()">
         <fieldset class="dialog-fieldset" [disabled]="state.isLoadingDca || state.isSavingDca">
-          <button type="button" class="secondary" (click)="configureTelegram.emit()">Configure Telegram Alerts</button>
+          <button type="button" class="secondary" (click)="configureTelegram.emit()" data-analytics-click="configure_telegram">Configure Telegram Alerts</button>
           <button type="button" class="secondary" (click)="state.dcaDialogOpen = false; notifications.show()">App Notifications</button>
           <label class="remember-login">
             <input name="emailDcaEnabled" type="checkbox" [(ngModel)]="state.draftEmailDcaEnabled" />
@@ -61,17 +61,17 @@
           </label>
 
           <div class="dialog-actions dca-sample-actions">
-            <button type="button" class="secondary" (click)="openSuggestions.emit()">Suggest</button>
+            <button type="button" class="secondary" (click)="openSuggestions.emit()" data-analytics-click="open_suggestions">Suggest</button>
             <span>{{ state.draftDcaReminderNote.length }}/{{ state.dcaReminderMaxLength }}</span>
           </div>
 
           <div class="dialog-actions">
-            <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+            <button type="button" class="secondary" (click)="closeDialog.emit()" data-analytics-click="close_dialog">Cancel</button>
             <button
               type="submit"
               [class.button-loading]="state.isSavingDca || state.isLoadingDca"
               [attr.aria-busy]="state.isSavingDca || state.isLoadingDca ? 'true' : null"
-            >
+             data-analytics-click="dca_settings_dialog_submit">
               {{ state.isSavingDca ? 'Saving' : state.isLoadingDca ? 'Loading' : 'Save' }}
             </button>
           </div>
@@ -89,7 +89,7 @@
           <p class="eyebrow">DCA Reminder</p>
           <h2 id="dca-suggestions-title">Sample Suggestions</h2>
         </div>
-        <button type="button" class="icon-action" title="Close dialog" (click)="closeSuggestions.emit()">x</button>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeSuggestions.emit()" data-analytics-click="close_suggestions">x</button>
       </div>
 
       <div class="dca-sample-list">
@@ -99,7 +99,7 @@
               <strong>{{ sample.title }}</strong>
               <p>{{ sample.message }}</p>
             </div>
-            <button type="button" class="secondary" (click)="copySuggestion.emit(sample.message)">Copy</button>
+            <button type="button" class="secondary" (click)="copySuggestion.emit(sample.message)" data-analytics-click="copy_suggestion">Copy</button>
           </article>
         }
       </div>

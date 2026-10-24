@@ -9,7 +9,7 @@
       aria-haspopup="dialog"
       [attr.aria-expanded]="menuOpen"
       (click)="openMenu()"
-    ></button>
+     data-analytics-click="open_menu"></button>
   </div>
 
   <a
@@ -38,7 +38,7 @@
         (click)="searchStock.emit()"
         title="Search"
         aria-label="Search"
-      >
+       data-analytics-click="search_stock">
         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="11" cy="11" r="7" />
           <path d="m16 16 4 4" />
@@ -50,7 +50,7 @@
         (click)="openAlerts.emit()"
         [attr.aria-label]="state.alertCount > 0 ? state.alertCount + ' active alerts' : 'Alerts'"
         [attr.data-tooltip]="state.alertCount > 0 ? state.alertCount + ' active alerts' : 'Alerts'"
-      >
+       data-analytics-click="open_alerts">
         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
           <path d="M9 17a3 3 0 0 0 6 0" />
@@ -77,11 +77,11 @@
     >
       <div class="dialog-heading">
         <h2 id="top-menu-title">Menu</h2>
-        <button type="button" class="icon-action" title="Close" aria-label="Close menu" (click)="closeMenu()"></button>
+        <button type="button" class="icon-action" title="Close" aria-label="Close menu" (click)="closeMenu()" data-analytics-click="close_menu"></button>
       </div>
 
       <div class="top-menu-dialog-actions">
-        <button type="button" class="secondary top-menu-action" (click)="selectTheme()">
+        <button type="button" class="secondary top-menu-action" (click)="selectTheme()" data-analytics-click="select_theme">
           @if (state.themeMode === 'dark') {
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="5" />
@@ -102,7 +102,7 @@
           <span>{{ state.themeToggleLabel }}</span>
         </button>
 
-        <button type="button" class="secondary top-menu-action" (click)="selectFeedback()">
+        <button type="button" class="secondary top-menu-action" (click)="selectFeedback()" data-analytics-click="select_feedback">
           <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
             <path d="M8 9h8" />
@@ -141,8 +141,8 @@
         </a>
 
         @if (state.isLoggedIn) {
-          <button type="button" class="secondary top-menu-action" (click)="selectNotifications()">App Notifications</button>
-          <button type="button" class="secondary top-menu-action" (click)="selectApiTokens()">
+          <button type="button" class="secondary top-menu-action" (click)="selectNotifications()" data-analytics-click="select_notifications">App Notifications</button>
+          <button type="button" class="secondary top-menu-action" (click)="selectApiTokens()" data-analytics-click="select_api_tokens">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M12 2v4" />
               <path d="M12 18v4" />
@@ -164,7 +164,7 @@
             [disabled]="state.isLoading"
             [class.button-loading]="state.isLoading"
             [attr.aria-busy]="state.isLoading ? 'true' : null"
-          >
+           data-analytics-click="select_refresh">
             @if (state.isLoading) {
               <svg class="spinner-svg" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" stroke-dasharray="30 10" />
@@ -178,7 +178,7 @@
             <span>Refresh Dashboard</span>
           </button>
 
-          <button type="button" class="secondary top-menu-action" (click)="selectLogout()">
+          <button type="button" class="secondary top-menu-action" (click)="selectLogout()" data-analytics-click="select_logout">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
               <polyline points="16 17 21 12 16 7" />
@@ -190,7 +190,7 @@
       </div>
 
       <div class="dialog-actions">
-        <button type="button" class="secondary" (click)="closeMenu()">Cancel</button>
+        <button type="button" class="secondary" (click)="closeMenu()" data-analytics-click="close_menu">Cancel</button>
       </div>
     </section>
   </div>

@@ -5,7 +5,7 @@
         <div>
           <h2 id="retirement-settings-title">Retirement Settings</h2>
         </div>
-        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()" data-analytics-click="close_dialog">x</button>
       </div>
 
       <form class="edit-form" (ngSubmit)="save.emit()">
@@ -52,13 +52,13 @@
         <small class="field-hint">Desired return rate for the custom projection line.</small>
 
         <div class="dialog-actions" style="margin-top: 20px;">
-          <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+          <button type="button" class="secondary" (click)="closeDialog.emit()" data-analytics-click="close_dialog">Cancel</button>
           <button
             type="submit"
             [disabled]="state.isSavingRetirement || !state.draftInvestingStartDate"
             [class.button-loading]="state.isSavingRetirement"
             [attr.aria-busy]="state.isSavingRetirement ? 'true' : null"
-          >
+           data-analytics-click="retirement_settings_dialog_submit">
             {{ state.isSavingRetirement ? 'Saving' : 'Save Settings' }}
           </button>
         </div>

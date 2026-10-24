@@ -88,7 +88,7 @@
         <div>
           <h2 id="stock-lookup-title">Search</h2>
         </div>
-        <button type="button" class="icon-action" title="Close dialog" (click)="closeStockLookupDialog()">x</button>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeStockLookupDialog()" data-analytics-click="close_stock_lookup_dialog">x</button>
       </div>
 
       <form class="stock-lookup-search" role="search" (ngSubmit)="runStockLookupSearch()">
@@ -197,7 +197,7 @@
         <div>
           <h2 id="feedback-title">Send Feedback</h2>
         </div>
-        <button type="button" class="icon-action" title="Close dialog" aria-label="Close feedback" (click)="closeFeedbackDialog()"></button>
+        <button type="button" class="icon-action" title="Close dialog" aria-label="Close feedback" (click)="closeFeedbackDialog()" data-analytics-click="close_feedback_dialog"></button>
       </div>
 
       <form class="edit-form" (ngSubmit)="sendFeedback()">
@@ -219,7 +219,7 @@
           </div>
 
           <div class="dialog-actions">
-            <button type="button" class="secondary" (click)="closeFeedbackDialog()">Cancel</button>
+            <button type="button" class="secondary" (click)="closeFeedbackDialog()" data-analytics-click="close_feedback_dialog">Cancel</button>
             <button
               type="submit"
               [disabled]="!feedbackMessage.trim() || feedbackMessage.length > feedbackMaxLength || isSendingFeedback"
@@ -239,7 +239,7 @@
   <div class="snackbar" [class.snackbar-error]="snackbarTone === 'error'" role="status" aria-live="polite">
     <span class="snackbar-message">{{ snackbarMessage }}</span>
     @if (snackbarAction === 'feedback') {
-      <button type="button" class="snackbar-action" (click)="openFeedbackFromSnackbar()">Send feedback</button>
+      <button type="button" class="snackbar-action" (click)="openFeedbackFromSnackbar()" data-analytics-click="open_feedback_from_snackbar">Send feedback</button>
     }
   </div>
 }

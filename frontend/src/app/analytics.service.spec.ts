@@ -2,7 +2,7 @@ import { TestBed, fakeAsync, flushMicrotasks } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AnalyticsService } from './analytics.service';
 
-const CONSENT_KEY = 'jenius-consent-v1-open-fire';
+const CONSENT_KEY = 'jenius-consent-v2-open-fire';
 describe('AnalyticsService shared consent adapter', () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -34,10 +34,10 @@ describe('AnalyticsService shared consent adapter', () => {
     expect(JSON.parse(window.localStorage.getItem(CONSENT_KEY)!).choice).toBe('cookies');
     expect(document.getElementById('jeniusapps-google-analytics')).toBeNull();
   });
-  it('loads the tag after explicit consent and stops queued views on withdrawal', fakeAsync(() => {
+  it('saves analytics consent without loading Google and respects withdrawal', fakeAsync(() => {
     const service = TestBed.inject(AnalyticsService);
     service.accept();
-    expect((document.getElementById('jeniusapps-google-analytics') as HTMLScriptElement).src).toContain('G-WKKVN7YL28');
+    expect(document.getElementById('jeniusapps-google-analytics')).toBeNull();
     expect(service.consent).toBe('granted');
     service.decline();
     flushMicrotasks();

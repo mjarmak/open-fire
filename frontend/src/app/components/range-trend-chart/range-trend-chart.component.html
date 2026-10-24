@@ -13,7 +13,7 @@
         [class.active]="selectedRange === range"
         [attr.aria-pressed]="selectedRange === range"
         (click)="selectRange(range, $event)"
-      >{{ range }}</button>
+       data-analytics-click="select_range">{{ range }}</button>
     }
   </div>
 

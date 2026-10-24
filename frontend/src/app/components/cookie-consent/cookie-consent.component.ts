@@ -13,7 +13,7 @@ export class CookieConsentComponent implements AfterViewInit, OnDestroy {
   ) {}
 
   ngAfterViewInit(): void {
-    if (isPlatformBrowser(this.platform)) this.unmount = mountConsentDialog(this.host.nativeElement, this.analytics.manager);
+    if (isPlatformBrowser(this.platform)) this.unmount = mountConsentDialog(this.host.nativeElement, this.analytics.manager, { analyticsProvider: 'jenius' });
   }
 
   ngOnDestroy(): void { this.unmount?.(); }

@@ -2,9 +2,9 @@
   <div class="section-heading portfolio-heading">
     <h2>Portfolio</h2>
     <div class="portfolio-actions">
-      <button type="button" (click)="addPosition.emit()">Add</button>
-      <button type="button" class="secondary" (click)="exportPositions.emit()">Export CSV</button>
-      <button type="button" class="secondary" [disabled]="state.isImportingPortfolio" (click)="portfolioCsvInput.click()">
+      <button type="button" (click)="addPosition.emit()" data-analytics-click="add_position">Add</button>
+      <button type="button" class="secondary" (click)="exportPositions.emit()" data-analytics-click="export_positions">Export CSV</button>
+      <button type="button" class="secondary" [disabled]="state.isImportingPortfolio" (click)="portfolioCsvInput.click()" data-analytics-click="portfolio_csv_input">
         {{ state.isImportingPortfolio ? 'Importing' : 'Import CSV' }}
       </button>
       <input
@@ -23,7 +23,7 @@
           [class.active]="positionFilter === filter.value"
           [attr.aria-pressed]="positionFilter === filter.value"
           (click)="setPositionFilter(filter.value)"
-        >
+         data-analytics-click="set_position_filter">
           <span>{{ filter.label }}</span>
           <strong>{{ positionFilterCount(filter.value) }}</strong>
         </button>
@@ -91,7 +91,7 @@
               [attr.aria-label]="isGlobalRiskChartCollapsed(indicator) ? 'Expand ' + indicator.name + ' risk graph' : 'Collapse ' + indicator.name + ' risk graph'"
               [attr.aria-expanded]="!isGlobalRiskChartCollapsed(indicator)"
               (click)="toggleGlobalRiskChart(indicator, $event)"
-            >
+             data-analytics-click="toggle_global_risk_chart">
               <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.7" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path [attr.d]="isGlobalRiskChartCollapsed(indicator) ? 'M6 9l6 6 6-6' : 'M18 15l-6-6-6 6'" />
               </svg>
@@ -364,7 +364,7 @@
         }
         <div class="row-actions" (click)="stopRowClick($event)">
           @if (isCollapsed(stock)) {
-            <button type="button" class="position-expand-hint" (click)="toggleCollapsedFromRow(stock, $event)">click to show indicators</button>
+            <button type="button" class="position-expand-hint" (click)="toggleCollapsedFromRow(stock, $event)" data-analytics-click="toggle_collapsed_from_row">click to show indicators</button>
           }
           <button
             type="button"
@@ -373,7 +373,7 @@
             aria-label="Position graph"
             [attr.aria-pressed]="isPositionChartOpen(stock)"
             (click)="togglePositionChart(stock, $event)"
-          >
+           data-analytics-click="toggle_position_chart">
             <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M4 18h16" />
               <path d="M5 15l4-4 4 3 6-7" />
@@ -388,7 +388,7 @@
             aria-haspopup="dialog"
             [attr.aria-expanded]="isActionDialogOpen(stock)"
             (click)="openActionDialog(stock, $event)"
-          ></button>
+           data-analytics-click="open_action_dialog"></button>
         </div>
         @if (isPositionChartOpen(stock)) {
           <div
@@ -439,14 +439,14 @@
             <p class="eyebrow">{{ actionStock.symbol }}</p>
             <h2 id="position-actions-title">Menu</h2>
           </div>
-          <button type="button" class="icon-action" title="Close" aria-label="Close position actions" (click)="closeActionDialog()"></button>
+          <button type="button" class="icon-action" title="Close" aria-label="Close position actions" (click)="closeActionDialog()" data-analytics-click="close_action_dialog"></button>
         </div>
         <div class="position-action-dialog-actions">
-          <button type="button" (click)="selectEditPosition(actionStock, $event)">Edit</button>
-          <button type="button" class="danger-action" (click)="selectDeletePosition(actionStock, $event)">Delete</button>
+          <button type="button" (click)="selectEditPosition(actionStock, $event)" data-analytics-click="select_edit_position">Edit</button>
+          <button type="button" class="danger-action" (click)="selectDeletePosition(actionStock, $event)" data-analytics-click="select_delete_position">Delete</button>
         </div>
         <div class="dialog-actions">
-          <button type="button" class="secondary" (click)="closeActionDialog()">Cancel</button>
+          <button type="button" class="secondary" (click)="closeActionDialog()" data-analytics-click="close_action_dialog">Cancel</button>
         </div>
       </div>
     </div>

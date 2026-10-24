@@ -27,7 +27,7 @@
                 <button type="button" class="secondary" [disabled]="!state.supported || !state.configured || state.blocked" (click)="state.enable()">Enable on this device</button>
               }
             </div>
-            <div class="dialog-actions"><button type="submit" [class.button-loading]="state.busy" [attr.aria-busy]="state.busy">{{ state.busy ? 'Saving' : 'Save preferences' }}</button></div>
+            <div class="dialog-actions"><button type="submit" [class.button-loading]="state.busy" [attr.aria-busy]="state.busy" data-analytics-click="app_notifications_dialog_submit">{{ state.busy ? 'Saving' : 'Save preferences' }}</button></div>
           </fieldset>
         </form>
       }

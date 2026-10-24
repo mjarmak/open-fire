@@ -5,12 +5,12 @@
         <div>
           <h2 id="delete-confirm-title">Remove {{ state.deleteTargetSymbol }}?</h2>
         </div>
-        <button type="button" class="icon-action" title="Close dialog" (click)="cancel.emit()">x</button>
+        <button type="button" class="icon-action" title="Close dialog" (click)="cancel.emit()" data-analytics-click="cancel">x</button>
       </div>
       <p class="confirm-body">Are you sure you want to remove <strong>{{ state.deleteTargetSymbol }}</strong> from your portfolio? This action cannot be undone.</p>
       <div class="dialog-actions">
-        <button type="button" class="secondary" (click)="cancel.emit()">Cancel</button>
-        <button type="button" class="danger" (click)="confirm.emit()">Delete</button>
+        <button type="button" class="secondary" (click)="cancel.emit()" data-analytics-click="cancel">Cancel</button>
+        <button type="button" class="danger" (click)="confirm.emit()" data-analytics-click="confirm">Delete</button>
       </div>
     </section>
   </div>

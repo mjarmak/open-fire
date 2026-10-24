@@ -5,7 +5,7 @@ import { CookieConsentComponent } from './cookie-consent.component';
 describe('Shared consent dialog integration', () => {
   beforeEach(async () => {
     localStorage.clear();
-    document.cookie = 'jenius-consent-v1-open-fire=; Max-Age=0; Path=/';
+    document.cookie = 'jenius-consent-v2-open-fire=; Max-Age=0; Path=/';
     document.cookie = 'jeniusapps-analytics-consent=; Max-Age=0; Path=/';
     await TestBed.configureTestingModule({
       imports: [RouterTestingModule, CookieConsentComponent],
@@ -15,7 +15,7 @@ describe('Shared consent dialog integration', () => {
   afterEach(() => {
     TestBed.resetTestingModule();
     localStorage.clear();
-    document.cookie = 'jenius-consent-v1-open-fire=; Max-Age=0; Path=/';
+    document.cookie = 'jenius-consent-v2-open-fire=; Max-Age=0; Path=/';
   });
   it('mounts the package and offers cookies without enabling analytics', () => {
     const fixture = TestBed.createComponent(CookieConsentComponent);

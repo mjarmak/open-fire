@@ -6,7 +6,7 @@
           <p class="eyebrow">Account</p>
           <h2 id="login-title">{{ state.authDialogTitle }}</h2>
         </div>
-        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()" data-analytics-click="close_dialog">x</button>
       </div>
 
       <form class="edit-form" (ngSubmit)="submitDialog.emit()">
@@ -24,13 +24,13 @@
         </label>
 
         <div class="dialog-actions">
-          <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+          <button type="button" class="secondary" (click)="closeDialog.emit()" data-analytics-click="close_dialog">Cancel</button>
           <button
             type="submit"
             [disabled]="!state.canSubmitAuth"
             [class.button-loading]="state.isLoading"
             [attr.aria-busy]="state.isLoading ? 'true' : null"
-          >
+           data-analytics-click="login_dialog_submit">
             {{ state.authSubmitLabel }}
           </button>
         </div>

@@ -5,7 +5,7 @@
         <div>
           <h2 id="telegram-title">Telegram Configuration</h2>
         </div>
-        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()">x</button>
+        <button type="button" class="icon-action" title="Close dialog" (click)="closeDialog.emit()" data-analytics-click="close_dialog">x</button>
       </div>
 
       <form class="edit-form" (ngSubmit)="save.emit()">
@@ -26,14 +26,14 @@
           </small>
 
           <div class="dialog-actions">
-            <button type="button" class="secondary" (click)="closeDialog.emit()">Cancel</button>
+            <button type="button" class="secondary" (click)="closeDialog.emit()" data-analytics-click="close_dialog">Cancel</button>
             <button
               type="button"
               class="secondary"
               [class.button-loading]="state.isSavingTelegram"
               [attr.aria-busy]="state.isSavingTelegram ? 'true' : null"
               (click)="test.emit()"
-            >
+             data-analytics-click="test">
               {{ state.isSavingTelegram ? 'Working' : 'Test' }}
             </button>
             <button
@@ -41,7 +41,7 @@
               [disabled]="!state.telegramChatId.trim()"
               [class.button-loading]="state.isSavingTelegram || state.isLoadingTelegram"
               [attr.aria-busy]="state.isSavingTelegram || state.isLoadingTelegram ? 'true' : null"
-            >
+             data-analytics-click="telegram_dialog_submit">
               {{ state.isSavingTelegram ? 'Saving' : state.isLoadingTelegram ? 'Loading' : 'Save' }}
             </button>
           </div>
