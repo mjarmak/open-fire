@@ -14,19 +14,19 @@
       <form class="edit-form" (ngSubmit)="save.emit()">
         <fieldset class="dialog-fieldset" [disabled]="state.isLoadingDca || state.isSavingDca">
           <button type="button" class="secondary" (click)="configureTelegram.emit()" data-analytics-click="configure_telegram">Configure Telegram Alerts</button>
-          <button type="button" class="secondary" (click)="state.dcaDialogOpen = false; notifications.show()">App Notifications</button>
+          <button type="button" class="secondary" (click)="state.dcaDialogOpen = false; notifications.show()" data-analytics-click="dca_settings_dialog_show">App Notifications</button>
           <label class="remember-login">
-            <input name="emailDcaEnabled" type="checkbox" [(ngModel)]="state.draftEmailDcaEnabled" />
+            <input name="emailDcaEnabled" type="checkbox" [(ngModel)]="state.draftEmailDcaEnabled"  data-analytics-change="dca_settings_dialog_email_dca_enabled_change"/>
             <span>DCA reminder emails</span>
           </label>
           <small class="field-hint">Sent on your selected reminder days. Telegram is optional.</small>
           <label class="remember-login">
-            <input name="telegramDcaEnabled" type="checkbox" [(ngModel)]="state.draftTelegramDcaEnabled" />
+            <input name="telegramDcaEnabled" type="checkbox" [(ngModel)]="state.draftTelegramDcaEnabled"  data-analytics-change="dca_settings_dialog_telegram_dca_enabled_change"/>
             <span>Telegram DCA reminders (optional)</span>
           </label>
           <small class="field-hint">Add your chat ID in Telegram settings to use the same reminder schedule.</small>
           <label class="remember-login">
-            <input name="emailReturnEnabled" type="checkbox" [(ngModel)]="state.draftEmailReturnEnabled" />
+            <input name="emailReturnEnabled" type="checkbox" [(ngModel)]="state.draftEmailReturnEnabled"  data-analytics-change="dca_settings_dialog_email_return_enabled_change"/>
             <span>Reminder emails</span>
           </label>
           <small class="field-hint">Remind me to review my portfolio after 7 days without opening OpenFIRE.</small>
@@ -42,7 +42,7 @@
                     [name]="'dcaReminderDay' + day.value"
                     [ngModel]="state.isDraftDcaReminderDaySelected(day.value)"
                     (ngModelChange)="state.setDraftDcaReminderDay(day.value, $event)"
-                  />
+                   data-analytics-change="dca_settings_dialog_set_draft_dca_reminder_day_change"/>
                   <span>{{ day.label }}</span>
                 </label>
               }
@@ -57,7 +57,7 @@
               [attr.maxlength]="state.dcaReminderMaxLength"
               [(ngModel)]="state.draftDcaReminderNote"
               placeholder="Follow your plan and buy consistently."
-            ></textarea>
+             data-analytics-change="dca_settings_dialog_dca_reminder_note_change"></textarea>
           </label>
 
           <div class="dialog-actions dca-sample-actions">

@@ -11,43 +11,43 @@
       <form class="edit-form" (ngSubmit)="save.emit()">
         <label>
           <span>Investing Start Date</span>
-          <input name="investingStartDate" type="date" required [(ngModel)]="state.draftInvestingStartDate" />
+          <input name="investingStartDate" type="date" required [(ngModel)]="state.draftInvestingStartDate"  data-analytics-change="retirement_settings_dialog_investing_start_date_change"/>
         </label>
         <small class="field-hint">When you started investing in the stock market. Used to compute actual CAGR.</small>
 
         <label style="margin-top: 12px;">
           <span>Initial Stock Market Deposit ($)</span>
-          <input name="otherSavings" type="number" min="0" required [(ngModel)]="state.draftOtherSavings" />
+          <input name="otherSavings" type="number" min="0" required [(ngModel)]="state.draftOtherSavings"  data-analytics-change="retirement_settings_dialog_other_savings_change"/>
         </label>
         <small class="field-hint">Your initial starting capital deposited into the market.</small>
 
         <label style="margin-top: 12px;">
           <span>Desired Monthly Retirement Income ($)</span>
-          <input name="desiredMonthlyIncome" type="number" min="0" required [(ngModel)]="state.draftDesiredMonthlyIncome" />
+          <input name="desiredMonthlyIncome" type="number" min="0" required [(ngModel)]="state.draftDesiredMonthlyIncome"  data-analytics-change="retirement_settings_dialog_desired_monthly_income_change"/>
         </label>
         <small class="field-hint">Target monthly cashflow in retirement.</small>
 
         <label style="margin-top: 12px;">
           <span>Safe Withdrawal Rate (%)</span>
-          <input name="safeWithdrawalRate" type="number" min="0.1" max="25" step="0.1" required [(ngModel)]="state.draftSafeWithdrawalRate" />
+          <input name="safeWithdrawalRate" type="number" min="0.1" max="25" step="0.1" required [(ngModel)]="state.draftSafeWithdrawalRate"  data-analytics-change="retirement_settings_dialog_safe_withdrawal_rate_change"/>
         </label>
         <small class="field-hint">Annual portfolio percentage used to convert target income into a required fund size.</small>
 
         <label style="margin-top: 12px;">
           <span>Monthly Contribution Savings ($)</span>
-          <input name="monthlySavings" type="number" min="0" required [(ngModel)]="state.draftMonthlySavings" />
+          <input name="monthlySavings" type="number" min="0" required [(ngModel)]="state.draftMonthlySavings"  data-analytics-change="retirement_settings_dialog_monthly_savings_change"/>
         </label>
         <small class="field-hint">How much money you add to the stock market every month.</small>
 
         <label style="margin-top: 12px;">
           <span>Yearly Inflation (%)</span>
-          <input name="yearlyInflationRate" type="number" min="-20" max="50" step="0.1" required [(ngModel)]="state.draftYearlyInflationRate" />
+          <input name="yearlyInflationRate" type="number" min="-20" max="50" step="0.1" required [(ngModel)]="state.draftYearlyInflationRate"  data-analytics-change="retirement_settings_dialog_yearly_inflation_rate_change"/>
         </label>
         <small class="field-hint">Inflates target retirement income and post-retirement withdrawals over time.</small>
 
         <label style="margin-top: 12px;">
           <span>Custom Desired Annual Return (%)</span>
-          <input name="customReturnRate" type="number" min="-50" max="100" step="0.1" required [(ngModel)]="state.draftCustomReturnRate" />
+          <input name="customReturnRate" type="number" min="-50" max="100" step="0.1" required [(ngModel)]="state.draftCustomReturnRate"  data-analytics-change="retirement_settings_dialog_custom_return_rate_change"/>
         </label>
         <small class="field-hint">Desired return rate for the custom projection line.</small>
 

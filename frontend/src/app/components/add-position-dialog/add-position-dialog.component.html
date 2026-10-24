@@ -1,6 +1,6 @@
 @if (state.addDialogOpen) {
   <div class="modal-backdrop" role="presentation" @dialogBackdrop>
-    <section class="edit-dialog" role="dialog" aria-modal="true" aria-labelledby="add-position-title" @dialogPanel (mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()">
+    <section class="edit-dialog" role="dialog" aria-modal="true" aria-labelledby="add-position-title" @dialogPanel (mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()" data-analytics-press="add_position_dialog_section_1_press">
       <div class="dialog-heading">
         <div>
           <h2 id="add-position-title">Add Position</h2>
@@ -20,7 +20,7 @@
             (focus)="openDropdown.emit()"
             (ngModelChange)="search.emit()"
             placeholder="AAPL, Bitcoin, or EUR/USD"
-          />
+           data-analytics-input="add_position_dialog_emit_input"/>
           @if (state.showSymbolDropdown) {
             <div class="symbol-dropdown" [class.refreshing]="state.symbolMessage === 'Searching...'" role="listbox" aria-label="Symbol search results">
               @for (result of state.symbolSuggestions; track result.symbol) {
@@ -42,7 +42,7 @@
             data-tooltip="Track this instrument without position size, average cost, or P&L calculations."
             aria-label="Track this instrument without position size, average cost, or P&L calculations."
           >
-            <input name="watchOnly" type="checkbox" [ngModel]="state.holdingForm.watchOnly" (ngModelChange)="state.setHoldingWatchOnly($event)" />
+            <input name="watchOnly" type="checkbox" [ngModel]="state.holdingForm.watchOnly" (ngModelChange)="state.setHoldingWatchOnly($event)"  data-analytics-change="add_position_dialog_set_holding_watch_only_change"/>
             <span>Watch only</span>
           </label>
         </div>
@@ -57,7 +57,7 @@
               [ngModel]="state.holdingForm.quantity === 0 ? null : state.holdingForm.quantity"
               (ngModelChange)="state.holdingForm.quantity = $event ?? 0"
               [disabled]="state.holdingForm.watchOnly"
-            />
+             data-analytics-change="add_position_dialog_quantity_change"/>
           </label>
           <span class="position-cost-times" aria-hidden="true">&times;</span>
           <label>
@@ -70,7 +70,7 @@
               [ngModel]="state.holdingForm.averageCost === 0 ? null : state.holdingForm.averageCost"
               (ngModelChange)="state.holdingForm.averageCost = $event ?? 0"
               [disabled]="state.holdingForm.watchOnly"
-            />
+             data-analytics-change="add_position_dialog_average_cost_change"/>
           </label>
         </div>
 

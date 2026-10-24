@@ -12,7 +12,7 @@ export class AnalyticsService implements OnDestroy {
     const enabled = isPlatformBrowser(platform);
     this.manager = createConsentManager({ document, appId: 'open-fire', appName: 'Open Fire', enabled, noticeVersion: 2 });
     retireGoogleAnalytics({ document, appId: 'open-fire', measurementId: 'G-WKKVN7YL28', enabled });
-    this.logger = createOptionalLogger({ document, manager: this.manager, slug: 'open-fire' });
+    this.logger = createOptionalLogger({ document, manager: this.manager, slug: 'open-fire', captureLibraryControls: true });
   }
 
   get consent() { return this.manager.getState().choice; }

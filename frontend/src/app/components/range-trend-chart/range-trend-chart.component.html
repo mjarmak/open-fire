@@ -25,7 +25,7 @@
     (pointerup)="onChartPointerEnd($event)"
     (pointercancel)="onChartPointerEnd($event)"
     (pointerleave)="onChartPointerLeave($event)"
-  >
+   data-analytics-press="range_trend_chart_div_2_press">
     @if (loading) {
       <div class="range-trend-loading-overlay" role="status" aria-live="polite">
         <div class="loading-spinner" aria-hidden="true"></div>

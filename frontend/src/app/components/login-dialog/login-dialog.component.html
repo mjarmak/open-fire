@@ -12,14 +12,14 @@
       <form class="edit-form" (ngSubmit)="submitDialog.emit()">
         <label>
           <span>User</span>
-          <input name="username" autocomplete="username" [(ngModel)]="state.username" />
+          <input name="username" autocomplete="username" [(ngModel)]="state.username"  data-analytics-change="login_dialog_username_change"/>
         </label>
         <label>
           <span>Password</span>
           <input name="password" type="password" autocomplete="current-password" [(ngModel)]="state.password" />
         </label>
         <label class="remember-login">
-          <input name="rememberLogin" type="checkbox" [(ngModel)]="state.rememberLogin" />
+          <input name="rememberLogin" type="checkbox" [(ngModel)]="state.rememberLogin"  data-analytics-change="login_dialog_remember_login_change"/>
           <span>Remember username</span>
         </label>
 

@@ -43,7 +43,7 @@
                       [attr.aria-label]="state.isMarketApiTokenVisible(provider.id) ? 'Hide ' + provider.name + ' token' : 'Show ' + provider.name + ' token'"
                       [attr.aria-pressed]="state.isMarketApiTokenVisible(provider.id)"
                       (click)="state.toggleMarketApiTokenVisibility(provider.id)"
-                    >
+                     data-analytics-click="api_token_settings_dialog_toggle_market_api_token_visibility">
                       @if (state.isMarketApiTokenVisible(provider.id)) {
                         <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.3" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                           <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C7 20 2.73 16.89 1 12a12.16 12.16 0 0 1 4.06-5.94" />
@@ -83,7 +83,7 @@
 
                 <small class="field-hint api-provider-description">{{ provider.description }}</small>
                 <small class="field-hint">{{ provider.limit }}</small>
-                <a class="api-provider-link" [href]="provider.signupUrl" target="_blank" rel="noopener noreferrer">
+                <a class="api-provider-link" [href]="provider.signupUrl" target="_blank" rel="noopener noreferrer" data-analytics-click="api_token_settings_dialog_a_4">
                   Get a {{ provider.name }} token
                 </a>
               </section>

@@ -12,7 +12,7 @@
         <fieldset class="dialog-fieldset" [disabled]="state.isLoadingTelegram || state.isSavingTelegram">
           <label>
             <span>Chat ID</span>
-            <input name="telegramChatId" [(ngModel)]="state.telegramChatId" autocomplete="off" />
+            <input name="telegramChatId" [(ngModel)]="state.telegramChatId" autocomplete="off"  data-analytics-change="telegram_dialog_telegram_chat_id_change"/>
           </label>
           <small class="field-hint">
             Start <strong>&#64;{{ state.telegramBotUsername }}</strong> in Telegram, then save your numeric chat ID here.

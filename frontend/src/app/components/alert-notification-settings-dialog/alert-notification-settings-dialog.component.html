@@ -9,7 +9,7 @@
       </div>
       <form class="edit-form" (ngSubmit)="save.emit()">
         <button type="button" class="secondary" (click)="configureTelegram.emit()" data-analytics-click="configure_telegram">Configure Telegram Alerts</button>
-        <button type="button" class="secondary" (click)="state.alertNotificationDialogOpen = false; notifications.show()">App Notifications</button>
+        <button type="button" class="secondary" (click)="state.alertNotificationDialogOpen = false; notifications.show()" data-analytics-click="alert_notification_settings_dialog_show">App Notifications</button>
         <fieldset class="dialog-fieldset" [disabled]="state.isLoadingAlertNotifications || state.isSavingAlertNotifications">
           <div class="weekday-field" role="group" aria-label="Alert briefing days">
             <span>Alert briefing days</span>
@@ -19,7 +19,7 @@
                 <label class="weekday-option" [class.selected]="state.isDraftTelegramAlertDaySelected(day.value)">
                   <input type="checkbox" [name]="'alertDay' + day.value"
                     [ngModel]="state.isDraftTelegramAlertDaySelected(day.value)"
-                    (ngModelChange)="state.setDraftTelegramAlertDay(day.value, $event)" />
+                    (ngModelChange)="state.setDraftTelegramAlertDay(day.value, $event)"  data-analytics-change="alert_notification_settings_dialog_set_draft_telegram_a_ba9e2a3d"/>
                   <span>{{ day.label }}</span>
                 </label>
               }

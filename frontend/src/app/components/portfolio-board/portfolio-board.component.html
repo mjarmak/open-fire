@@ -13,7 +13,7 @@
         type="file"
         accept=".csv,text/csv"
         (change)="importPositions.emit($event)"
-      />
+       data-analytics-change="portfolio_board_emit_change"/>
     </div>
     <div class="portfolio-filter" role="group" aria-label="Position filter">
       @for (filter of positionFilters; track filter.value) {
@@ -129,7 +129,7 @@
         tabindex="0"
         (click)="toggleCollapsedFromRow(stock, $event)"
         (keydown)="handleRowKeydown(stock, $event)"
-      >
+       data-analytics-click="portfolio_board_toggle_collapsed_from_row">
         <div class="ticker-identity">
           <div class="ticker-symbol-line">
             <span
@@ -272,7 +272,7 @@
             [class.value-neg]="stock.thirtyDayChangePercent !== null && stock.thirtyDayChangePercent < 0"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>30D</small>
+           data-analytics-click="portfolio_board_30_d_percentage_price_change_over_the_l_06dc6b9e"><small>30D</small>
             @if (state.isLoadingStockDetails && stock.thirtyDayChangePercent === null) {
               <i class="position-indicator-skeleton" aria-hidden="true"></i>
             } @else {
@@ -289,7 +289,7 @@
             [class.fear-high]="stock.fearScore !== null && stock.fearScore >= 65"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>Fear</small>
+           data-analytics-click="portfolio_board_fear_score_composite_risk_score_from_va_1c3f5a2a"><small>Fear</small>
             @if (state.isLoadingStockDetails && stock.fearScore === null) {
               <i class="position-indicator-skeleton" aria-hidden="true"></i>
             } @else {
@@ -305,7 +305,7 @@
             [class.pe-high]="stock.peRatio !== null && stock.peRatio > 25"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>P/E</small>
+           data-analytics-click="portfolio_board_p_e_trailing_price_to_earnings_ratio_a__dbb22a66"><small>P/E</small>
             @if (state.isLoadingStockDetails && stock.peRatio === null) {
               <i class="position-indicator-skeleton" aria-hidden="true"></i>
             } @else {
@@ -321,7 +321,7 @@
             [class.beta-high]="stock.beta !== null && stock.beta > 1.5"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>Beta</small>
+           data-analytics-click="portfolio_board_beta_sensitivity_to_broad_market_moves__eca9b780"><small>Beta</small>
             @if (state.isLoadingStockDetails && stock.beta === null) {
               <i class="position-indicator-skeleton" aria-hidden="true"></i>
             } @else {
@@ -337,7 +337,7 @@
             [class.vol-high]="stock.realizedVolatilityPercent !== null && stock.realizedVolatilityPercent > 40"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>Vol</small>
+           data-analytics-click="portfolio_board_vol_annualized_realized_volatility_from_55a6afa3"><small>Vol</small>
             @if (state.isLoadingStockDetails && stock.realizedVolatilityPercent === null) {
               <i class="position-indicator-skeleton" aria-hidden="true"></i>
             } @else {
@@ -353,7 +353,7 @@
             [class.drawdown-high]="stock.drawdownPercent !== null && stock.drawdownPercent > 20"
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          ><small>DD</small>
+           data-analytics-click="portfolio_board_dd_drawdown_from_the_highest_close_in_t_ab86a52d"><small>DD</small>
             @if (state.isLoadingStockDetails && stock.drawdownPercent === null) {
               <i class="position-indicator-skeleton" aria-hidden="true"></i>
             } @else {
@@ -362,7 +362,7 @@
           </span>
         </div>
         }
-        <div class="row-actions" (click)="stopRowClick($event)">
+        <div class="row-actions" (click)="stopRowClick($event)" data-analytics-click="portfolio_board_stop_row_click">
           @if (isCollapsed(stock)) {
             <button type="button" class="position-expand-hint" (click)="toggleCollapsedFromRow(stock, $event)" data-analytics-click="toggle_collapsed_from_row">click to show indicators</button>
           }
@@ -400,7 +400,7 @@
             @positionChartExpansion
             (click)="stopRowClick($event)"
             (keydown)="stopRowClick($event)"
-          >
+           data-analytics-click="portfolio_board_stop_row_click">
             <app-range-trend-chart
               [points]="positionChartData(stock)"
               [ranges]="chartRanges"

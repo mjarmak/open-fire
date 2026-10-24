@@ -12,7 +12,9 @@
     "test": "ng test",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "build:demo": "node scripts/build-demo.mjs"
+    "build:demo": "node scripts/build-demo.mjs",
+    "test:analytics-controls": "node node_modules/@jeniusapps/analytics-client/audit.mjs",
+    "pretest": "npm run test:analytics-controls"
   },
   "private": true,
   "dependencies": {
@@ -25,8 +27,8 @@
     "@angular/platform-browser-dynamic": "^18.0.0",
     "@angular/router": "^18.0.0",
     "@angular/service-worker": "^18.2.14",
-    "@jeniusapps/analytics-client": "file:vendor/jeniusapps-analytics-client-1.0.0.tgz",
-    "@jeniusapps/consent": "file:vendor/jeniusapps-consent-1.1.0.tgz",
+    "@jeniusapps/analytics-client": "file:vendor/jeniusapps-analytics-client-1.1.0.tgz",
+    "@jeniusapps/consent": "file:vendor/jeniusapps-consent-1.1.1.tgz",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.3"

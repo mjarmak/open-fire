@@ -61,7 +61,7 @@
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Visit Jenius Apps (opens in a new tab)"
-    >
+     data-analytics-click="app_visit_jenius_apps_opens_in_a_new_tab">
       Visit Jenius Apps
       <span aria-hidden="true">&nearr;</span>
     </a>
@@ -83,7 +83,7 @@
 
 @if (marketDashboardService.stockLookupDialogOpen) {
   <div class="modal-backdrop stock-lookup-backdrop" role="presentation" @dialogBackdrop>
-    <section class="edit-dialog stock-lookup-dialog" role="dialog" aria-modal="true" aria-labelledby="stock-lookup-title" @dialogPanel (mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()">
+    <section class="edit-dialog stock-lookup-dialog" role="dialog" aria-modal="true" aria-labelledby="stock-lookup-title" @dialogPanel (mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()" data-analytics-press="app_section_2_press">
       <div class="dialog-heading">
         <div>
           <h2 id="stock-lookup-title">Search</h2>
@@ -104,13 +104,13 @@
             (input)="onStockLookupQueryChange($event)"
             placeholder="Search AAPL, Bitcoin, or EUR/USD"
             aria-label="Search symbols"
-          />
+           data-analytics-input="app_search_symbols_input"/>
           <button
             type="submit"
             [disabled]="marketDashboardService.isSearchingStockLookup || marketDashboardService.stockLookupQuery.trim().length < 2"
             [class.button-loading]="marketDashboardService.isSearchingStockLookup"
             [attr.aria-busy]="marketDashboardService.isSearchingStockLookup ? 'true' : null"
-          >
+           data-analytics-click="app_button_5">
             @if (marketDashboardService.isSearchingStockLookup) {
               Searching
             } @else {
@@ -211,7 +211,7 @@
               [attr.maxlength]="feedbackMaxLength"
               [(ngModel)]="feedbackMessage"
               placeholder="What should be improved?"
-            ></textarea>
+             data-analytics-change="app_feedback_message_change"></textarea>
           </label>
 
           <div class="dialog-actions dca-sample-actions">
@@ -225,7 +225,7 @@
               [disabled]="!feedbackMessage.trim() || feedbackMessage.length > feedbackMaxLength || isSendingFeedback"
               [class.button-loading]="isSendingFeedback"
               [attr.aria-busy]="isSendingFeedback ? 'true' : null"
-            >
+             data-analytics-click="app_button_9">
               {{ isSendingFeedback ? 'Sending' : 'Send' }}
             </button>
           </div>
