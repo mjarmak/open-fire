@@ -59,6 +59,7 @@ class EmailReminderServiceTest {
     verify(email).send(startsWith("open-fire:dca:alice:"), eq("alice"), eq("alice@example.com"), eq("dca"), contains("$100/month"));
     verify(delivery).commit();
     verify(query).setString(eq(1), matches("MON|TUE|WED|THU|FRI|SAT|SUN"));
+    verify(candidates).prepareStatement(contains("string_to_array(telegram_dca_days, ',') @> array[?]::text[]"));
   }
 
   @Test void acceptedEventDoesNotSendAgain() throws Exception {

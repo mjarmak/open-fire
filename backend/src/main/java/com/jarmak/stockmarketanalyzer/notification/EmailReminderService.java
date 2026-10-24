@@ -34,7 +34,7 @@ public class EmailReminderService {
     if (!email.enabled()) { return; }
     String day = LocalDate.now(ZoneId.of("Europe/Brussels")).getDayOfWeek().name().substring(0, 3);
     String eligibility = kind.equals("dca")
-        ? "email_dca_enabled = true and ? = any(string_to_array(telegram_dca_days, ','))"
+        ? "email_dca_enabled = true and string_to_array(telegram_dca_days, ',') @> array[?]::text[]"
         : "email_return_enabled = true and last_app_visit <= now() - interval '7 days'";
     try (Connection connection = database.connection();
         var statement = connection.prepareStatement("select username from users where enabled = true and email_verified = true and email_address <> '' and " + eligibility)) {

@@ -62,7 +62,7 @@ $env:OPENFIRE_PUSH_TEST_DB_URL='jdbc:postgresql://127.0.0.1:15434/openfire_push_
 mvn -f backend/pom.xml -Dtest=AppNotificationDatabaseTest test
 ```
 
-Docker Desktop's Linux engine was unavailable during implementation, so these database tests have not been run against PostgreSQL. The full Playwright suite has two pre-existing portfolio failures, reproduced unchanged on baseline commit `73f9c46` (watch-only daily-change locator and light-theme metric-label colour); notification tests pass.
+The eight database tests passed against disposable local PostgreSQL 16.14 on October 25, 2026, using the complete schema through V16. See [Database Index Coverage](docs/DATABASE_INDEXES.md) for concurrent migration and query-plan checks. The full Playwright suite has two pre-existing portfolio failures, reproduced unchanged on baseline commit `73f9c46` (watch-only daily-change locator and light-theme metric-label colour); notification tests pass.
 
 ## References
 

@@ -10,6 +10,7 @@ import java.sql.*;
 import java.time.Clock;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.*;
@@ -41,13 +42,18 @@ class AppNotificationDatabaseTest {
     url = System.getenv("OPENFIRE_PUSH_TEST_DB_URL"); schema = "openfire_push_test_" + UUID.randomUUID().toString().replace("-", "");
     try (var connection = DriverManager.getConnection(url, "openfire_test", "openfire_test"); var statement = connection.createStatement()) {
       statement.execute("create schema " + schema); connection.setSchema(schema);
-      statement.execute("create table users(username varchar(128) primary key, enabled boolean default true, last_app_visit timestamptz default now(), telegram_dca_days text default 'MON,TUE,WED,THU,FRI,SAT,SUN', telegram_alert_days text default 'MON,TUE,WED,THU,FRI,SAT,SUN')");
-      statement.execute("insert into users(username) values ('alice'), ('bob')");
     }
     Flyway.configure().dataSource(url, "openfire_test", "openfire_test").schemas(schema).defaultSchema(schema)
-        .baselineOnMigrate(true).baselineVersion("13").target("14").load().migrate();
+        .configuration(Map.of("flyway.postgresql.transactional.lock", "false"))
+        .placeholders(Map.of("defaultUsername", "migration-bootstrap", "defaultPasswordHash", "unused-test-hash"))
+        .target("14").load().migrate();
+    sql("insert into users(username, password_hash, last_app_visit, telegram_dca_days, telegram_alert_days) "
+        + "values ('alice', '', now(), 'MON,TUE,WED,THU,FRI,SAT,SUN', 'MON,TUE,WED,THU,FRI,SAT,SUN'), "
+        + "('bob', '', now(), 'MON,TUE,WED,THU,FRI,SAT,SUN', 'MON,TUE,WED,THU,FRI,SAT,SUN')");
     sql("insert into app_notification_preferences(username, dca, briefing, return_reminder) values ('bob', false, false, false)");
     Flyway.configure().dataSource(url, "openfire_test", "openfire_test").schemas(schema).defaultSchema(schema)
+        .configuration(Map.of("flyway.postgresql.transactional.lock", "false"))
+        .placeholders(Map.of("defaultUsername", "migration-bootstrap", "defaultPasswordHash", "unused-test-hash"))
         .load().migrate();
     database = mock(DatabaseService.class); when(database.connection()).thenAnswer(invocation -> connect());
     dashboard = mock(DashboardService.class); transport = mock(WebPushTransport.class);
