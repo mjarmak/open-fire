@@ -86,3 +86,16 @@ The previous `1.0.2` / code `4` update was published on October 16, 2026, as con
 - Run `scripts/test-android-icon-rendering.ps1 -Device <adb-serial>` after installing that APK, with `JAVA_HOME` and `ANDROID_HOME` set. The harness requires SDK build-tools 35.0.0 and platform android-35.
 - Its separate test-only APK uses Android's installed adaptive icon drawable, checking circle, rounded-square, squircle, and teardrop masks at 48/72/96 dp. All 12 checks passed again for `1.0.3` code 5. Both validation scripts enforce the additional artwork padding as well as clipping safety.
 - Local contact sheet: `android/build/icon-validation/icon-masks.png` (ignored build output). Neither the helper APK nor its disposable test-only key is part of the production bundle.
+
+## Consent dialog update — 2026-10-24
+
+The frontend now uses @jeniusapps/consent 1.0.1, removing the floating Cookie
+Settings control while retaining the dialog and saved choices. The Android
+TWA loads the hosted frontend, so its web deployment delivers this change
+without rebuilding or uploading an Android bundle.
+
+Play Console was checked with invoicesjeniustech@gmail.com: OpenFIRE 1.0.3
+(code 5) remains under Changes not yet submitted for review, requesting a full
+production rollout. It was not submitted as part of this web-only fix: the
+reviewer-access, notification verification and Data safety issues recorded
+above remain unresolved. No price, country or declaration changes were made.

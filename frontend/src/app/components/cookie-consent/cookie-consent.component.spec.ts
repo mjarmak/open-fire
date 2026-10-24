@@ -25,7 +25,6 @@ describe('Shared consent dialog integration', () => {
     (root.querySelector('[data-choice="cookies"]') as HTMLButtonElement).click();
     expect(document.getElementById('jeniusapps-google-analytics')).toBeNull();
     expect((root.querySelector('.consent-card') as HTMLElement).hidden).toBeTrue();
-    (root.querySelector('.settings') as HTMLButtonElement).click();
-    expect((root.querySelector('.consent-card') as HTMLElement).hidden).toBeFalse();
+    expect(root.querySelector('.settings')).toBeNull();
   });
 });
